@@ -17,6 +17,7 @@ tripsRouter.get("/:id/comments", asyncHandler(controller.listComments));
 tripsRouter.post("/", requireAuth, asyncHandler(controller.create));
 tripsRouter.patch("/:id", requireAuth, asyncHandler(controller.update));
 tripsRouter.post("/:id/cancel", requireAuth, asyncHandler(controller.cancel));
+tripsRouter.delete("/:id", requireAuth, asyncHandler(controller.remove));
 tripsRouter.post("/:id/like", requireAuth, asyncHandler(controller.like));
 tripsRouter.delete("/:id/like", requireAuth, asyncHandler(controller.unlike));
 tripsRouter.post("/:id/bookmark", requireAuth, asyncHandler(controller.bookmark));

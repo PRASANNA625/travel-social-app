@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   RefreshControl,
   StyleSheet,
   Text,
@@ -16,7 +17,7 @@ import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useTrips } from "../api/trips";
 import { useMe } from "../api/users";
-import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type TravelMode, type Trip } from "../types";
+import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
 
 type Props = CompositeScreenProps<
@@ -24,32 +25,10 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<AppStackParamList>
 >;
 
-type CategoryTab = "ALL" | "RECOMMENDED" | "NEARBY" | "POPULAR";
-
-const CATEGORY_TABS: { key: CategoryTab; label: string }[] = [
-  { key: "ALL", label: "All" },
-  { key: "RECOMMENDED", label: "Recommended" },
-  { key: "NEARBY", label: "Nearby Trips" },
-  { key: "POPULAR", label: "Popular" },
-];
-
-function applyCategory(trips: Trip[], category: CategoryTab, preferredModes: TravelMode[]): Trip[] {
-  if (category === "RECOMMENDED" && preferredModes.length > 0) {
-    return trips.filter((trip) => preferredModes.includes(trip.travelMode));
-  }
-  if (category === "POPULAR") {
-    return [...trips].sort(
-      (a, b) => b._count.likes + b._count.comments - (a._count.likes + a._count.comments)
-    );
-  }
-  return trips;
-}
-
 export function DiscoverScreen({ navigation }: Props) {
   const [search, setSearch] = useState("");
   const [travelMode, setTravelMode] = useState<TravelMode | undefined>();
   const [nearMe, setNearMe] = useState<{ lat: number; lng: number } | null>(null);
-  const [category, setCategory] = useState<CategoryTab>("ALL");
 
   const { data: me } = useMe();
 
@@ -60,11 +39,6 @@ export function DiscoverScreen({ navigation }: Props) {
     lng: nearMe?.lng,
     radiusKm: nearMe ? 200 : undefined,
   });
-
-  const trips = useMemo(
-    () => applyCategory(data?.items ?? [], category, me?.preferredModes ?? []),
-    [data?.items, category, me?.preferredModes]
-  );
 
   const toggleNearMe = async () => {
     if (nearMe) {
@@ -77,17 +51,24 @@ export function DiscoverScreen({ navigation }: Props) {
     setNearMe({ lat: position.coords.latitude, lng: position.coords.longitude });
   };
 
-  const selectCategory = async (key: CategoryTab) => {
-    setCategory(key);
-    if (key === "NEARBY" && !nearMe) {
-      await toggleNearMe();
-    } else if (key !== "NEARBY" && nearMe) {
-      setNearMe(null);
-    }
-  };
-
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Hi, {me?.name?.split(" ")[0] ?? "there"} 👋</Text>
+          <Text style={styles.greetingSub}>Where to next?</Text>
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
+          {me?.photoUrl ? (
+            <Image source={{ uri: me.photoUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>{(me?.name ?? "?").charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
       <TextInput
         style={styles.search}
         placeholder="Search trips, destinations..."
@@ -95,24 +76,11 @@ export function DiscoverScreen({ navigation }: Props) {
         onChangeText={setSearch}
       />
 
-      <View style={styles.categoryRow}>
-        {CATEGORY_TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.categoryTab, category === tab.key && styles.categoryTabActive]}
-            onPress={() => selectCategory(tab.key)}
-          >
-            <Text style={[styles.categoryTabText, category === tab.key && styles.categoryTabTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filterRow}
+        contentContainerStyle={styles.filterRowContent}
         data={["NEAR_ME" as const, ...TRAVEL_MODES]}
         keyExtractor={(item) => item}
         renderItem={({ item }) =>
@@ -141,7 +109,7 @@ export function DiscoverScreen({ navigation }: Props) {
       ) : (
         <FlatList
           contentContainerStyle={styles.list}
-          data={trips}
+          data={data?.items ?? []}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
           ListEmptyComponent={<Text style={styles.empty}>No trips match yet — try widening your filters.</Text>}
@@ -160,6 +128,18 @@ export function DiscoverScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  greeting: { fontSize: 20, fontWeight: "700", color: "#0f172a" },
+  greetingSub: { fontSize: 13, color: "#64748b", marginTop: 2 },
+  avatar: { width: 42, height: 42, borderRadius: 21 },
+  avatarPlaceholder: { backgroundColor: "#0f766e", alignItems: "center", justifyContent: "center" },
+  avatarInitial: { color: "#fff", fontWeight: "700", fontSize: 16 },
   search: {
     margin: 12,
     marginBottom: 4,
@@ -169,37 +149,20 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
     padding: 12,
   },
-  categoryRow: {
-    flexDirection: "row",
-    paddingHorizontal: 12,
-    marginTop: 10,
-    marginBottom: 4,
-    gap: 8,
-  },
-  categoryTab: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  categoryTabActive: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
-  categoryTabText: { fontSize: 12, fontWeight: "600", color: "#64748b" },
-  categoryTabTextActive: { color: "#fff" },
-  filterRow: { paddingHorizontal: 12, marginVertical: 8, flexGrow: 0 },
+  filterRow: { height: 40, marginVertical: 8, flexGrow: 0 },
+  filterRowContent: { paddingHorizontal: 12, alignItems: "center" },
   chip: {
+    height: 34,
+    justifyContent: "center",
     backgroundColor: "#fff",
     borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 8,
     marginRight: 8,
     borderWidth: 1,
     borderColor: "#e2e8f0",
   },
   chipActive: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
-  chipText: { fontSize: 12, color: "#334155" },
+  chipText: { fontSize: 12, lineHeight: 16, color: "#334155" },
   chipTextActive: { color: "#fff", fontWeight: "600" },
   list: { padding: 12, paddingBottom: 90 },
   empty: { textAlign: "center", color: "#94a3b8", marginTop: 40 },

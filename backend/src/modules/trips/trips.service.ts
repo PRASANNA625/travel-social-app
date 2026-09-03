@@ -141,6 +141,11 @@ export async function cancelTrip(tripId: string, ownerId: string) {
   return prisma.trip.update({ where: { id: tripId }, data: { status: "CANCELLED" } });
 }
 
+export async function deleteTrip(tripId: string, ownerId: string) {
+  await assertOwner(tripId, ownerId);
+  await prisma.trip.delete({ where: { id: tripId } });
+}
+
 export async function likeTrip(tripId: string, userId: string) {
   await prisma.tripLike.upsert({
     where: { tripId_userId: { tripId, userId } },

@@ -1,8 +1,20 @@
 import { create } from "zustand";
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { User } from "../types";
 
 const TOKEN_KEY = "travel_social_token";
+
+// expo-secure-store has no web implementation, so fall back to AsyncStorage there.
+const tokenStorage =
+  Platform.OS === "web"
+    ? {
+        getItemAsync: (key: string) => AsyncStorage.getItem(key),
+        setItemAsync: (key: string, value: string) => AsyncStorage.setItem(key, value),
+        deleteItemAsync: (key: string) => AsyncStorage.removeItem(key),
+      }
+    : SecureStore;
 
 interface AuthState {
   token: string | null;
@@ -20,19 +32,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   isHydrated: false,
 
   hydrate: async () => {
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+    const token = await tokenStorage.getItemAsync(TOKEN_KEY);
     set({ token, isHydrated: true });
   },
 
   login: async (token, user) => {
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await tokenStorage.setItemAsync(TOKEN_KEY, token);
     set({ token, user });
   },
 
   setUser: (user) => set({ user }),
 
   logout: () => {
-    SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+    tokenStorage.deleteItemAsync(TOKEN_KEY).catch(() => {});
     set({ token: null, user: null });
   },
 }));

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
-import { useBookmarkedTrips, useMyTrips } from "../api/trips";
+import { useBookmarkedTrips, useDeleteTrip, useMyTrips } from "../api/trips";
 import { TripCard } from "../components/TripCard";
+import type { Trip } from "../types";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "MyTrips">,
@@ -16,9 +17,24 @@ export function MyTripsScreen({ navigation }: Props) {
   const [tab, setTab] = useState<"mine" | "saved">("mine");
   const myTrips = useMyTrips();
   const savedTrips = useBookmarkedTrips();
+  const deleteTrip = useDeleteTrip();
 
   const data = tab === "mine" ? myTrips.data : savedTrips.data;
   const isLoading = tab === "mine" ? myTrips.isLoading : savedTrips.isLoading;
+
+  const confirmDelete = (trip: Trip) => {
+    Alert.alert("Delete this trip?", `"${trip.title}" will be permanently deleted. This can't be undone.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () =>
+          deleteTrip.mutate(trip.id, {
+            onError: () => Alert.alert("Couldn't delete trip", "Please try again"),
+          }),
+      },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
@@ -44,7 +60,11 @@ export function MyTripsScreen({ navigation }: Props) {
             </Text>
           }
           renderItem={({ item }) => (
-            <TripCard trip={item} onPress={() => navigation.navigate("TripDetail", { tripId: item.id })} />
+            <TripCard
+              trip={item}
+              onPress={() => navigation.navigate("TripDetail", { tripId: item.id })}
+              onDelete={tab === "mine" ? () => confirmDelete(item) : undefined}
+            />
           )}
         />
       )}

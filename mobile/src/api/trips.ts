@@ -110,6 +110,16 @@ export function useBookmarkTrip() {
   );
 }
 
+export function useDeleteTrip() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (tripId: string) => apiClient.delete(`/trips/${tripId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+    },
+  });
+}
+
 export function useTripComments(tripId?: string) {
   return useQuery({
     queryKey: ["trips", tripId, "comments"],

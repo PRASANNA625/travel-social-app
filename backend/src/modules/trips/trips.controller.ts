@@ -44,6 +44,11 @@ export async function cancel(req: AuthedRequest, res: Response) {
   res.json(trip);
 }
 
+export async function remove(req: AuthedRequest, res: Response) {
+  await service.deleteTrip(req.params.id, req.userId!);
+  res.json({ ok: true });
+}
+
 export async function like(req: AuthedRequest, res: Response) {
   await service.likeTrip(req.params.id, req.userId!);
   res.json({ ok: true });
