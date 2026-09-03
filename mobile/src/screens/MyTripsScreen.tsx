@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -7,6 +7,7 @@ import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useBookmarkedTrips, useDeleteTrip, useMyTrips } from "../api/trips";
 import { TripCard } from "../components/TripCard";
 import type { Trip } from "../types";
+import { Alert } from "../utils/alert";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "MyTrips">,

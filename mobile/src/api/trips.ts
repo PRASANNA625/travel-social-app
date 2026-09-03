@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ImagePickerAsset } from "expo-image-picker";
 import { apiClient } from "./client";
+import { appendImageAsset } from "../utils/formDataImage";
 import type { JoinType, Paginated, Trip, TripComment, TravelMode } from "../types";
 
 export interface TripFilters {
@@ -76,10 +78,10 @@ export function useCreateTrip() {
 
 export function useUploadTripImages() {
   return useMutation({
-    mutationFn: async (uris: string[]) => {
+    mutationFn: async (assets: ImagePickerAsset[]) => {
       const form = new FormData();
-      uris.forEach((uri, i) => {
-        form.append("images", { uri, name: `trip-${i}.jpg`, type: "image/jpeg" } as unknown as Blob);
+      assets.forEach((asset, i) => {
+        appendImageAsset(form, "images", asset, `trip-${i}.jpg`);
       });
       const { data } = await apiClient.post<{ urls: string[] }>("/trips/images", form);
       return data.urls;

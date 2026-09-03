@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   ScrollView,
@@ -20,6 +19,7 @@ import { useExpressInterest } from "../api/joinRequests";
 import { useMyJoinRequests } from "../api/joinRequests";
 import { useGroupByTrip } from "../api/groups";
 import { TRAVEL_MODE_LABELS, type Trip } from "../types";
+import { Alert } from "../utils/alert";
 
 type Props = NativeStackScreenProps<AppStackParamList, "TripDetail">;
 

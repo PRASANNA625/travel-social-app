@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ImagePickerAsset } from "expo-image-picker";
 import { apiClient } from "./client";
 import { useAuthStore } from "../store/authStore";
+import { appendImageAsset } from "../utils/formDataImage";
 import type { Trip, TravelMode, User } from "../types";
 
 export function useMe() {
@@ -51,9 +53,9 @@ export function useUpdateProfile() {
 export function useUploadProfilePhoto() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (uri: string) => {
+    mutationFn: async (asset: ImagePickerAsset) => {
       const form = new FormData();
-      form.append("photo", { uri, name: "photo.jpg", type: "image/jpeg" } as unknown as Blob);
+      appendImageAsset(form, "photo", asset, "photo.jpg");
       const { data } = await apiClient.post<User>("/users/me/photo", form);
       return data;
     },

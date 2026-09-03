@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useMe, useUpdateProfile } from "../api/users";
 import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type TravelMode } from "../types";
+import { Alert } from "../utils/alert";
 
 type Props = NativeStackScreenProps<AppStackParamList, "EditProfile">;
 

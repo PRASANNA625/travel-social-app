@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import type { ImagePickerAsset } from "expo-image-picker";
 import { apiClient } from "./client";
 import { getSocket } from "./socket";
+import { appendImageAsset } from "../utils/formDataImage";
 import type { ChatMessage, Paginated } from "../types";
 
 export function useMessageHistory(groupId?: string) {
@@ -14,9 +16,9 @@ export function useMessageHistory(groupId?: string) {
 
 export function useUploadChatImage() {
   return useMutation({
-    mutationFn: async (uri: string) => {
+    mutationFn: async (asset: ImagePickerAsset) => {
       const form = new FormData();
-      form.append("image", { uri, name: "chat.jpg", type: "image/jpeg" } as unknown as Blob);
+      appendImageAsset(form, "image", asset, "chat.jpg");
       const { data } = await apiClient.post<{ url: string }>("/messages/images", form);
       return data.url;
     },

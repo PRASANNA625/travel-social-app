@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
@@ -7,6 +7,7 @@ import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useAuthStore } from "../store/authStore";
 import { useMe, useUploadProfilePhoto, useCompletedTrips } from "../api/users";
 import { TRAVEL_MODE_LABELS } from "../types";
+import { Alert } from "../utils/alert";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Profile">,
@@ -24,7 +25,7 @@ export function ProfileScreen({ navigation }: Props) {
     if (status !== "granted") return;
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
     if (result.canceled) return;
-    uploadPhoto.mutate(result.assets[0].uri, {
+    uploadPhoto.mutate(result.assets[0], {
       onError: () => Alert.alert("Couldn't upload photo", "Please try again"),
     });
   };

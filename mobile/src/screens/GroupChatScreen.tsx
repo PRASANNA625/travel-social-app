@@ -46,7 +46,7 @@ export function GroupChatScreen({ route }: Props) {
       quality: 0.7,
     });
     if (result.canceled) return;
-    const url = await uploadImage.mutateAsync(result.assets[0].uri);
+    const url = await uploadImage.mutateAsync(result.assets[0]);
     sendMessage({ type: "IMAGE", mediaUrl: url });
   };
 

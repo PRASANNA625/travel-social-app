@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -18,6 +17,7 @@ import type { AppStackParamList } from "../navigation/types";
 import { useCreateTrip, useUploadTripImages } from "../api/trips";
 import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type JoinType, type TravelMode } from "../types";
 import { TripDateFields } from "../components/TripDateFields";
+import { Alert } from "../utils/alert";
 
 type Props = NativeStackScreenProps<AppStackParamList, "CreateTrip">;
 
@@ -40,8 +40,8 @@ export function CreateTripScreen({ navigation }: Props) {
   const [placesToVisit, setPlacesToVisit] = useState("");
   const [notes, setNotes] = useState("");
   const [joinType, setJoinType] = useState<JoinType | undefined>(undefined);
-  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
-  const [images, setImages] = useState<string[]>([]);
+  const [coverPhoto, setCoverPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
   const createTrip = useCreateTrip();
@@ -56,7 +56,7 @@ export function CreateTripScreen({ navigation }: Props) {
       quality: 0.7,
     });
     if (!result.canceled) {
-      setCoverPhoto(result.assets[0].uri);
+      setCoverPhoto(result.assets[0]);
     }
   };
 
@@ -70,7 +70,7 @@ export function CreateTripScreen({ navigation }: Props) {
       quality: 0.7,
     });
     if (!result.canceled) {
-      setImages((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
+      setImages((prev) => [...prev, ...result.assets]);
     }
   };
 
@@ -241,7 +241,7 @@ export function CreateTripScreen({ navigation }: Props) {
       <Text style={styles.label}>Cover photo</Text>
       {coverPhoto ? (
         <TouchableOpacity onPress={pickCoverPhoto}>
-          <Image source={{ uri: coverPhoto }} style={styles.coverPreview} />
+          <Image source={{ uri: coverPhoto.uri }} style={styles.coverPreview} />
           <View style={styles.coverChangeBadge}>
             <Text style={styles.coverChangeText}>Change</Text>
           </View>
@@ -255,8 +255,8 @@ export function CreateTripScreen({ navigation }: Props) {
 
       <Text style={styles.label}>Additional photos</Text>
       <View style={styles.row}>
-        {images.map((uri) => (
-          <Image key={uri} source={{ uri }} style={styles.thumb} />
+        {images.map((asset) => (
+          <Image key={asset.uri} source={{ uri: asset.uri }} style={styles.thumb} />
         ))}
         <TouchableOpacity style={styles.addImage} onPress={pickImages}>
           <Text style={{ fontSize: 24 }}>+</Text>
