@@ -17,7 +17,7 @@
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "extra": {
-      "apiUrl": "http://192.168.1.13:4000",
+      "apiUrl": "https://travel-social-backend-t0xg.onrender.com",
       "googleClientId": ""
     }
   }
