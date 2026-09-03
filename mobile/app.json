@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Travel & Social Meetup",
+    "slug": "travel-social-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Used to show trips and distances near you.",
+        "NSPhotoLibraryUsageDescription": "Used to attach photos to your profile, trips, and chat."
+      }
+    },
+    "android": {
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "extra": {
+      "apiUrl": "http://192.168.1.13:4000",
+      "googleClientId": ""
+    }
+  }
+}

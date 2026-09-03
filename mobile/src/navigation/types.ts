@@ -1,0 +1,21 @@
+export type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
+};
+
+export type AppStackParamList = {
+  Tabs: undefined;
+  TripDetail: { tripId: string };
+  CreateTrip: undefined;
+  JoinRequestsInbox: { tripId: string };
+  GroupChat: { groupId: string; tripTitle: string };
+  EditProfile: undefined;
+  UserProfile: { userId: string };
+};
+
+export type AppTabParamList = {
+  Discover: undefined;
+  MyTrips: undefined;
+  Notifications: undefined;
+  Profile: undefined;
+};
