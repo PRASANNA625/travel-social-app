@@ -15,5 +15,8 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "30d",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   uploadsDir: process.env.UPLOADS_DIR ?? "uploads",
-  publicBaseUrl: process.env.PUBLIC_BASE_URL ?? `http://localhost:${process.env.PORT ?? 4000}`,
+  publicBaseUrl:
+    process.env.PUBLIC_BASE_URL ??
+    process.env.RENDER_EXTERNAL_URL ??
+    `http://localhost:${process.env.PORT ?? 4000}`,
 };
