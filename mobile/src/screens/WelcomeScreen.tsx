@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { ComponentProps } from "react";
-import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -43,9 +43,7 @@ export function WelcomeScreen({ navigation }: Props) {
           <LanguageSelector style={styles.languageSelector} />
 
           <View style={styles.brandRow}>
-            <View style={styles.logoBadge}>
-              <MaterialCommunityIcons name="compass" size={26} color="#0f766e" />
-            </View>
+            <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />
             <Text style={styles.brandName}>{t("welcome.brand")}</Text>
           </View>
 
@@ -107,9 +105,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden",
     shadowColor: "#0f172a",
     shadowOpacity: 0.2,
     shadowRadius: 10,

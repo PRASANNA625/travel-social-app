@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -111,9 +112,7 @@ export function LoginScreen({ navigation }: Props) {
         >
           <View style={[styles.page, isWeb && styles.pageWeb]}>
             <View style={styles.brandRow}>
-              <View style={styles.logoBadge}>
-                <MaterialCommunityIcons name="compass" size={22} color="#0f766e" />
-              </View>
+              <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />
               <Text style={styles.brandName}>Travel & Social Meetup</Text>
             </View>
 
@@ -211,9 +210,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 13,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden",
     shadowColor: "#0f172a",
     shadowOpacity: 0.2,
     shadowRadius: 8,
