@@ -1,4 +1,4 @@
-# Travel & Social Meetup App
+# Triply
 
 A travel-planning + social-meetup mobile app: create and discover trips, request to join, get auto-added to a
 private trip group once approved, and chat with your travel crew in real time.

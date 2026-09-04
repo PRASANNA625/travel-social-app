@@ -3,7 +3,7 @@
   "common.password": "ಪಾಸ್‌ವರ್ಡ್",
   "common.fullName": "ಪೂರ್ಣ ಹೆಸರು",
 
-  "welcome.brand": "Travel & Social",
+  "welcome.brand": "Triply",
   "welcome.headline": "ನಿಮ್ಮ ಮುಂದಿನ ಸಾಹಸ\nಇಲ್ಲಿಂದ ಆರಂಭವಾಗುತ್ತದೆ.",
   "welcome.subtitle": "ಪ್ರವಾಸಗಳನ್ನು ಅನ್ವೇಷಿಸಿ. ಜನರನ್ನು ಭೇಟಿಯಾಗಿ. ನೆನಪುಗಳನ್ನು ಸೃಷ್ಟಿಸಿ.",
   "welcome.highlightTrips": "ಪ್ರವಾಸಗಳು",
@@ -25,7 +25,7 @@
   "onboarding.slide4Title": "ಒಟ್ಟಿಗೆ ನೆನಪುಗಳನ್ನು ಸೃಷ್ಟಿಸಿ",
   "onboarding.slide4Desc": "ಪ್ರವಾಸಗಳಲ್ಲಿ ಸೇರಿ, ಅನುಭವಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ, ಕಾಮೆಂಟ್ ಮಾಡಿ, ಮತ್ತು ನಿಮ್ಮ ಪ್ರಯಾಣ ಸಮುದಾಯದೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಿ.",
 
-  "login.brand": "Travel & Social Meetup",
+  "login.brand": "Triply",
   "login.heading": "ಮತ್ತೆ ಸ್ವಾಗತ 👋",
   "login.subheading": "ನಿಮ್ಮ ಮುಂದಿನ ಪ್ರವಾಸ ಮತ್ತು ಪ್ರಯಾಣ ತಂಡವನ್ನು ಹುಡುಕಲು ಲಾಗಿನ್ ಮಾಡಿ.",
   "login.logIn": "ಲಾಗಿನ್ ಮಾಡಿ",
@@ -35,7 +35,7 @@
   "login.phoneLogin": "ಫೋನ್ ಸಂಖ್ಯೆಯೊಂದಿಗೆ ಲಾಗಿನ್ ಮಾಡಿ",
   "login.version": "ಆವೃತ್ತಿ {version}",
 
-  "register.brand": "Travel & Social Meetup",
+  "register.brand": "Triply",
   "register.heading": "ಸಾಹಸಕ್ಕೆ ಸೇರಿ 🌍",
   "register.subheading": "ಪ್ರವಾಸಗಳು ಮತ್ತು ಪ್ರಯಾಣ ಸ್ನೇಹಿತರನ್ನು ಹುಡುಕಲು ಖಾತೆ ರಚಿಸಿ.",
   "register.passwordHint": "ಪಾಸ್‌ವರ್ಡ್ (ಕನಿಷ್ಠ 8 ಅಕ್ಷರಗಳು)",

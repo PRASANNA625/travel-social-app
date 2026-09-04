@@ -3,7 +3,7 @@
   "common.password": "கடவுச்சொல்",
   "common.fullName": "முழு பெயர்",
 
-  "welcome.brand": "Travel & Social",
+  "welcome.brand": "Triply",
   "welcome.headline": "உங்கள் அடுத்த சாகசம்\nஇங்கே தொடங்குகிறது.",
   "welcome.subtitle": "பயணங்களைக் கண்டறியுங்கள். மக்களைச் சந்தியுங்கள். நினைவுகளை உருவாக்குங்கள்.",
   "welcome.highlightTrips": "பயணங்கள்",
@@ -25,7 +25,7 @@
   "onboarding.slide4Title": "ஒன்றாக நினைவுகளை உருவாக்குங்கள்",
   "onboarding.slide4Desc": "பயணங்களில் இணையுங்கள், அனுபவங்களைப் பகிருங்கள், கருத்து தெரிவியுங்கள், மற்றும் உங்கள் பயண சமூகத்துடன் இணையுங்கள்.",
 
-  "login.brand": "Travel & Social Meetup",
+  "login.brand": "Triply",
   "login.heading": "மீண்டும் வரவேற்கிறோம் 👋",
   "login.subheading": "உங்கள் அடுத்த பயணத்தையும் பயணக் குழுவையும் கண்டறிய உள்நுழையவும்.",
   "login.logIn": "உள்நுழையவும்",
@@ -35,7 +35,7 @@
   "login.phoneLogin": "தொலைபேசி எண் மூலம் உள்நுழையவும்",
   "login.version": "பதிப்பு {version}",
 
-  "register.brand": "Travel & Social Meetup",
+  "register.brand": "Triply",
   "register.heading": "சாகசத்தில் இணையுங்கள் 🌍",
   "register.subheading": "பயணங்கள் மற்றும் பயண நண்பர்களைக் கண்டறிய கணக்கை உருவாக்குங்கள்.",
   "register.passwordHint": "கடவுச்சொல் (குறைந்தது 8 எழுத்துகள்)",

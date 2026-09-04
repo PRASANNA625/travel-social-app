@@ -3,7 +3,7 @@
   "common.password": "పాస్‌వర్డ్",
   "common.fullName": "పూర్తి పేరు",
 
-  "welcome.brand": "Travel & Social",
+  "welcome.brand": "Triply",
   "welcome.headline": "మీ తదుపరి సాహసం\nఇక్కడ మొదలవుతుంది.",
   "welcome.subtitle": "యాత్రలను కనుగొనండి. ప్రజలను కలవండి. జ్ఞాపకాలను సృష్టించండి.",
   "welcome.highlightTrips": "యాత్రలు",
@@ -25,7 +25,7 @@
   "onboarding.slide4Title": "కలిసి జ్ఞాపకాలు సృష్టించండి",
   "onboarding.slide4Desc": "యాత్రలలో చేరండి, అనుభవాలను పంచుకోండి, వ్యాఖ్యానించండి, మరియు మీ ప్రయాణ సంఘంతో కనెక్ట్ అవ్వండి.",
 
-  "login.brand": "Travel & Social Meetup",
+  "login.brand": "Triply",
   "login.heading": "తిరిగి స్వాగతం 👋",
   "login.subheading": "మీ తదుపరి యాత్ర మరియు ప్రయాణ బృందాన్ని కనుగొనడానికి లాగిన్ చేయండి.",
   "login.logIn": "లాగిన్ చేయండి",
@@ -35,7 +35,7 @@
   "login.phoneLogin": "ఫోన్ నంబర్‌తో లాగిన్ చేయండి",
   "login.version": "వెర్షన్ {version}",
 
-  "register.brand": "Travel & Social Meetup",
+  "register.brand": "Triply",
   "register.heading": "సాహసంలో చేరండి 🌍",
   "register.subheading": "యాత్రలు మరియు ప్రయాణ మిత్రులను కనుగొనడానికి ఖాతా సృష్టించండి.",
   "register.passwordHint": "పాస్‌వర్డ్ (కనీసం 8 అక్షరాలు)",

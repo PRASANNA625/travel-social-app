@@ -3,7 +3,7 @@
   "common.password": "Password",
   "common.fullName": "Full name",
 
-  "welcome.brand": "Travel & Social",
+  "welcome.brand": "Triply",
   "welcome.headline": "Your Next Adventure\nStarts Here.",
   "welcome.subtitle": "Discover trips. Meet people. Create memories.",
   "welcome.highlightTrips": "Trips",
@@ -25,7 +25,7 @@
   "onboarding.slide4Title": "Make Memories Together",
   "onboarding.slide4Desc": "Join trips, share experiences, comment, and connect with your travel community.",
 
-  "login.brand": "Travel & Social Meetup",
+  "login.brand": "Triply",
   "login.heading": "Welcome Back 👋",
   "login.subheading": "Log in to find your next trip and your next travel crew.",
   "login.logIn": "Log In",
@@ -35,7 +35,7 @@
   "login.phoneLogin": "Log in with phone number",
   "login.version": "Version {version}",
 
-  "register.brand": "Travel & Social Meetup",
+  "register.brand": "Triply",
   "register.heading": "Join the Adventure 🌍",
   "register.subheading": "Create an account to find trips and travel buddies.",
   "register.passwordHint": "Password (min 8 characters)",

@@ -3,7 +3,7 @@
   "common.password": "पासवर्ड",
   "common.fullName": "पूरा नाम",
 
-  "welcome.brand": "Travel & Social",
+  "welcome.brand": "Triply",
   "welcome.headline": "आपका अगला रोमांच\nयहीं से शुरू होता है।",
   "welcome.subtitle": "यात्राएँ खोजें। लोगों से मिलें। यादें बनाएं।",
   "welcome.highlightTrips": "यात्राएँ",
@@ -25,7 +25,7 @@
   "onboarding.slide4Title": "साथ मिलकर यादें बनाएं",
   "onboarding.slide4Desc": "यात्राओं में शामिल हों, अनुभव साझा करें, टिप्पणी करें, और अपने यात्रा समुदाय से जुड़ें।",
 
-  "login.brand": "Travel & Social Meetup",
+  "login.brand": "Triply",
   "login.heading": "वापसी पर स्वागत है 👋",
   "login.subheading": "अपनी अगली यात्रा और अगली यात्रा टीम खोजने के लिए लॉग इन करें।",
   "login.logIn": "लॉग इन करें",
@@ -35,7 +35,7 @@
   "login.phoneLogin": "फ़ोन नंबर से लॉग इन करें",
   "login.version": "संस्करण {version}",
 
-  "register.brand": "Travel & Social Meetup",
+  "register.brand": "Triply",
   "register.heading": "रोमांच से जुड़ें 🌍",
   "register.subheading": "यात्राएं और यात्रा साथी खोजने के लिए खाता बनाएं।",
   "register.passwordHint": "पासवर्ड (न्यूनतम 8 अक्षर)",
