@@ -6,14 +6,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
+import { useLanguage } from "../i18n/LanguageContext";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const HIGHLIGHTS: { icon: IconName; label: string }[] = [
-  { icon: "airplane-takeoff", label: "Trips" },
-  { icon: "account-group", label: "People" },
-  { icon: "map-marker-radius", label: "Memories" },
+const HIGHLIGHTS: { icon: IconName; labelKey: string }[] = [
+  { icon: "airplane-takeoff", labelKey: "welcome.highlightTrips" },
+  { icon: "account-group", labelKey: "welcome.highlightPeople" },
+  { icon: "map-marker-radius", labelKey: "welcome.highlightMemories" },
 ];
 
 export function WelcomeScreen({ navigation }: Props) {
@@ -21,6 +23,7 @@ export function WelcomeScreen({ navigation }: Props) {
   const isWeb = Platform.OS === "web";
   const fade = useRef(new Animated.Value(0)).current;
   const rise = useRef(new Animated.Value(18)).current;
+  const { t } = useLanguage();
 
   useEffect(() => {
     Animated.parallel([
@@ -37,24 +40,26 @@ export function WelcomeScreen({ navigation }: Props) {
 
       <View style={[styles.page, isWeb && styles.pageWeb]}>
         <View style={[styles.content, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 24 }]}>
+          <LanguageSelector style={styles.languageSelector} />
+
           <View style={styles.brandRow}>
             <View style={styles.logoBadge}>
               <MaterialCommunityIcons name="compass" size={26} color="#0f766e" />
             </View>
-            <Text style={styles.brandName}>Travel & Social</Text>
+            <Text style={styles.brandName}>{t("welcome.brand")}</Text>
           </View>
 
           <Animated.View style={[styles.heroBlock, { opacity: fade, transform: [{ translateY: rise }] }]}>
-            <Text style={styles.headline}>Your Next Adventure{"\n"}Starts Here.</Text>
-            <Text style={styles.subtitle}>Discover trips. Meet people. Create memories.</Text>
+            <Text style={styles.headline}>{t("welcome.headline")}</Text>
+            <Text style={styles.subtitle}>{t("welcome.subtitle")}</Text>
 
             <View style={styles.highlightRow}>
               {HIGHLIGHTS.map((item) => (
-                <View key={item.label} style={styles.highlightItem}>
+                <View key={item.labelKey} style={styles.highlightItem}>
                   <View style={styles.highlightIconWrap}>
                     <MaterialCommunityIcons name={item.icon} size={18} color="#fff" />
                   </View>
-                  <Text style={styles.highlightLabel}>{item.label}</Text>
+                  <Text style={styles.highlightLabel}>{t(item.labelKey)}</Text>
                 </View>
               ))}
             </View>
@@ -66,13 +71,14 @@ export function WelcomeScreen({ navigation }: Props) {
               activeOpacity={0.9}
               onPress={() => navigation.navigate("Onboarding")}
             >
-              <Text style={styles.primaryButtonText}>Get Started</Text>
+              <Text style={styles.primaryButtonText}>{t("welcome.getStarted")}</Text>
               <MaterialCommunityIcons name="arrow-right" size={18} color="#0f766e" />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("Login")}>
               <Text style={styles.secondaryLinkText}>
-                Already have an account? <Text style={styles.secondaryLinkStrong}>Sign In</Text>
+                {t("welcome.haveAccount")}
+                <Text style={styles.secondaryLinkStrong}>{t("welcome.signIn")}</Text>
               </Text>
             </TouchableOpacity>
           </Animated.View>
@@ -87,6 +93,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, width: "100%" },
   pageWeb: { alignItems: "center", justifyContent: "center" },
   content: { flex: 1, width: "100%", maxWidth: 420, alignSelf: "center", paddingHorizontal: 28, justifyContent: "space-between" },
+  languageSelector: { position: "absolute", top: 0, right: 0, zIndex: 10 },
   decorCircle: {
     position: "absolute",
     borderRadius: 999,

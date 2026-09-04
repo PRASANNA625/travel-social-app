@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ActivityIndicator, View } from "react-native";
 import { useAuthStore } from "./src/store/authStore";
 import { RootNavigator } from "./src/navigation/RootNavigator";
+import { LanguageProvider } from "./src/i18n/LanguageContext";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1 } },
@@ -30,9 +31,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <LanguageProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </LanguageProvider>
         <StatusBar style="auto" />
       </QueryClientProvider>
     </SafeAreaProvider>
