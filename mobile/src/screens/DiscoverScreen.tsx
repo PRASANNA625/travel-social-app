@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import * as Location from "expo-location";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { CompositeScreenProps } from "@react-navigation/native";
@@ -23,6 +22,7 @@ import { useMe } from "../api/users";
 import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
+import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -54,13 +54,8 @@ export function DiscoverScreen({ navigation }: Props) {
   const activateNearMe = async () => {
     setLocating(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLocationDeniedVisible(true);
-        return;
-      }
-      const position = await Location.getCurrentPositionAsync({});
-      setNearMe({ lat: position.coords.latitude, lng: position.coords.longitude });
+      const coords = await getCurrentLocationOrThrow();
+      setNearMe(coords);
     } catch {
       setLocationDeniedVisible(true);
     } finally {
