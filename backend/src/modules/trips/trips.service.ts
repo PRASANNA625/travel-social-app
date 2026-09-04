@@ -20,6 +20,17 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function assertValidTripDates(start: Date, end: Date): void {
+  const todayUTC = new Date();
+  todayUTC.setUTCHours(0, 0, 0, 0);
+  if (end.getTime() < start.getTime()) {
+    throw new HttpError(400, "End date cannot be before the start date");
+  }
+  if (end.getTime() < todayUTC.getTime()) {
+    throw new HttpError(400, "End date must be today or in the future");
+  }
+}
+
 async function attachViewerFlags<T extends { id: string }>(trips: T[], viewerId?: string) {
   if (!viewerId || trips.length === 0) return trips.map((t) => ({ ...t, isLiked: false, isBookmarked: false }));
 
@@ -35,6 +46,7 @@ async function attachViewerFlags<T extends { id: string }>(trips: T[], viewerId?
 }
 
 export async function createTrip(ownerId: string, input: CreateTripInput) {
+  assertValidTripDates(input.startDate, input.endDate);
   const trip = await prisma.trip.create({
     data: { ...input, ownerId },
   });
@@ -132,7 +144,14 @@ async function assertOwner(tripId: string, ownerId: string) {
 }
 
 export async function updateTrip(tripId: string, ownerId: string, input: UpdateTripInput) {
-  await assertOwner(tripId, ownerId);
+  const existing = await assertOwner(tripId, ownerId);
+  const effectiveStart = input.startDate ?? existing.startDate;
+  const effectiveEnd = input.endDate ?? existing.endDate;
+
+  if (input.startDate !== undefined || input.endDate !== undefined) {
+    assertValidTripDates(effectiveStart, effectiveEnd);
+  }
+
   return prisma.trip.update({ where: { id: tripId }, data: input });
 }
 
