@@ -11,14 +11,16 @@ import {
   View,
 } from "react-native";
 import * as Location from "expo-location";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useTrips } from "../api/trips";
 import { useMe } from "../api/users";
-import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type TravelMode } from "../types";
+import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
+import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -69,12 +71,16 @@ export function DiscoverScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <TextInput
-        style={styles.search}
-        placeholder="Search trips, destinations..."
-        value={search}
-        onChangeText={setSearch}
-      />
+      <View style={styles.searchWrap}>
+        <MaterialCommunityIcons name="magnify" size={18} color="#94a3b8" />
+        <TextInput
+          style={styles.search}
+          placeholder="Search trips, destinations..."
+          placeholderTextColor="#94a3b8"
+          value={search}
+          onChangeText={setSearch}
+        />
+      </View>
 
       <FlatList
         horizontal
@@ -87,7 +93,8 @@ export function DiscoverScreen({ navigation }: Props) {
           if (item === "NEAR_ME") {
             return (
               <TouchableOpacity style={[styles.chip, nearMe && styles.chipActive]} onPress={toggleNearMe}>
-                <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>📍 Near me</Text>
+                <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? "#fff" : "#334155"} />
+                <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>Near me</Text>
               </TouchableOpacity>
             );
           }
@@ -97,7 +104,12 @@ export function DiscoverScreen({ navigation }: Props) {
               style={[styles.chip, active && styles.chipActive]}
               onPress={() => setTravelMode(active ? undefined : item)}
             >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{TRAVEL_MODE_LABELS[item]}</Text>
+              <MaterialCommunityIcons
+                name={TRAVEL_MODE_ICONS[item]}
+                size={15}
+                color={active ? "#fff" : "#334155"}
+              />
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{travelModeText(item)}</Text>
             </TouchableOpacity>
           );
         }}
@@ -111,15 +123,21 @@ export function DiscoverScreen({ navigation }: Props) {
           data={data?.items ?? []}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
-          ListEmptyComponent={<Text style={styles.empty}>No trips match yet — try widening your filters.</Text>}
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <MaterialCommunityIcons name="compass-outline" size={40} color="#cbd5e1" />
+              <Text style={styles.empty}>No trips match yet — try widening your filters.</Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <TripCard trip={item} onPress={() => navigation.navigate("TripDetail", { tripId: item.id })} />
           )}
         />
       )}
 
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("CreateTrip")}>
-        <Text style={styles.fabText}>+ Create Trip</Text>
+      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("CreateTrip")} activeOpacity={0.9}>
+        <MaterialCommunityIcons name="plus" size={18} color="#fff" />
+        <Text style={styles.fabText}>Create Trip</Text>
       </TouchableOpacity>
     </View>
   );
@@ -132,53 +150,62 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
   },
-  greeting: { fontSize: 20, fontWeight: "700", color: "#0f172a" },
+  greeting: { fontSize: 21, fontWeight: "700", color: "#0f172a" },
   greetingSub: { fontSize: 13, color: "#64748b", marginTop: 2 },
   avatar: { width: 42, height: 42, borderRadius: 21 },
   avatarPlaceholder: { backgroundColor: "#0f766e", alignItems: "center", justifyContent: "center" },
   avatarInitial: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  search: {
-    margin: 12,
-    marginBottom: 4,
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 14,
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e2e8f0",
-    padding: 12,
+    paddingHorizontal: 14,
   },
-  filterRow: { marginVertical: 8, flexGrow: 0 },
-  filterRowContent: { paddingHorizontal: 12, alignItems: "center" },
+  search: { flex: 1, paddingVertical: 12, fontSize: 14, color: "#0f172a" },
+  filterRow: { marginTop: 14, marginBottom: 6, flexGrow: 0 },
+  filterRowContent: { paddingHorizontal: 16, paddingRight: 24, alignItems: "center", gap: 8 },
   chip: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
     justifyContent: "center",
     backgroundColor: "#fff",
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderWidth: 1,
     borderColor: "#e2e8f0",
   },
   chipActive: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
-  chipText: { fontSize: 12, lineHeight: 16, color: "#334155" },
-  chipTextActive: { color: "#fff", fontWeight: "600" },
-  list: { padding: 12, paddingBottom: 90 },
-  empty: { textAlign: "center", color: "#94a3b8", marginTop: 40 },
+  chipText: { fontSize: 12.5, color: "#334155", fontWeight: "500" },
+  chipTextActive: { color: "#fff", fontWeight: "700" },
+  list: { padding: 16, paddingBottom: 100 },
+  emptyWrap: { alignItems: "center", marginTop: 48, gap: 10 },
+  empty: { textAlign: "center", color: "#94a3b8", fontSize: 13, paddingHorizontal: 32 },
   fab: {
     position: "absolute",
     right: 16,
     bottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: "#0f766e",
     borderRadius: 999,
     paddingVertical: 14,
     paddingHorizontal: 20,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
-  fabText: { color: "#fff", fontWeight: "700" },
+  fabText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 });
