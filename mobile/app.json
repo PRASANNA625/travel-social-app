@@ -10,11 +10,12 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Used to show trips and distances near you.",
-        "NSPhotoLibraryUsageDescription": "Used to attach photos to your profile, trips, and chat."
+        "NSPhotoLibraryUsageDescription": "Used to attach photos to your profile, trips, and chat.",
+        "NSCameraUsageDescription": "Used to take photos to share in trip group chats."
       }
     },
     "android": {
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "CAMERA"]
     },
     "extra": {
       "apiUrl": "https://travel-social-backend-t0xg.onrender.com",

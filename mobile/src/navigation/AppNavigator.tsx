@@ -25,11 +25,7 @@ export function AppNavigator() {
         component={JoinRequestsInboxScreen}
         options={{ title: "Join Requests" }}
       />
-      <Stack.Screen
-        name="GroupChat"
-        component={GroupChatScreen}
-        options={({ route }) => ({ title: route.params.tripTitle })}
-      />
+      <Stack.Screen name="GroupChat" component={GroupChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: "Edit Profile" }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
     </Stack.Navigator>
