@@ -27,6 +27,20 @@ const JOIN_TYPES: { value: JoinType; label: string }[] = [
   { value: "INVITE_ONLY", label: "Invite-only" },
 ];
 
+function splitModeLabel(label: string): { icon: string; text: string } {
+  const [icon, ...rest] = label.split(" ");
+  return { icon, text: rest.join(" ") };
+}
+
+function FieldLabel({ text, required }: { text: string; required?: boolean }) {
+  return (
+    <Text style={styles.label}>
+      {text}
+      {required && <Text style={styles.required}> *</Text>}
+    </Text>
+  );
+}
+
 export function CreateTripScreen({ navigation }: Props) {
   const [title, setTitle] = useState("");
   const [destination, setDestination] = useState("");
@@ -135,25 +149,51 @@ export function CreateTripScreen({ navigation }: Props) {
       style={styles.container}
       contentContainerStyle={{ padding: 16, paddingBottom: 16 + insets.bottom, gap: 12 }}
     >
+      <Text style={styles.sectionTitle}>Trip Information</Text>
+      <Text style={styles.sectionSubtitle}>Share your travel plan and find like-minded companions</Text>
+
+      <FieldLabel text="Trip title" required />
       <TextInput
         style={[styles.input, submitted && !title.trim() && styles.inputError]}
-        placeholder="Trip title"
+        placeholder="e.g., Spiti Valley Road Trip"
+        placeholderTextColor="#94a3b8"
+        maxLength={60}
         value={title}
         onChangeText={setTitle}
       />
-      <TextInput
-        style={[styles.input, submitted && !startLocation.trim() && styles.inputError]}
-        placeholder="Starting location"
-        value={startLocation}
-        onChangeText={setStartLocation}
-      />
-      <TextInput
-        style={[styles.input, submitted && !destination.trim() && styles.inputError]}
-        placeholder="Destination"
-        value={destination}
-        onChangeText={setDestination}
-      />
+      <Text style={styles.counter}>{title.length}/60</Text>
 
+      <View style={styles.row}>
+        <View style={styles.flex1}>
+          <FieldLabel text="Starting location" required />
+          <TextInput
+            style={[styles.input, submitted && !startLocation.trim() && styles.inputError]}
+            placeholder="e.g., Chennai, India"
+            placeholderTextColor="#94a3b8"
+            value={startLocation}
+            onChangeText={setStartLocation}
+          />
+        </View>
+        <View style={styles.flex1}>
+          <FieldLabel text="Destination" required />
+          <TextInput
+            style={[styles.input, submitted && !destination.trim() && styles.inputError]}
+            placeholder="e.g., Ladakh, India"
+            placeholderTextColor="#94a3b8"
+            value={destination}
+            onChangeText={setDestination}
+          />
+        </View>
+      </View>
+
+      <View style={styles.row}>
+        <View style={styles.flex1}>
+          <FieldLabel text="Start date" required />
+        </View>
+        <View style={styles.flex1}>
+          <FieldLabel text="End date" required />
+        </View>
+      </View>
       <TripDateFields
         startDate={startDate}
         endDate={endDate}
@@ -165,68 +205,84 @@ export function CreateTripScreen({ navigation }: Props) {
         placeholderStyle={styles.placeholderText}
       />
 
-      <Text style={styles.label}>Travel mode</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={[submitted && !travelMode && styles.selectorError]}
-      >
-        {TRAVEL_MODES.map((mode) => (
-          <TouchableOpacity
-            key={mode}
-            style={[styles.chip, travelMode === mode && styles.chipActive]}
-            onPress={() => setTravelMode(mode)}
-          >
-            <Text style={[styles.chipText, travelMode === mode && styles.chipTextActive]}>
-              {TRAVEL_MODE_LABELS[mode]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View style={styles.row}>
-        <TextInput
-          style={[styles.input, styles.flex1]}
-          placeholder="Budget (₹, optional)"
-          keyboardType="numeric"
-          value={budget}
-          onChangeText={setBudget}
-        />
-        <TextInput
-          style={[
-            styles.input,
-            styles.flex1,
-            submitted && (!seats.trim() || Number(seats) < 1) && styles.inputError,
-          ]}
-          placeholder="Seats available"
-          keyboardType="numeric"
-          value={seats}
-          onChangeText={setSeats}
-        />
+      <FieldLabel text="Travel mode" required />
+      <Text style={styles.helperText}>Select how you are planning to travel</Text>
+      <View style={[styles.modeGrid, submitted && !travelMode && styles.selectorError]}>
+        {TRAVEL_MODES.map((mode) => {
+          const { icon, text } = splitModeLabel(TRAVEL_MODE_LABELS[mode]);
+          const active = travelMode === mode;
+          return (
+            <TouchableOpacity
+              key={mode}
+              style={[styles.modeCard, active && styles.modeCardActive]}
+              onPress={() => setTravelMode(mode)}
+            >
+              <Text style={styles.modeIcon}>{icon}</Text>
+              <Text style={[styles.modeText, active && styles.modeTextActive]} numberOfLines={2}>
+                {text}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
+      <View style={styles.row}>
+        <View style={styles.flex1}>
+          <FieldLabel text="Budget (₹, optional)" />
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., 10000"
+            placeholderTextColor="#94a3b8"
+            keyboardType="numeric"
+            value={budget}
+            onChangeText={setBudget}
+          />
+        </View>
+        <View style={styles.flex1}>
+          <FieldLabel text="Seats available" required />
+          <TextInput
+            style={[styles.input, submitted && (!seats.trim() || Number(seats) < 1) && styles.inputError]}
+            placeholder="e.g., 4"
+            placeholderTextColor="#94a3b8"
+            keyboardType="numeric"
+            value={seats}
+            onChangeText={setSeats}
+          />
+        </View>
+      </View>
+
+      <FieldLabel text="Describe the trip" required />
       <TextInput
         style={[styles.input, styles.multiline, submitted && !description.trim() && styles.inputError]}
-        placeholder="Describe the trip..."
+        placeholder="Share a short description about your trip, what you plan to do, and what kind of companions you're looking for..."
+        placeholderTextColor="#94a3b8"
         multiline
+        maxLength={500}
         value={description}
         onChangeText={setDescription}
       />
+      <Text style={styles.counter}>{description.length}/500</Text>
+
+      <FieldLabel text="Places to visit (comma-separated)" />
       <TextInput
         style={styles.input}
-        placeholder="Places to visit (comma-separated)"
+        placeholder="e.g., Pangong Lake, Nubra Valley, Khardung La"
+        placeholderTextColor="#94a3b8"
         value={placesToVisit}
         onChangeText={setPlacesToVisit}
       />
+
+      <FieldLabel text="Special requirements or notes (optional)" />
       <TextInput
         style={[styles.input, styles.multiline]}
-        placeholder="Special requirements or notes (optional)"
+        placeholder="e.g., fitness level, equipment needed, language preference, etc."
+        placeholderTextColor="#94a3b8"
         multiline
         value={notes}
         onChangeText={setNotes}
       />
 
-      <Text style={styles.label}>Who can join?</Text>
+      <FieldLabel text="Who can join?" required />
       <View style={[styles.radioGroup, submitted && !joinType && styles.selectorError]}>
         {JOIN_TYPES.map((jt) => (
         <TouchableOpacity key={jt.value} style={styles.radioRow} onPress={() => setJoinType(jt.value)}>
@@ -289,16 +345,28 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 10 },
   flex1: { flex: 1 },
   label: { fontWeight: "700", fontSize: 14, marginTop: 4 },
-  chip: {
-    backgroundColor: "#f1f5f9",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
+  required: { color: "#dc2626" },
+  counter: { alignSelf: "flex-end", fontSize: 11, color: "#94a3b8", marginTop: -6 },
+  helperText: { fontSize: 12, color: "#64748b", marginTop: -2 },
+  sectionTitle: { fontSize: 20, fontWeight: "700", color: "#0f172a" },
+  sectionSubtitle: { fontSize: 13, color: "#64748b", marginBottom: 4 },
+  modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  modeCard: {
+    flexBasis: "31%",
+    flexGrow: 1,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#f8fafc",
   },
-  chipActive: { backgroundColor: "#0f766e" },
-  chipText: { fontSize: 12, color: "#334155" },
-  chipTextActive: { color: "#fff", fontWeight: "600" },
+  modeCardActive: { borderColor: "#0f766e", backgroundColor: "#ecfdf5" },
+  modeIcon: { fontSize: 20 },
+  modeText: { fontSize: 11, color: "#334155", textAlign: "center" },
+  modeTextActive: { color: "#0f766e", fontWeight: "700" },
   radioGroup: { gap: 2 },
   radioRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
   radioOuter: {
