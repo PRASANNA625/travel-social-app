@@ -106,6 +106,8 @@ export function LoginScreen({ navigation }: Props) {
         style={styles.decorCompass}
       />
 
+      <LanguageSelector style={[styles.languageSelector, { top: insets.top + 16 }]} />
+
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView
           contentContainerStyle={[
@@ -115,8 +117,6 @@ export function LoginScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.page, isWeb && styles.pageWeb]}>
-            <LanguageSelector style={styles.languageSelector} />
-
             <View style={styles.brandRow}>
               <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />
               <Text style={styles.brandName}>{t("login.brand")}</Text>
@@ -287,5 +287,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 22,
   },
-  languageSelector: { position: "absolute", top: 0, right: 0, zIndex: 10 },
+  languageSelector: { position: "absolute", right: 20, zIndex: 10 },
 });

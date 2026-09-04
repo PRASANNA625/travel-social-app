@@ -24,11 +24,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<LanguageCode>("en");
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored && LANGUAGES.some((l) => l.code === stored)) {
-        setLanguageState(stored as LanguageCode);
-      }
-    });
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((stored) => {
+        if (stored && LANGUAGES.some((l) => l.code === stored)) {
+          setLanguageState(stored as LanguageCode);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const setLanguage = (code: LanguageCode) => {

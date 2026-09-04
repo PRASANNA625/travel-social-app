@@ -55,6 +55,8 @@ export function RegisterScreen({ navigation }: Props) {
         style={styles.decorCompass}
       />
 
+      <LanguageSelector style={[styles.languageSelector, { top: insets.top + 16 }]} />
+
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView
           contentContainerStyle={[
@@ -64,7 +66,6 @@ export function RegisterScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.page, isWeb && styles.pageWeb]}>
-            <LanguageSelector style={styles.languageSelector} />
             <View style={styles.brandRow}>
               <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />
               <Text style={styles.brandName}>{t("register.brand")}</Text>
@@ -211,5 +212,5 @@ const styles = StyleSheet.create({
   submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   secondaryLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 },
   secondaryLinkText: { color: "#0f766e", fontSize: 13.5, fontWeight: "600" },
-  languageSelector: { position: "absolute", top: 0, right: 0, zIndex: 10 },
+  languageSelector: { position: "absolute", right: 20, zIndex: 10 },
 });
