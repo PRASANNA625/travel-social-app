@@ -18,6 +18,7 @@ import { useCreateTrip, useTrip, useUpdateTrip, useUploadTripImages } from "../a
 import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type JoinType, type TravelMode } from "../types";
 import { TripDateFields } from "../components/TripDateFields";
 import { Alert } from "../utils/alert";
+import { isAfterDate, isBeforeToday } from "../utils/date";
 
 type Props = NativeStackScreenProps<AppStackParamList, "CreateTrip">;
 
@@ -111,6 +112,13 @@ export function CreateTripScreen({ navigation, route }: Props) {
     }
   };
 
+  const handleStartDateChange = (date: Date) => {
+    setStartDate(date);
+    if (endDate && isAfterDate(date, endDate)) {
+      setEndDate(undefined);
+    }
+  };
+
   const onSubmit = async () => {
     setSubmitted(true);
 
@@ -125,6 +133,14 @@ export function CreateTripScreen({ navigation, route }: Props) {
       !seats.trim()
     ) {
       Alert.alert("Missing details", "Please fill in all required fields, highlighted in red.");
+      return;
+    }
+    if (endDate && isBeforeToday(endDate)) {
+      Alert.alert("Invalid end date", "End date must be today or a future date.");
+      return;
+    }
+    if (endDate && isAfterDate(startDate, endDate)) {
+      Alert.alert("Invalid dates", "Start date cannot be after the end date.");
       return;
     }
     const seatsNum = Number(seats);
@@ -254,7 +270,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
       <TripDateFields
         startDate={startDate}
         endDate={endDate}
-        onChangeStart={setStartDate}
+        onChangeStart={handleStartDateChange}
         onChangeEnd={setEndDate}
         endError={submitted && !endDate}
         inputStyle={styles.input}

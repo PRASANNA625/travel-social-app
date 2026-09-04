@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, TextInput, View, type StyleProp, type TextStyle } from "react-native";
-
-function toDateInputValue(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+import { formatDDMMYYYY, isBeforeToday } from "../utils/date";
 
 function parseDateInput(text: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
-  const parsed = new Date(`${text}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  if (Number.isNaN(parsed.getTime())) return null;
+  // Reject impossible calendar dates (e.g. 31/02/2026) that Date silently rolls forward a day.
+  if (parsed.getDate() !== Number(day) || parsed.getMonth() !== Number(month) - 1) return null;
+  return parsed;
 }
 
 function DateTextField({
@@ -19,28 +18,37 @@ function DateTextField({
   onChangeValidDate,
   placeholder,
   style,
+  errorStyle,
 }: {
   value: Date | undefined;
   onChangeValidDate: (date: Date) => void;
   placeholder: string;
   style: StyleProp<TextStyle>;
+  errorStyle: StyleProp<TextStyle>;
 }) {
-  const [text, setText] = useState(value ? toDateInputValue(value) : "");
+  const [text, setText] = useState(value ? formatDDMMYYYY(value) : "");
+  const [invalid, setInvalid] = useState(false);
 
   // Keep the buffer in sync when the committed date changes from outside (e.g. cleared on submit).
   useEffect(() => {
-    setText(value ? toDateInputValue(value) : "");
+    setText(value ? formatDDMMYYYY(value) : "");
+    setInvalid(false);
   }, [value]);
 
   return (
     <TextInput
-      style={style}
+      style={[style, invalid && errorStyle]}
       placeholder={placeholder}
       value={text}
       onChangeText={(next) => {
         setText(next);
         const parsed = parseDateInput(next);
-        if (parsed) onChangeValidDate(parsed);
+        if (parsed && !isBeforeToday(parsed)) {
+          setInvalid(false);
+          onChangeValidDate(parsed);
+        } else {
+          setInvalid(next.length > 0);
+        }
       }}
     />
   );
@@ -68,13 +76,15 @@ export function TripDateFields({
     <View style={styles.row}>
       <DateTextField
         style={[inputStyle, styles.flex1]}
-        placeholder="Start date (YYYY-MM-DD)"
+        errorStyle={errorStyle}
+        placeholder="DD/MM/YYYY"
         value={startDate}
         onChangeValidDate={onChangeStart}
       />
       <DateTextField
         style={[inputStyle, styles.flex1, endError && errorStyle]}
-        placeholder="End date (YYYY-MM-DD)"
+        errorStyle={errorStyle}
+        placeholder="DD/MM/YYYY"
         value={endDate}
         onChangeValidDate={onChangeEnd}
       />

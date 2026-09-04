@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { formatDDMMYYYY, startOfToday } from "../utils/date";
 
 export function TripDateFields({
   startDate,
@@ -27,19 +28,22 @@ export function TripDateFields({
   return (
     <View style={styles.row}>
       <TouchableOpacity style={[inputStyle, styles.flex1]} onPress={() => setShowStartPicker(true)}>
-        <Text>Start: {startDate.toDateString()}</Text>
+        <Text>Start: {formatDDMMYYYY(startDate)}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[inputStyle, styles.flex1, endError && errorStyle]}
         onPress={() => setShowEndPicker(true)}
       >
-        <Text style={!endDate && placeholderStyle}>{endDate ? `End: ${endDate.toDateString()}` : "End date"}</Text>
+        <Text style={!endDate && placeholderStyle}>
+          {endDate ? `End: ${formatDDMMYYYY(endDate)}` : "End date"}
+        </Text>
       </TouchableOpacity>
 
       {showStartPicker && (
         <DateTimePicker
           value={startDate}
           mode="date"
+          minimumDate={startOfToday()}
           onChange={(_, date) => {
             setShowStartPicker(false);
             if (date) onChangeStart(date);
@@ -50,6 +54,7 @@ export function TripDateFields({
         <DateTimePicker
           value={endDate ?? new Date(startDate.getTime() + 86400000)}
           mode="date"
+          minimumDate={startOfToday()}
           onChange={(_, date) => {
             setShowEndPicker(false);
             if (date) onChangeEnd(date);
