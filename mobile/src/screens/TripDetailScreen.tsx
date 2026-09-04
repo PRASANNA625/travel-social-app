@@ -78,6 +78,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const isWeb = Platform.OS === "web";
+  const [heroWidth, setHeroWidth] = useState(width);
+  const heroHeight = isWeb ? Math.min(Math.round(heroWidth / 2.4), 380) : 260;
 
   const likeTrip = useLikeTrip();
   const bookmarkTrip = useBookmarkTrip();
@@ -243,11 +246,12 @@ export function TripDetailScreen({ route, navigation }: Props) {
             <MaterialCommunityIcons name="pencil" size={18} color="#0f172a" />
           </TouchableOpacity>
         ) : (
-          <View style={styles.headerButton} />
+          <View style={styles.headerSpacer} />
         )}
       </View>
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <View style={isWeb ? styles.pageInnerWeb : undefined}>
         {editingPhotos ? (
           <View style={styles.photoEditPanel}>
             <Text style={styles.blockTitle}>Edit photos</Text>
@@ -300,17 +304,23 @@ export function TripDetailScreen({ route, navigation }: Props) {
             </View>
           </View>
         ) : (
-          <View style={styles.hero}>
+          <View
+            style={[styles.hero, { height: heroHeight }, isWeb && styles.heroWeb]}
+            onLayout={(e) => setHeroWidth(e.nativeEvent.layout.width)}
+          >
             {trip.images.length > 0 ? (
               <FlatList
+                style={styles.heroList}
                 data={trip.images}
                 keyExtractor={(uri) => uri}
-                renderItem={({ item }) => <Image source={{ uri: item }} style={[styles.heroImage, { width }]} />}
+                renderItem={({ item }) => (
+                  <Image source={{ uri: item }} style={[styles.heroImage, { width: heroWidth, height: heroHeight }]} />
+                )}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 onMomentumScrollEnd={(e) =>
-                  setActiveImageIndex(Math.round(e.nativeEvent.contentOffset.x / width))
+                  setActiveImageIndex(Math.round(e.nativeEvent.contentOffset.x / heroWidth))
                 }
               />
             ) : (
@@ -499,9 +509,12 @@ export function TripDetailScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           </View>
         </View>
+      </View>
       </ScrollView>
 
-      <View style={[styles.stickyBar, { paddingBottom: insets.bottom + 12 }]}>{actionSlot}</View>
+      <View style={[styles.stickyBar, { paddingBottom: insets.bottom + 12 }]}>
+        <View style={isWeb ? styles.stickyBarInnerWeb : undefined}>{actionSlot}</View>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -529,7 +542,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: "#0f172a" },
-  hero: { width: "100%", height: 260, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
+  headerSpacer: { width: 40, height: 40 },
+  pageInnerWeb: { width: "100%", maxWidth: 760, alignSelf: "center" },
+  hero: { width: "100%", borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
+  heroWeb: { borderRadius: 20, marginTop: 20 },
+  heroList: { flex: 1 },
   heroImage: { width: "100%", height: "100%" },
   statusPill: {
     position: "absolute",
@@ -678,6 +695,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f1f5f9",
   },
+  stickyBarInnerWeb: { width: "100%", maxWidth: 480, alignSelf: "center" },
   emptyComments: { alignItems: "center", paddingVertical: 28, gap: 10 },
   emptyCommentsText: { fontSize: 13.5, color: "#94a3b8", textAlign: "center" },
   commentsList: { maxHeight: 320, borderWidth: 1, borderColor: "#f1f5f9", borderRadius: 14 },
