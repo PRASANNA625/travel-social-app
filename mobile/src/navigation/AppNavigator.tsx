@@ -26,7 +26,7 @@ export function AppNavigator() {
         options={{ title: "Join Requests" }}
       />
       <Stack.Screen name="GroupChat" component={GroupChatScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: "Edit Profile" }} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
     </Stack.Navigator>
   );
