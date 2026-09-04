@@ -18,6 +18,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useRegister } from "../api/auth";
 import { Alert } from "../utils/alert";
+import { useLanguage } from "../i18n/LanguageContext";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 
@@ -29,6 +31,7 @@ export function RegisterScreen({ navigation }: Props) {
   const register = useRegister();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
+  const { t } = useLanguage();
 
   const onSubmit = () => {
     if (!name.trim() || !email.trim() || password.length < 8) {
@@ -61,20 +64,21 @@ export function RegisterScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.page, isWeb && styles.pageWeb]}>
+            <LanguageSelector style={styles.languageSelector} />
             <View style={styles.brandRow}>
               <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />
-              <Text style={styles.brandName}>Travel & Social Meetup</Text>
+              <Text style={styles.brandName}>{t("register.brand")}</Text>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.heading}>Join the Adventure 🌍</Text>
-              <Text style={styles.subheading}>Create an account to find trips and travel buddies.</Text>
+              <Text style={styles.heading}>{t("register.heading")}</Text>
+              <Text style={styles.subheading}>{t("register.subheading")}</Text>
 
               <View style={styles.fieldWrap}>
                 <MaterialCommunityIcons name="account-outline" size={18} color="#64748b" />
                 <TextInput
                   style={styles.fieldInput}
-                  placeholder="Full name"
+                  placeholder={t("common.fullName")}
                   placeholderTextColor="#94a3b8"
                   value={name}
                   onChangeText={setName}
@@ -85,7 +89,7 @@ export function RegisterScreen({ navigation }: Props) {
                 <MaterialCommunityIcons name="email-outline" size={18} color="#64748b" />
                 <TextInput
                   style={styles.fieldInput}
-                  placeholder="Email"
+                  placeholder={t("common.email")}
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -98,7 +102,7 @@ export function RegisterScreen({ navigation }: Props) {
                 <MaterialCommunityIcons name="lock-outline" size={18} color="#64748b" />
                 <TextInput
                   style={styles.fieldInput}
-                  placeholder="Password (min 8 characters)"
+                  placeholder={t("register.passwordHint")}
                   placeholderTextColor="#94a3b8"
                   secureTextEntry={!showPassword}
                   value={password}
@@ -123,7 +127,7 @@ export function RegisterScreen({ navigation }: Props) {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Text style={styles.submitButtonText}>Sign Up</Text>
+                    <Text style={styles.submitButtonText}>{t("register.signUp")}</Text>
                     <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
                   </>
                 )}
@@ -131,7 +135,7 @@ export function RegisterScreen({ navigation }: Props) {
 
               <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("Login")}>
                 <MaterialCommunityIcons name="login" size={16} color="#0f766e" />
-                <Text style={styles.secondaryLinkText}>Already have an account? Log in</Text>
+                <Text style={styles.secondaryLinkText}>{t("register.haveAccount")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -207,4 +211,5 @@ const styles = StyleSheet.create({
   submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   secondaryLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 },
   secondaryLinkText: { color: "#0f766e", fontSize: 13.5, fontWeight: "600" },
+  languageSelector: { position: "absolute", top: 0, right: 0, zIndex: 10 },
 });
