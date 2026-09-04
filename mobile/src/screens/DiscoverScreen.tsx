@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
     padding: 12,
   },
-  filterRow: { height: 40, marginVertical: 8, flexGrow: 0 },
+  filterRow: { marginVertical: 8, flexGrow: 0 },
   filterRowContent: { paddingHorizontal: 12, alignItems: "center" },
   chip: {
     height: 34,
