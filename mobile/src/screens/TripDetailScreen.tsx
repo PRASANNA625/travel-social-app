@@ -9,12 +9,22 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useAuthStore } from "../store/authStore";
-import { useAddComment, useBookmarkTrip, useLikeTrip, useTrip, useTripComments } from "../api/trips";
+import {
+  useAddComment,
+  useBookmarkTrip,
+  useLikeTrip,
+  useTrip,
+  useTripComments,
+  useUpdateTripImages,
+  useUploadTripImages,
+} from "../api/trips";
 import { useExpressInterest } from "../api/joinRequests";
 import { useMyJoinRequests } from "../api/joinRequests";
 import { useGroupByTrip } from "../api/groups";
@@ -45,11 +55,18 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const { data: myRequests } = useMyJoinRequests();
   const { data: group } = useGroupByTrip(tripId);
   const [commentText, setCommentText] = useState("");
+  const [editingPhotos, setEditingPhotos] = useState(false);
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const [newPhotoAssets, setNewPhotoAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const { width } = useWindowDimensions();
 
   const likeTrip = useLikeTrip();
   const bookmarkTrip = useBookmarkTrip();
   const expressInterest = useExpressInterest(tripId);
   const addComment = useAddComment(tripId);
+  const uploadImages = useUploadTripImages();
+  const updateTripImages = useUpdateTripImages();
 
   if (isLoading || !trip) {
     return <ActivityIndicator style={{ marginTop: 40 }} size="large" />;
@@ -58,6 +75,38 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const isOwner = trip.ownerId === me?.id;
   const myRequest = myRequests?.find((r) => r.tripId === tripId);
   const isMember = !!group?.members.some((m) => m.userId === me?.id);
+
+  const startEditingPhotos = () => {
+    setEditImages(trip.images);
+    setNewPhotoAssets([]);
+    setEditingPhotos(true);
+  };
+
+  const pickNewPhotos = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 8,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setNewPhotoAssets((prev) => [...prev, ...result.assets]);
+    }
+  };
+
+  const savePhotos = async () => {
+    try {
+      const uploadedUrls = newPhotoAssets.length > 0 ? await uploadImages.mutateAsync(newPhotoAssets) : [];
+      await updateTripImages.mutateAsync({ tripId, input: [...editImages, ...uploadedUrls] });
+      setEditingPhotos(false);
+    } catch (err: any) {
+      Alert.alert("Couldn't save photos", err?.response?.data?.error ?? "Please try again");
+    }
+  };
+
+  const isSavingPhotos = uploadImages.isPending || updateTripImages.isPending;
 
   const onExpressInterest = () => {
     expressInterest.mutate(undefined, {
@@ -74,30 +123,98 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.hero}>
-        {trip.images.length > 0 ? (
-          <Image source={{ uri: trip.images[0] }} style={styles.heroImage} />
-        ) : (
-          <LinearGradient colors={["#2563eb", "#0f766e"]} style={styles.heroImage} />
-        )}
-        <View style={[styles.statusPill, { backgroundColor: STATUS_COLORS[trip.status] }]}>
-          <Text style={styles.statusText}>{trip.status.replace("_", " ")}</Text>
+      {editingPhotos ? (
+        <View style={styles.photoEditPanel}>
+          <Text style={styles.blockTitle}>Edit photos</Text>
+          <View style={styles.photoEditRow}>
+            {editImages.map((uri) => (
+              <View key={uri} style={styles.photoEditThumbWrap}>
+                <Image source={{ uri }} style={styles.photoEditThumb} />
+                <TouchableOpacity
+                  style={styles.photoRemoveBadge}
+                  onPress={() => setEditImages((prev) => prev.filter((i) => i !== uri))}
+                >
+                  <Text style={styles.photoRemoveBadgeText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            {newPhotoAssets.map((asset) => (
+              <View key={asset.uri} style={styles.photoEditThumbWrap}>
+                <Image source={{ uri: asset.uri }} style={styles.photoEditThumb} />
+                <TouchableOpacity
+                  style={styles.photoRemoveBadge}
+                  onPress={() => setNewPhotoAssets((prev) => prev.filter((a) => a.uri !== asset.uri))}
+                >
+                  <Text style={styles.photoRemoveBadgeText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity style={styles.photoAddTile} onPress={pickNewPhotos}>
+              <Text style={{ fontSize: 24 }}>+</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.photoEditActions}>
+            <TouchableOpacity
+              style={[styles.secondaryButton, { flex: 1 }]}
+              onPress={() => setEditingPhotos(false)}
+              disabled={isSavingPhotos}
+            >
+              <Text style={styles.secondaryButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, { flex: 1 }]}
+              onPress={savePhotos}
+              disabled={isSavingPhotos}
+            >
+              {isSavingPhotos ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Save photos</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-        <LinearGradient colors={["transparent", "rgba(15,23,42,0.9)"]} style={styles.heroScrim}>
-          <Text style={styles.title}>{trip.title}</Text>
-          <Text style={styles.heroSubtitle}>📍 {trip.destination}</Text>
-        </LinearGradient>
-      </View>
+      ) : (
+        <View style={styles.hero}>
+          {trip.images.length > 0 ? (
+            <FlatList
+              data={trip.images}
+              keyExtractor={(uri) => uri}
+              renderItem={({ item }) => <Image source={{ uri: item }} style={[styles.heroImage, { width }]} />}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) =>
+                setActiveImageIndex(Math.round(e.nativeEvent.contentOffset.x / width))
+              }
+            />
+          ) : (
+            <LinearGradient colors={["#2563eb", "#0f766e"]} style={styles.heroImage} />
+          )}
 
-      {trip.images.length > 1 && (
-        <FlatList
-          horizontal
-          data={trip.images.slice(1)}
-          keyExtractor={(uri) => uri}
-          renderItem={({ item }) => <Image source={{ uri: item }} style={styles.thumb} />}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.thumbRow}
-        />
+          {trip.images.length > 1 && (
+            <View style={styles.dotsRow}>
+              {trip.images.map((_, i) => (
+                <View key={i} style={[styles.dot, i === activeImageIndex && styles.dotActive]} />
+              ))}
+            </View>
+          )}
+
+          <View style={[styles.statusPill, { backgroundColor: STATUS_COLORS[trip.status] }]}>
+            <Text style={styles.statusText}>{trip.status.replace("_", " ")}</Text>
+          </View>
+
+          {isOwner && (
+            <TouchableOpacity style={styles.editPhotosButton} onPress={startEditingPhotos}>
+              <Text style={styles.editPhotosButtonText}>✏️ Edit photos</Text>
+            </TouchableOpacity>
+          )}
+
+          <LinearGradient colors={["transparent", "rgba(15,23,42,0.9)"]} style={styles.heroScrim}>
+            <Text style={styles.title}>{trip.title}</Text>
+            <Text style={styles.heroSubtitle}>📍 {trip.destination}</Text>
+          </LinearGradient>
+        </View>
       )}
 
       <View style={styles.section}>
@@ -244,8 +361,54 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   heroSubtitle: { fontSize: 13, color: "#e2e8f0", marginTop: 2 },
-  thumbRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  thumb: { width: 72, height: 72, borderRadius: 10, marginRight: 8 },
+  dotsRow: {
+    position: "absolute",
+    top: 14,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 5,
+  },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.5)" },
+  dotActive: { backgroundColor: "#fff" },
+  editPhotosButton: {
+    position: "absolute",
+    top: 14,
+    left: 14,
+    backgroundColor: "rgba(15,23,42,0.65)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  editPhotosButtonText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  photoEditPanel: { padding: 16, borderBottomWidth: 8, borderBottomColor: "#f1f5f9" },
+  photoEditRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
+  photoEditThumbWrap: { width: 76, height: 76 },
+  photoEditThumb: { width: 76, height: 76, borderRadius: 10 },
+  photoRemoveBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#dc2626",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoRemoveBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  photoAddTile: {
+    width: 76,
+    height: 76,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoEditActions: { flexDirection: "row", gap: 10, marginTop: 16 },
   section: { padding: 16, borderBottomWidth: 8, borderBottomColor: "#f1f5f9" },
   title: { fontSize: 22, fontWeight: "700", color: "#fff" },
   subtitle: { fontSize: 15, color: "#334155", marginTop: 4 },

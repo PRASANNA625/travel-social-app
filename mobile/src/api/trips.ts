@@ -100,6 +100,10 @@ function useTripMutation<TInput = void>(fn: (tripId: string, input: TInput) => P
   });
 }
 
+export function useUpdateTripImages() {
+  return useTripMutation((tripId, images: string[]) => apiClient.patch(`/trips/${tripId}`, { images }));
+}
+
 export function useLikeTrip() {
   return useTripMutation((tripId, like: boolean) =>
     like ? apiClient.post(`/trips/${tripId}/like`) : apiClient.delete(`/trips/${tripId}/like`)
