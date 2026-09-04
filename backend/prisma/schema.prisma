@@ -95,6 +95,8 @@ model Trip {
   startLocation      String
   startLat           Float?
   startLng           Float?
+  destLat            Float?
+  destLng            Float?
   startDate          DateTime
   endDate            DateTime
   travelMode         TravelMode

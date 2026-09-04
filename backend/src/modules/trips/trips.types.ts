@@ -27,6 +27,8 @@ export const createTripSchema = z.object({
   startLocation: z.string().min(1),
   startLat: z.number().optional(),
   startLng: z.number().optional(),
+  destLat: z.number().optional(),
+  destLng: z.number().optional(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   travelMode: z.enum(travelModes),
