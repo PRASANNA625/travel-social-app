@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useSendPhoneOtp, useVerifyPhoneOtp } from "../api/auth";
+import { useLanguage } from "../i18n/LanguageContext";
+import { LanguageSelector } from "../components/LanguageSelector";
 import { Alert } from "../utils/alert";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "PhoneLogin">;
@@ -21,6 +24,8 @@ export function PhoneLoginScreen({ navigation }: Props) {
 
   const sendOtp = useSendPhoneOtp();
   const verifyOtp = useVerifyPhoneOtp();
+  const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   const onSendCode = () => {
     const trimmedPhone = phone.trim();
@@ -68,56 +73,58 @@ export function PhoneLoginScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Log in with phone</Text>
+      <LanguageSelector variant="dark" style={[styles.languageSelector, { top: insets.top + 16 }]} />
+
+      <Text style={styles.title}>{t("phoneLogin.title")}</Text>
 
       {step === "phone" && (
         <>
-          <Text style={styles.subtitle}>We'll text you a one-time code.</Text>
+          <Text style={styles.subtitle}>{t("phoneLogin.phoneStepSubtitle")}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Phone number"
+            placeholder={t("phoneLogin.phoneNumber")}
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
           />
           <TouchableOpacity style={styles.button} onPress={onSendCode} disabled={isPending}>
-            {isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send code</Text>}
+            {isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("phoneLogin.sendCode")}</Text>}
           </TouchableOpacity>
         </>
       )}
 
       {step === "code" && (
         <>
-          <Text style={styles.subtitle}>Enter the 6-digit code sent to {phone.trim()}.</Text>
+          <Text style={styles.subtitle}>{t("phoneLogin.codeStepSubtitle").replace("{phone}", phone.trim())}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Code"
+            placeholder={t("phoneLogin.code")}
             keyboardType="number-pad"
             maxLength={6}
             value={code}
             onChangeText={setCode}
           />
           <TouchableOpacity style={styles.button} onPress={() => onVerify()} disabled={isPending}>
-            {isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify</Text>}
+            {isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("phoneLogin.verify")}</Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={onSendCode} disabled={isPending}>
-            <Text style={styles.link}>Resend code</Text>
+            <Text style={styles.link}>{t("phoneLogin.resendCode")}</Text>
           </TouchableOpacity>
         </>
       )}
 
       {step === "name" && (
         <>
-          <Text style={styles.subtitle}>This number is new to us — what's your name?</Text>
-          <TextInput style={styles.input} placeholder="Full name" value={name} onChangeText={setName} />
+          <Text style={styles.subtitle}>{t("phoneLogin.nameStepSubtitle")}</Text>
+          <TextInput style={styles.input} placeholder={t("common.fullName")} value={name} onChangeText={setName} />
           <TouchableOpacity style={styles.button} onPress={onSubmitName} disabled={isPending}>
-            {isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify</Text>}
+            {isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("phoneLogin.verify")}</Text>}
           </TouchableOpacity>
         </>
       )}
 
       <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={styles.link}>Back to login</Text>
+        <Text style={styles.link}>{t("phoneLogin.backToLogin")}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -131,4 +138,5 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "#0f766e", borderRadius: 10, padding: 14, alignItems: "center", marginTop: 8 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   link: { color: "#0f766e", textAlign: "center", marginTop: 16, fontSize: 14 },
+  languageSelector: { position: "absolute", right: 20 },
 });
