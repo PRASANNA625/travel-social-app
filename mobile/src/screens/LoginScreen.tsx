@@ -22,6 +22,8 @@ import * as WebBrowser from "expo-web-browser";
 import type { AuthStackParamList } from "../navigation/types";
 import { useGoogleLogin, useLogin } from "../api/auth";
 import { Alert } from "../utils/alert";
+import { useLanguage } from "../i18n/LanguageContext";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -32,6 +34,7 @@ const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId as string |
 const APP_VERSION = Constants.expoConfig?.version;
 
 function GoogleSignInButton() {
+  const { t } = useLanguage();
   const googleLogin = useGoogleLogin();
   const [, googleResponse, promptGoogleLogin] = Google.useAuthRequest({
     webClientId: GOOGLE_CLIENT_ID,
@@ -64,7 +67,7 @@ function GoogleSignInButton() {
       ) : (
         <>
           <MaterialCommunityIcons name="google" size={18} color="#334155" />
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
+          <Text style={styles.googleButtonText}>{t("login.continueWithGoogle")}</Text>
         </>
       )}
     </TouchableOpacity>
@@ -78,6 +81,7 @@ export function LoginScreen({ navigation }: Props) {
   const login = useLogin();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
+  const { t } = useLanguage();
 
   const onSubmit = () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -111,20 +115,22 @@ export function LoginScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.page, isWeb && styles.pageWeb]}>
+            <LanguageSelector style={styles.languageSelector} />
+
             <View style={styles.brandRow}>
               <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />
-              <Text style={styles.brandName}>Travel & Social Meetup</Text>
+              <Text style={styles.brandName}>{t("login.brand")}</Text>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.heading}>Welcome Back 👋</Text>
-              <Text style={styles.subheading}>Log in to find your next trip and your next travel crew.</Text>
+              <Text style={styles.heading}>{t("login.heading")}</Text>
+              <Text style={styles.subheading}>{t("login.subheading")}</Text>
 
               <View style={styles.fieldWrap}>
                 <MaterialCommunityIcons name="email-outline" size={18} color="#64748b" />
                 <TextInput
                   style={styles.fieldInput}
-                  placeholder="Email"
+                  placeholder={t("common.email")}
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -137,7 +143,7 @@ export function LoginScreen({ navigation }: Props) {
                 <MaterialCommunityIcons name="lock-outline" size={18} color="#64748b" />
                 <TextInput
                   style={styles.fieldInput}
-                  placeholder="Password"
+                  placeholder={t("common.password")}
                   placeholderTextColor="#94a3b8"
                   secureTextEntry={!showPassword}
                   value={password}
@@ -162,7 +168,7 @@ export function LoginScreen({ navigation }: Props) {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Text style={styles.loginButtonText}>Log In</Text>
+                    <Text style={styles.loginButtonText}>{t("login.logIn")}</Text>
                     <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
                   </>
                 )}
@@ -172,23 +178,23 @@ export function LoginScreen({ navigation }: Props) {
                 (GOOGLE_CLIENT_ID ? (
                   <GoogleSignInButton />
                 ) : (
-                  <Text style={styles.note}>Google sign-in isn't configured yet.</Text>
+                  <Text style={styles.note}>{t("login.googleNotConfigured")}</Text>
                 ))}
 
               <View style={styles.secondaryActions}>
                 <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("Register")}>
                   <MaterialCommunityIcons name="account-plus-outline" size={16} color="#0f766e" />
-                  <Text style={styles.secondaryLinkText}>New here? Create an account</Text>
+                  <Text style={styles.secondaryLinkText}>{t("login.createAccount")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("PhoneLogin")}>
                   <MaterialCommunityIcons name="phone-outline" size={16} color="#0f766e" />
-                  <Text style={styles.secondaryLinkText}>Log in with phone number</Text>
+                  <Text style={styles.secondaryLinkText}>{t("login.phoneLogin")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {!!APP_VERSION && <Text style={styles.versionText}>Version {APP_VERSION}</Text>}
+            {!!APP_VERSION && <Text style={styles.versionText}>{t("login.version").replace("{version}", APP_VERSION)}</Text>}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -281,4 +287,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 22,
   },
+  languageSelector: { position: "absolute", top: 0, right: 0, zIndex: 10 },
 });
