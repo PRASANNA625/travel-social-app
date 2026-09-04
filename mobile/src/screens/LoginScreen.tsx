@@ -109,6 +109,10 @@ export function LoginScreen({ navigation }: Props) {
       <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.link}>New here? Create an account</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate("PhoneLogin")}>
+        <Text style={styles.link}>Log in with phone number</Text>
+      </TouchableOpacity>
     </View>
   );
 }
