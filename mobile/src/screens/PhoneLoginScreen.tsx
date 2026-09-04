@@ -9,6 +9,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, "PhoneLogin">;
 
 type Step = "phone" | "code" | "name";
 
+const NAME_REQUIRED_CODE = "NAME_REQUIRED";
 const NAME_REQUIRED_ERROR = "Name is required to create an account";
 const PHONE_REGEX = /^\+?\d{6,15}$/;
 
@@ -42,8 +43,9 @@ export function PhoneLoginScreen({ navigation }: Props) {
       { phone: phone.trim(), code: code.trim(), name: withName },
       {
         onError: (err: any) => {
+          const code = err?.response?.data?.code;
           const message = err?.response?.data?.error;
-          if (message === NAME_REQUIRED_ERROR) {
+          if (code === NAME_REQUIRED_CODE || message === NAME_REQUIRED_ERROR) {
             setStep("name");
             return;
           }

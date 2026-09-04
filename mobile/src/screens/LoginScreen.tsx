@@ -43,7 +43,7 @@ function GoogleSignInButton() {
       <TouchableOpacity
         style={styles.googleButton}
         onPress={() => promptGoogleLogin()}
-        disabled={!GOOGLE_CLIENT_ID || googleLogin.isPending}
+        disabled={googleLogin.isPending}
       >
         {googleLogin.isPending ? (
           <ActivityIndicator color="#0f766e" />
@@ -51,7 +51,6 @@ function GoogleSignInButton() {
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         )}
       </TouchableOpacity>
-      {!GOOGLE_CLIENT_ID && <Text style={styles.note}>Google sign-in isn't configured yet.</Text>}
     </>
   );
 }
@@ -104,7 +103,12 @@ export function LoginScreen({ navigation }: Props) {
         {login.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log In</Text>}
       </TouchableOpacity>
 
-      {Platform.OS === "web" && <GoogleSignInButton />}
+      {Platform.OS === "web" &&
+        (GOOGLE_CLIENT_ID ? (
+          <GoogleSignInButton />
+        ) : (
+          <Text style={styles.note}>Google sign-in isn't configured yet.</Text>
+        ))}
 
       <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.link}>New here? Create an account</Text>

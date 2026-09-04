@@ -63,13 +63,18 @@ export async function sendPhoneOtp(phone: string) {
 }
 
 export async function verifyPhoneOtp(phone: string, code: string, name?: string) {
-  const isValid = await phoneProvider.verifyOtp(phone, code);
+  const isValid = await phoneProvider.checkOtp(phone, code);
   if (!isValid) throw new HttpError(401, "Invalid or expired code");
 
   let user = await prisma.user.findUnique({ where: { phone } });
+  if (!user && !name) {
+    throw new HttpError(400, "Name is required to create an account", "NAME_REQUIRED");
+  }
+
+  await phoneProvider.consumeOtp(phone);
+
   if (!user) {
-    if (!name) throw new HttpError(400, "Name is required to create an account");
-    user = await prisma.user.create({ data: { phone, phoneVerified: true, name } });
+    user = await prisma.user.create({ data: { phone, phoneVerified: true, name: name! } });
   } else if (!user.phoneVerified) {
     user = await prisma.user.update({ where: { id: user.id }, data: { phoneVerified: true } });
   }
