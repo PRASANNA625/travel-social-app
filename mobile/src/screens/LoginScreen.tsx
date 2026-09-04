@@ -1,19 +1,47 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import Constants from "expo-constants";
+import { ResponseType } from "expo-auth-session";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
 import type { AuthStackParamList } from "../navigation/types";
-import { useLogin } from "../api/auth";
+import { useGoogleLogin, useLogin } from "../api/auth";
 import { Alert } from "../utils/alert";
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId as string | undefined;
 
 export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const login = useLogin();
+  const googleLogin = useGoogleLogin();
+
+  const [, googleResponse, promptGoogleLogin] = Google.useAuthRequest({
+    webClientId: GOOGLE_CLIENT_ID,
+    responseType: ResponseType.IdToken,
+    scopes: ["openid", "profile", "email"],
+  });
+
+  useEffect(() => {
+    if (googleResponse?.type === "success") {
+      const idToken = googleResponse.params.id_token;
+      if (idToken) {
+        googleLogin.mutate(idToken, {
+          onError: (err: any) =>
+            Alert.alert("Google sign-in failed", err?.response?.data?.error ?? "Please try again"),
+        });
+      }
+    } else if (googleResponse?.type === "error") {
+      Alert.alert("Google sign-in failed", googleResponse.error?.message ?? "Please try again");
+    }
+  }, [googleResponse]);
 
   const onSubmit = () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -57,14 +85,22 @@ export function LoginScreen({ navigation }: Props) {
         {login.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log In</Text>}
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.googleButton}
+        onPress={() => promptGoogleLogin()}
+        disabled={!GOOGLE_CLIENT_ID || googleLogin.isPending}
+      >
+        {googleLogin.isPending ? (
+          <ActivityIndicator color="#0f766e" />
+        ) : (
+          <Text style={styles.googleButtonText}>Continue with Google</Text>
+        )}
+      </TouchableOpacity>
+      {!GOOGLE_CLIENT_ID && <Text style={styles.note}>Google sign-in isn't configured yet.</Text>}
+
       <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.link}>New here? Create an account</Text>
       </TouchableOpacity>
-
-      <Text style={styles.note}>
-        Google Sign-In and phone OTP are wired up on the backend — hook up expo-auth-session / your OTP UI here
-        when you're ready to test them.
-      </Text>
     </View>
   );
 }
@@ -86,6 +122,15 @@ const styles = StyleSheet.create({
   passwordToggleText: { color: "#0f766e", fontWeight: "600", fontSize: 14 },
   button: { backgroundColor: "#0f766e", borderRadius: 10, padding: 14, alignItems: "center", marginTop: 8 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  googleButton: {
+    borderWidth: 1,
+    borderColor: "#0f766e",
+    borderRadius: 10,
+    padding: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  googleButtonText: { color: "#0f766e", fontSize: 16, fontWeight: "600" },
   link: { color: "#0f766e", textAlign: "center", marginTop: 16, fontSize: 14 },
-  note: { color: "#999", fontSize: 12, textAlign: "center", marginTop: 32 },
+  note: { color: "#999", fontSize: 12, textAlign: "center", marginTop: 8 },
 });
