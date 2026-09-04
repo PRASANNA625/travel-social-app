@@ -147,23 +147,32 @@ export function TripDetailScreen({ route, navigation }: Props) {
   let actionSlot: React.ReactNode;
   if (isOwner) {
     actionSlot = (
-      <View style={styles.stickyRow}>
+      <View style={styles.ownerActions}>
         <TouchableOpacity
-          style={[styles.primaryButton, styles.stickyFlex]}
-          onPress={() => navigation.navigate("JoinRequestsInbox", { tripId })}
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate("CreateTrip", { tripId })}
         >
-          <MaterialCommunityIcons name="account-group-outline" size={16} color="#fff" />
-          <Text style={styles.primaryButtonText}>Requests ({trip._count.joinRequests})</Text>
+          <MaterialCommunityIcons name="pencil-outline" size={16} color="#fff" />
+          <Text style={styles.primaryButtonText}>Edit Trip</Text>
         </TouchableOpacity>
-        {group && (
+        <View style={styles.stickyRow}>
           <TouchableOpacity
             style={[styles.secondaryButton, styles.stickyFlex]}
-            onPress={() => navigation.navigate("GroupChat", { groupId: group.id, tripTitle: trip.title })}
+            onPress={() => navigation.navigate("JoinRequestsInbox", { tripId })}
           >
-            <MaterialCommunityIcons name="chat-processing-outline" size={16} color="#0f766e" />
-            <Text style={styles.secondaryButtonText}>Group Chat</Text>
+            <MaterialCommunityIcons name="account-group-outline" size={16} color="#0f766e" />
+            <Text style={styles.secondaryButtonText}>Requests ({trip._count.joinRequests})</Text>
           </TouchableOpacity>
-        )}
+          {group && (
+            <TouchableOpacity
+              style={[styles.secondaryButton, styles.stickyFlex]}
+              onPress={() => navigation.navigate("GroupChat", { groupId: group.id, tripTitle: trip.title })}
+            >
+              <MaterialCommunityIcons name="chat-processing-outline" size={16} color="#0f766e" />
+              <Text style={styles.secondaryButtonText}>Group Chat</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   } else if (isMember && group) {
@@ -227,7 +236,10 @@ export function TripDetailScreen({ route, navigation }: Props) {
           Trip Details
         </Text>
         {isOwner ? (
-          <TouchableOpacity style={styles.headerButton} onPress={startEditingPhotos}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.navigate("CreateTrip", { tripId })}
+          >
             <MaterialCommunityIcons name="pencil" size={18} color="#0f172a" />
           </TouchableOpacity>
         ) : (
@@ -316,6 +328,13 @@ export function TripDetailScreen({ route, navigation }: Props) {
             <View style={[styles.statusPill, { backgroundColor: STATUS_COLORS[trip.status] }]}>
               <Text style={styles.statusText}>{trip.status.replace("_", " ")}</Text>
             </View>
+
+            {isOwner && (
+              <TouchableOpacity style={styles.photoEditTrigger} onPress={startEditingPhotos}>
+                <MaterialCommunityIcons name="camera-outline" size={14} color="#fff" />
+                <Text style={styles.photoEditTriggerText}>Edit photos</Text>
+              </TouchableOpacity>
+            )}
 
             <LinearGradient colors={["transparent", "rgba(15,23,42,0.85)"]} style={styles.heroScrim}>
               <Text style={styles.title} numberOfLines={2}>
@@ -521,6 +540,19 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   statusText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  photoEditTrigger: {
+    position: "absolute",
+    top: 14,
+    left: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(15,23,42,0.55)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  photoEditTriggerText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   heroScrim: {
     position: "absolute",
     left: 0,
@@ -625,6 +657,7 @@ const styles = StyleSheet.create({
     borderColor: "#0f766e",
   },
   secondaryButtonText: { color: "#0f766e", fontWeight: "700", fontSize: 15 },
+  ownerActions: { gap: 10 },
   stickyRow: { flexDirection: "row", gap: 10 },
   stickyFlex: { flex: 1 },
   pendingBadge: {

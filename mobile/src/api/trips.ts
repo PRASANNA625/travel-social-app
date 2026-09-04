@@ -104,6 +104,12 @@ export function useUpdateTripImages() {
   return useTripMutation((tripId, images: string[]) => apiClient.patch(`/trips/${tripId}`, { images }));
 }
 
+export type UpdateTripInput = Partial<Omit<CreateTripInput, "images">>;
+
+export function useUpdateTrip() {
+  return useTripMutation((tripId, input: UpdateTripInput) => apiClient.patch(`/trips/${tripId}`, input));
+}
+
 export function useLikeTrip() {
   return useTripMutation((tripId, like: boolean) =>
     like ? apiClient.post(`/trips/${tripId}/like`) : apiClient.delete(`/trips/${tripId}/like`)

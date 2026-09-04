@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
-import { useCreateTrip, useUploadTripImages } from "../api/trips";
+import { useCreateTrip, useTrip, useUpdateTrip, useUploadTripImages } from "../api/trips";
 import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type JoinType, type TravelMode } from "../types";
 import { TripDateFields } from "../components/TripDateFields";
 import { Alert } from "../utils/alert";
@@ -41,7 +41,12 @@ function FieldLabel({ text, required }: { text: string; required?: boolean }) {
   );
 }
 
-export function CreateTripScreen({ navigation }: Props) {
+export function CreateTripScreen({ navigation, route }: Props) {
+  const tripId = route.params?.tripId;
+  const isEditMode = !!tripId;
+  const { data: existingTrip, isLoading: isLoadingTrip } = useTrip(tripId);
+  const [prefilled, setPrefilled] = useState(false);
+
   const [title, setTitle] = useState("");
   const [destination, setDestination] = useState("");
   const [startLocation, setStartLocation] = useState("");
@@ -59,8 +64,26 @@ export function CreateTripScreen({ navigation }: Props) {
   const [submitted, setSubmitted] = useState(false);
 
   const createTrip = useCreateTrip();
+  const updateTrip = useUpdateTrip();
   const uploadImages = useUploadTripImages();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (!isEditMode || !existingTrip || prefilled) return;
+    setTitle(existingTrip.title);
+    setDestination(existingTrip.destination);
+    setStartLocation(existingTrip.startLocation);
+    setStartDate(new Date(existingTrip.startDate));
+    setEndDate(new Date(existingTrip.endDate));
+    setTravelMode(existingTrip.travelMode);
+    setBudget(existingTrip.budget != null ? String(existingTrip.budget) : "");
+    setSeats(String(existingTrip.seats));
+    setDescription(existingTrip.description);
+    setPlacesToVisit(existingTrip.placesToVisit.join(", "));
+    setNotes(existingTrip.notes ?? "");
+    setJoinType(existingTrip.joinType);
+    setPrefilled(true);
+  }, [isEditMode, existingTrip, prefilled]);
 
   const pickCoverPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -111,6 +134,31 @@ export function CreateTripScreen({ navigation }: Props) {
     }
 
     try {
+      if (isEditMode && tripId) {
+        await updateTrip.mutateAsync({
+          tripId,
+          input: {
+            title: title.trim(),
+            destination: destination.trim(),
+            startLocation: startLocation.trim(),
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            travelMode,
+            budget: budget ? Number(budget) : undefined,
+            seats: seatsNum,
+            description: description.trim(),
+            placesToVisit: placesToVisit
+              .split(",")
+              .map((p) => p.trim())
+              .filter(Boolean),
+            notes: notes.trim() || undefined,
+            joinType,
+          },
+        });
+        navigation.navigate("TripDetail", { tripId });
+        return;
+      }
+
       const allImages = coverPhoto ? [coverPhoto, ...images] : images;
       let uploadedUrls: string[] = [];
       if (allImages.length > 0) {
@@ -138,19 +186,28 @@ export function CreateTripScreen({ navigation }: Props) {
 
       navigation.replace("TripDetail", { tripId: trip.id });
     } catch (err: any) {
-      Alert.alert("Couldn't create trip", err?.response?.data?.error ?? "Please try again");
+      Alert.alert(
+        isEditMode ? "Couldn't save changes" : "Couldn't create trip",
+        err?.response?.data?.error ?? "Please try again"
+      );
     }
   };
 
-  const isSubmitting = createTrip.isPending || uploadImages.isPending;
+  const isSubmitting = createTrip.isPending || uploadImages.isPending || updateTrip.isPending;
+
+  if (isEditMode && (isLoadingTrip || !prefilled)) {
+    return <ActivityIndicator style={{ marginTop: 40 }} size="large" />;
+  }
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ padding: 16, paddingBottom: 16 + insets.bottom, gap: 12 }}
     >
-      <Text style={styles.sectionTitle}>Trip Information</Text>
-      <Text style={styles.sectionSubtitle}>Share your travel plan and find like-minded companions</Text>
+      <Text style={styles.sectionTitle}>{isEditMode ? "Edit Trip" : "Trip Information"}</Text>
+      <Text style={styles.sectionSubtitle}>
+        {isEditMode ? "Update your trip details below" : "Share your travel plan and find like-minded companions"}
+      </Text>
 
       <FieldLabel text="Trip title" required />
       <TextInput
@@ -294,34 +351,42 @@ export function CreateTripScreen({ navigation }: Props) {
         ))}
       </View>
 
-      <Text style={styles.label}>Cover photo</Text>
-      {coverPhoto ? (
-        <TouchableOpacity onPress={pickCoverPhoto}>
-          <Image source={{ uri: coverPhoto.uri }} style={styles.coverPreview} />
-          <View style={styles.coverChangeBadge}>
-            <Text style={styles.coverChangeText}>Change</Text>
-          </View>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity style={styles.coverPicker} onPress={pickCoverPhoto}>
-          <Text style={{ fontSize: 28 }}>🖼️</Text>
-          <Text style={styles.coverPickerText}>Add a cover photo</Text>
-        </TouchableOpacity>
-      )}
+      {!isEditMode && (
+        <>
+          <Text style={styles.label}>Cover photo</Text>
+          {coverPhoto ? (
+            <TouchableOpacity onPress={pickCoverPhoto}>
+              <Image source={{ uri: coverPhoto.uri }} style={styles.coverPreview} />
+              <View style={styles.coverChangeBadge}>
+                <Text style={styles.coverChangeText}>Change</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.coverPicker} onPress={pickCoverPhoto}>
+              <Text style={{ fontSize: 28 }}>🖼️</Text>
+              <Text style={styles.coverPickerText}>Add a cover photo</Text>
+            </TouchableOpacity>
+          )}
 
-      <Text style={styles.label}>Additional photos</Text>
-      <View style={styles.row}>
-        {images.map((asset) => (
-          <Image key={asset.uri} source={{ uri: asset.uri }} style={styles.thumb} />
-        ))}
-        <TouchableOpacity style={styles.addImage} onPress={pickImages}>
-          <Text style={{ fontSize: 24 }}>+</Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={styles.label}>Additional photos</Text>
+          <View style={styles.row}>
+            {images.map((asset) => (
+              <Image key={asset.uri} source={{ uri: asset.uri }} style={styles.thumb} />
+            ))}
+            <TouchableOpacity style={styles.addImage} onPress={pickImages}>
+              <Text style={{ fontSize: 24 }}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       <TouchableOpacity onPress={onSubmit} disabled={isSubmitting} activeOpacity={0.85}>
         <LinearGradient colors={["#2563eb", "#0f766e"]} style={styles.submitButton}>
-          {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Publish Trip</Text>}
+          {isSubmitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.submitText}>{isEditMode ? "Save Changes" : "Publish Trip"}</Text>
+          )}
         </LinearGradient>
       </TouchableOpacity>
     </ScrollView>

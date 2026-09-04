@@ -7,7 +7,7 @@ export type AuthStackParamList = {
 export type AppStackParamList = {
   Tabs: undefined;
   TripDetail: { tripId: string };
-  CreateTrip: undefined;
+  CreateTrip: { tripId?: string } | undefined;
   JoinRequestsInbox: { tripId: string };
   GroupChat: { groupId: string; tripTitle: string };
   EditProfile: undefined;

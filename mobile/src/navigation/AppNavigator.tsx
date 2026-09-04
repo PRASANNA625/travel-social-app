@@ -15,7 +15,11 @@ export function AppNavigator() {
     <Stack.Navigator>
       <Stack.Screen name="Tabs" component={AppTabs} options={{ headerShown: false }} />
       <Stack.Screen name="TripDetail" component={TripDetailScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="CreateTrip" component={CreateTripScreen} options={{ title: "Create a Trip" }} />
+      <Stack.Screen
+        name="CreateTrip"
+        component={CreateTripScreen}
+        options={({ route }) => ({ title: route.params?.tripId ? "Edit Trip" : "Create a Trip" })}
+      />
       <Stack.Screen
         name="JoinRequestsInbox"
         component={JoinRequestsInboxScreen}
