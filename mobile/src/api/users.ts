@@ -65,3 +65,19 @@ export function useUploadProfilePhoto() {
     },
   });
 }
+
+export function useUploadCoverPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (asset: ImagePickerAsset) => {
+      const form = new FormData();
+      appendImageAsset(form, "photo", asset, "cover.jpg");
+      const { data } = await apiClient.post<User>("/users/me/cover-photo", form);
+      return data;
+    },
+    onSuccess: (user) => {
+      useAuthStore.getState().setUser(user);
+      queryClient.setQueryData(["users", "me"], user);
+    },
+  });
+}

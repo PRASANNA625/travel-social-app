@@ -48,6 +48,7 @@ export interface User {
   id: string;
   name: string;
   photoUrl?: string | null;
+  coverPhotoUrl?: string | null;
   age?: number | null;
   location?: string | null;
   bio?: string | null;

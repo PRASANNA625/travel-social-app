@@ -10,5 +10,6 @@ usersRouter.use(requireAuth);
 usersRouter.get("/me", asyncHandler(controller.me));
 usersRouter.patch("/me", asyncHandler(controller.updateMe));
 usersRouter.post("/me/photo", upload.single("photo"), asyncHandler(controller.uploadPhoto));
+usersRouter.post("/me/cover-photo", upload.single("photo"), asyncHandler(controller.uploadCoverPhoto));
 usersRouter.get("/:id", asyncHandler(controller.getById));
 usersRouter.get("/:id/completed-trips", asyncHandler(controller.completedTrips));

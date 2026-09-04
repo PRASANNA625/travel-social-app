@@ -28,6 +28,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId as string | undefined;
+const APP_VERSION = Constants.expoConfig?.version;
 
 function GoogleSignInButton() {
   const googleLogin = useGoogleLogin();
@@ -187,6 +188,8 @@ export function LoginScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {!!APP_VERSION && <Text style={styles.versionText}>Version {APP_VERSION}</Text>}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -275,4 +278,10 @@ const styles = StyleSheet.create({
   secondaryActions: { gap: 2, marginTop: 6, alignItems: "center" },
   secondaryLink: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8 },
   secondaryLinkText: { color: "#0f766e", fontSize: 13.5, fontWeight: "600" },
+  versionText: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 11.5,
+    textAlign: "center",
+    marginTop: 22,
+  },
 });

@@ -67,6 +67,7 @@ model User {
   phoneVerified  Boolean  @default(false)
   name           String
   photoUrl       String?
+  coverPhotoUrl  String?
   age            Int?
   location       String?
   bio            String?

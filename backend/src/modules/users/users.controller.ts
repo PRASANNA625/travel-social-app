@@ -38,6 +38,13 @@ export async function uploadPhoto(req: AuthedRequest, res: Response) {
   res.json(user);
 }
 
+export async function uploadCoverPhoto(req: AuthedRequest, res: Response) {
+  if (!req.file) throw new HttpError(400, "No file uploaded");
+  const url = await uploadToCloudinary(req.file);
+  const user = await service.setCoverPhoto(req.userId!, url);
+  res.json(user);
+}
+
 export async function completedTrips(req: AuthedRequest, res: Response) {
   const trips = await service.getCompletedTrips(req.params.id);
   res.json(trips);

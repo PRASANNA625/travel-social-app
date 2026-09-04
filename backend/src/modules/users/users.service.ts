@@ -6,6 +6,7 @@ export const publicUserSelect = {
   id: true,
   name: true,
   photoUrl: true,
+  coverPhotoUrl: true,
   age: true,
   location: true,
   bio: true,
@@ -38,6 +39,10 @@ export async function updateProfile(userId: string, data: ProfileUpdateInput) {
 
 export async function setPhoto(userId: string, photoUrl: string) {
   return prisma.user.update({ where: { id: userId }, data: { photoUrl }, select: publicUserSelect });
+}
+
+export async function setCoverPhoto(userId: string, coverPhotoUrl: string) {
+  return prisma.user.update({ where: { id: userId }, data: { coverPhotoUrl }, select: publicUserSelect });
 }
 
 export async function getCompletedTrips(userId: string) {
