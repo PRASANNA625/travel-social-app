@@ -20,6 +20,11 @@ import { useMe } from "../api/users";
 import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
 
+function splitModeLabel(label: string): { icon: string; text: string } {
+  const [icon, ...rest] = label.split(" ");
+  return { icon, text: rest.join(" ") };
+}
+
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
   NativeStackScreenProps<AppStackParamList>
@@ -83,25 +88,27 @@ export function DiscoverScreen({ navigation }: Props) {
         contentContainerStyle={styles.filterRowContent}
         data={["NEAR_ME" as const, ...TRAVEL_MODES]}
         keyExtractor={(item) => item}
-        renderItem={({ item }) =>
-          item === "NEAR_ME" ? (
+        renderItem={({ item }) => {
+          if (item === "NEAR_ME") {
+            return (
+              <TouchableOpacity style={[styles.chip, nearMe && styles.chipActive]} onPress={toggleNearMe}>
+                <Text style={styles.chipIcon}>📍</Text>
+                <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>Near me</Text>
+              </TouchableOpacity>
+            );
+          }
+          const { icon, text } = splitModeLabel(TRAVEL_MODE_LABELS[item]);
+          const active = travelMode === item;
+          return (
             <TouchableOpacity
-              style={[styles.chip, nearMe && styles.chipActive]}
-              onPress={toggleNearMe}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setTravelMode(active ? undefined : item)}
             >
-              <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>📍 Near me</Text>
+              <Text style={styles.chipIcon}>{icon}</Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{text}</Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.chip, travelMode === item && styles.chipActive]}
-              onPress={() => setTravelMode(travelMode === item ? undefined : item)}
-            >
-              <Text style={[styles.chipText, travelMode === item && styles.chipTextActive]}>
-                {TRAVEL_MODE_LABELS[item]}
-              </Text>
-            </TouchableOpacity>
-          )
-        }
+          );
+        }}
       />
 
       {isLoading ? (
@@ -153,6 +160,8 @@ const styles = StyleSheet.create({
   filterRowContent: { paddingHorizontal: 12, alignItems: "center" },
   chip: {
     height: 34,
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
     borderRadius: 999,
@@ -162,7 +171,8 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
   },
   chipActive: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
-  chipText: { fontSize: 12, lineHeight: 16, color: "#334155" },
+  chipIcon: { fontSize: 13, marginRight: 4 },
+  chipText: { fontSize: 12, color: "#334155" },
   chipTextActive: { color: "#fff", fontWeight: "600" },
   list: { padding: 12, paddingBottom: 90 },
   empty: { textAlign: "center", color: "#94a3b8", marginTop: 40 },
