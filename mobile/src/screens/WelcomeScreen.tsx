@@ -64,7 +64,7 @@ export function WelcomeScreen({ navigation }: Props) {
             <TouchableOpacity
               style={styles.primaryButton}
               activeOpacity={0.9}
-              onPress={() => navigation.navigate("Register")}
+              onPress={() => navigation.navigate("Onboarding")}
             >
               <Text style={styles.primaryButtonText}>Get Started</Text>
               <MaterialCommunityIcons name="arrow-right" size={18} color="#0f766e" />
