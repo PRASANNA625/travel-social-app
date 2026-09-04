@@ -24,7 +24,7 @@ export function AppTabs() {
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: "#0f766e",
         tabBarInactiveTintColor: "#94a3b8",
-        tabBarStyle: { borderTopWidth: 1, borderTopColor: "#f1f5f9", height: 60, paddingBottom: 8, paddingTop: 6 },
+        tabBarStyle: { borderTopWidth: 1, borderTopColor: "#f1f5f9" },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         tabBarIcon: ({ focused, color }) => {
           const icon = ICONS[route.name as keyof AppTabParamList];
