@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import Constants from "expo-constants";
 import { ResponseType } from "expo-auth-session";
@@ -16,13 +16,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId as string | undefined;
 
-export function LoginScreen({ navigation }: Props) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const login = useLogin();
+function GoogleSignInButton() {
   const googleLogin = useGoogleLogin();
-
   const [, googleResponse, promptGoogleLogin] = Google.useAuthRequest({
     webClientId: GOOGLE_CLIENT_ID,
     responseType: ResponseType.IdToken,
@@ -42,6 +37,30 @@ export function LoginScreen({ navigation }: Props) {
       Alert.alert("Google sign-in failed", googleResponse.error?.message ?? "Please try again");
     }
   }, [googleResponse]);
+
+  return (
+    <>
+      <TouchableOpacity
+        style={styles.googleButton}
+        onPress={() => promptGoogleLogin()}
+        disabled={!GOOGLE_CLIENT_ID || googleLogin.isPending}
+      >
+        {googleLogin.isPending ? (
+          <ActivityIndicator color="#0f766e" />
+        ) : (
+          <Text style={styles.googleButtonText}>Continue with Google</Text>
+        )}
+      </TouchableOpacity>
+      {!GOOGLE_CLIENT_ID && <Text style={styles.note}>Google sign-in isn't configured yet.</Text>}
+    </>
+  );
+}
+
+export function LoginScreen({ navigation }: Props) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const login = useLogin();
 
   const onSubmit = () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -85,18 +104,7 @@ export function LoginScreen({ navigation }: Props) {
         {login.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log In</Text>}
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.googleButton}
-        onPress={() => promptGoogleLogin()}
-        disabled={!GOOGLE_CLIENT_ID || googleLogin.isPending}
-      >
-        {googleLogin.isPending ? (
-          <ActivityIndicator color="#0f766e" />
-        ) : (
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
-        )}
-      </TouchableOpacity>
-      {!GOOGLE_CLIENT_ID && <Text style={styles.note}>Google sign-in isn't configured yet.</Text>}
+      {Platform.OS === "web" && <GoogleSignInButton />}
 
       <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.link}>New here? Create an account</Text>
