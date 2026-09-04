@@ -64,6 +64,9 @@ export function TripCard({
             <MaterialCommunityIcons name="map-marker" size={13} color="#e2e8f0" />
             <Text style={styles.overlayMeta} numberOfLines={1}>
               {trip.destination} · {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
+              {typeof trip.distanceKm === "number"
+                ? ` · ${trip.distanceKm < 1 ? "<1" : Math.round(trip.distanceKm)} km away`
+                : ""}
             </Text>
           </View>
         </LinearGradient>

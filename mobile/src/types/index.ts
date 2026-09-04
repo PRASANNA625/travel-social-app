@@ -91,6 +91,7 @@ export interface Trip {
   createdAt: string;
   isLiked: boolean;
   isBookmarked: boolean;
+  distanceKm?: number;
   _count: { likes: number; comments: number; joinRequests: number };
 }
 

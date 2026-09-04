@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Modal,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -27,10 +29,17 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<AppStackParamList>
 >;
 
+const RADIUS_OPTIONS_KM = [10, 25, 50, 100];
+const DEFAULT_RADIUS_KM = 50;
+
 export function DiscoverScreen({ navigation }: Props) {
   const [search, setSearch] = useState("");
   const [travelMode, setTravelMode] = useState<TravelMode | undefined>();
   const [nearMe, setNearMe] = useState<{ lat: number; lng: number } | null>(null);
+  const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
+  const [locating, setLocating] = useState(false);
+  const [radiusSheetVisible, setRadiusSheetVisible] = useState(false);
+  const [locationDeniedVisible, setLocationDeniedVisible] = useState(false);
 
   const { data: me } = useMe();
 
@@ -39,18 +48,37 @@ export function DiscoverScreen({ navigation }: Props) {
     travelMode,
     lat: nearMe?.lat,
     lng: nearMe?.lng,
-    radiusKm: nearMe ? 200 : undefined,
+    radiusKm: nearMe ? radiusKm : undefined,
   });
 
-  const toggleNearMe = async () => {
-    if (nearMe) {
-      setNearMe(null);
-      return;
+  const activateNearMe = async () => {
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setLocationDeniedVisible(true);
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({});
+      setNearMe({ lat: position.coords.latitude, lng: position.coords.longitude });
+    } catch {
+      setLocationDeniedVisible(true);
+    } finally {
+      setLocating(false);
     }
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
-    const position = await Location.getCurrentPositionAsync({});
-    setNearMe({ lat: position.coords.latitude, lng: position.coords.longitude });
+  };
+
+  const clearNearMe = () => {
+    setNearMe(null);
+    setRadiusSheetVisible(false);
+  };
+
+  const onNearMePress = () => {
+    if (nearMe) {
+      setRadiusSheetVisible(true);
+    } else {
+      activateNearMe();
+    }
   };
 
   return (
@@ -92,9 +120,20 @@ export function DiscoverScreen({ navigation }: Props) {
         renderItem={({ item }) => {
           if (item === "NEAR_ME") {
             return (
-              <TouchableOpacity style={[styles.chip, nearMe && styles.chipActive]} onPress={toggleNearMe}>
-                <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? "#fff" : "#334155"} />
-                <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>Near me</Text>
+              <TouchableOpacity
+                style={[styles.chip, nearMe && styles.chipActive]}
+                onPress={onNearMePress}
+                disabled={locating}
+              >
+                {locating ? (
+                  <ActivityIndicator size="small" color={nearMe ? "#fff" : "#0f766e"} />
+                ) : (
+                  <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? "#fff" : "#334155"} />
+                )}
+                <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>
+                  {nearMe ? `Near me · ${radiusKm} km` : "Near me"}
+                </Text>
+                {nearMe && <MaterialCommunityIcons name="chevron-down" size={14} color="#fff" />}
               </TouchableOpacity>
             );
           }
@@ -125,8 +164,21 @@ export function DiscoverScreen({ navigation }: Props) {
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <MaterialCommunityIcons name="compass-outline" size={40} color="#cbd5e1" />
-              <Text style={styles.empty}>No trips match yet — try widening your filters.</Text>
+              <MaterialCommunityIcons
+                name={nearMe ? "map-marker-radius-outline" : "compass-outline"}
+                size={40}
+                color="#cbd5e1"
+              />
+              <Text style={styles.empty}>
+                {nearMe
+                  ? `No trips found within ${radiusKm} km of you.`
+                  : "No trips match yet — try widening your filters."}
+              </Text>
+              {nearMe && (
+                <TouchableOpacity onPress={clearNearMe}>
+                  <Text style={styles.emptyClearLink}>Clear filter to see all trips</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
           renderItem={({ item }) => (
@@ -139,6 +191,77 @@ export function DiscoverScreen({ navigation }: Props) {
         <MaterialCommunityIcons name="plus" size={18} color="#fff" />
         <Text style={styles.fabText}>Create Trip</Text>
       </TouchableOpacity>
+
+      <Modal
+        visible={radiusSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRadiusSheetVisible(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setRadiusSheetVisible(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Text style={styles.sheetTitle}>Near me</Text>
+            <Text style={styles.sheetSubtitle}>Showing trips within {radiusKm} km of your location</Text>
+            <View style={styles.radiusOptionsRow}>
+              {RADIUS_OPTIONS_KM.map((km) => (
+                <TouchableOpacity
+                  key={km}
+                  style={[styles.radiusOption, radiusKm === km && styles.radiusOptionActive]}
+                  onPress={() => {
+                    setRadiusKm(km);
+                    setRadiusSheetVisible(false);
+                  }}
+                >
+                  <Text style={[styles.radiusOptionText, radiusKm === km && styles.radiusOptionTextActive]}>
+                    {km} km
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.clearFilterButton} onPress={clearNearMe}>
+              <MaterialCommunityIcons name="close-circle-outline" size={16} color="#dc2626" />
+              <Text style={styles.clearFilterText}>Clear filter</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={locationDeniedVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLocationDeniedVisible(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setLocationDeniedVisible(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.permissionIconWrap}>
+              <MaterialCommunityIcons name="map-marker-off-outline" size={26} color="#dc2626" />
+            </View>
+            <Text style={styles.sheetTitle}>Location access needed</Text>
+            <Text style={styles.sheetSubtitle}>
+              To show trips near you, we need permission to use your device's location. Please allow location
+              access and try again.
+            </Text>
+            <View style={styles.permissionButtonRow}>
+              <TouchableOpacity
+                style={styles.permissionCancelButton}
+                onPress={() => setLocationDeniedVisible(false)}
+              >
+                <Text style={styles.permissionCancelText}>Not now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.permissionRetryButton}
+                onPress={() => {
+                  setLocationDeniedVisible(false);
+                  activateNearMe();
+                }}
+              >
+                <Text style={styles.permissionRetryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -190,6 +313,78 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 110 },
   emptyWrap: { alignItems: "center", marginTop: 48, gap: 10 },
   empty: { textAlign: "center", color: "#94a3b8", fontSize: 13, paddingHorizontal: 32 },
+  emptyClearLink: { color: "#0f766e", fontSize: 13, fontWeight: "700", marginTop: 2 },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  sheet: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  sheetTitle: { fontSize: 16, fontWeight: "700", color: "#0f172a", textAlign: "center" },
+  sheetSubtitle: { fontSize: 13, color: "#64748b", textAlign: "center", marginTop: 6, lineHeight: 18 },
+  radiusOptionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16, justifyContent: "center" },
+  radiusOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+  },
+  radiusOptionActive: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
+  radiusOptionText: { fontSize: 13, fontWeight: "600", color: "#334155" },
+  radiusOptionTextActive: { color: "#fff" },
+  clearFilterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#fef2f2",
+  },
+  clearFilterText: { color: "#dc2626", fontWeight: "700", fontSize: 13 },
+  permissionIconWrap: {
+    alignSelf: "center",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#fef2f2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  permissionButtonRow: { flexDirection: "row", gap: 10, marginTop: 18 },
+  permissionCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+  },
+  permissionCancelText: { color: "#334155", fontWeight: "700", fontSize: 13 },
+  permissionRetryButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: "#0f766e",
+  },
+  permissionRetryText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   fab: {
     position: "absolute",
     right: 16,
