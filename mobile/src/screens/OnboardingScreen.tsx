@@ -16,42 +16,24 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
+import { useLanguage } from "../i18n/LanguageContext";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Onboarding">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 interface Slide {
   icon: IconName;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   colors: [string, string];
 }
 
 const SLIDES: Slide[] = [
-  {
-    icon: "image-filter-hdr",
-    title: "Discover Your Next Adventure",
-    description: "Find exciting trips and destinations that match your interests.",
-    colors: ["#0c4a6e", "#0f766e"],
-  },
-  {
-    icon: "account-group",
-    title: "Travel With Like-Minded People",
-    description: "Connect with people who are looking for the same adventure.",
-    colors: ["#1d4ed8", "#0f766e"],
-  },
-  {
-    icon: "map-marker-path",
-    title: "Plan & Create Trips",
-    description: "Create your own trip, invite others, and build your travel crew.",
-    colors: ["#0f766e", "#134e4a"],
-  },
-  {
-    icon: "handshake-outline",
-    title: "Make Memories Together",
-    description: "Join trips, share experiences, comment, and connect with your travel community.",
-    colors: ["#0f766e", "#0c4a6e"],
-  },
+  { icon: "image-filter-hdr", titleKey: "onboarding.slide1Title", descriptionKey: "onboarding.slide1Desc", colors: ["#0c4a6e", "#0f766e"] },
+  { icon: "account-group", titleKey: "onboarding.slide2Title", descriptionKey: "onboarding.slide2Desc", colors: ["#1d4ed8", "#0f766e"] },
+  { icon: "map-marker-path", titleKey: "onboarding.slide3Title", descriptionKey: "onboarding.slide3Desc", colors: ["#0f766e", "#134e4a"] },
+  { icon: "handshake-outline", titleKey: "onboarding.slide4Title", descriptionKey: "onboarding.slide4Desc", colors: ["#0f766e", "#0c4a6e"] },
 ];
 
 export function OnboardingScreen({ navigation }: Props) {
@@ -62,6 +44,7 @@ export function OnboardingScreen({ navigation }: Props) {
   const listRef = useRef<FlatList<Slide>>(null);
   const isWeb = Platform.OS === "web";
   const isLast = index === SLIDES.length - 1;
+  const { t } = useLanguage();
 
   const finish = () => navigation.replace("Register");
 
@@ -82,7 +65,7 @@ export function OnboardingScreen({ navigation }: Props) {
       <FlatList
         ref={listRef}
         data={SLIDES}
-        keyExtractor={(item) => item.title}
+        keyExtractor={(item) => item.titleKey}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -95,26 +78,28 @@ export function OnboardingScreen({ navigation }: Props) {
               <View style={styles.iconBadge}>
                 <MaterialCommunityIcons name={item.icon} size={64} color="#fff" />
               </View>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.description}>{item.description}</Text>
+              <Text style={styles.title}>{t(item.titleKey)}</Text>
+              <Text style={styles.description}>{t(item.descriptionKey)}</Text>
             </View>
           </LinearGradient>
         )}
       />
 
       <TouchableOpacity style={[styles.skipButton, { top: insets.top + 16 }]} onPress={finish}>
-        <Text style={styles.skipText}>Skip</Text>
+        <Text style={styles.skipText}>{t("onboarding.skip")}</Text>
       </TouchableOpacity>
+
+      <LanguageSelector variant="light" style={[styles.languageSelector, { top: insets.top + 16 }]} />
 
       <View style={[styles.bottomBar, isWeb && styles.bottomBarWeb, { paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.dotsRow}>
           {SLIDES.map((slide, i) => (
-            <View key={slide.title} style={[styles.dot, i === index && styles.dotActive]} />
+            <View key={slide.titleKey} style={[styles.dot, i === index && styles.dotActive]} />
           ))}
         </View>
 
         <TouchableOpacity style={styles.nextButton} activeOpacity={0.9} onPress={goNext}>
-          <Text style={styles.nextButtonText}>{isLast ? "Get Started" : "Next"}</Text>
+          <Text style={styles.nextButtonText}>{isLast ? t("onboarding.getStarted") : t("onboarding.next")}</Text>
           <MaterialCommunityIcons name={isLast ? "rocket-launch-outline" : "arrow-right"} size={18} color="#0f766e" />
         </TouchableOpacity>
       </View>
@@ -165,4 +150,5 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   nextButtonText: { color: "#0f766e", fontSize: 16, fontWeight: "700" },
+  languageSelector: { position: "absolute", left: 20 },
 });
