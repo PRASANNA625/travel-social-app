@@ -19,4 +19,9 @@ export const env = {
     process.env.PUBLIC_BASE_URL ??
     process.env.RENDER_EXTERNAL_URL ??
     `http://localhost:${process.env.PORT ?? 4000}`,
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? "",
+    apiKey: process.env.CLOUDINARY_API_KEY ?? "",
+    apiSecret: process.env.CLOUDINARY_API_SECRET ?? "",
+  },
 };

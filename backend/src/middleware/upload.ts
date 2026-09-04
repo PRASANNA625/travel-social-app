@@ -1,20 +1,20 @@
-import fs from "fs";
-import path from "path";
 import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
 import { env } from "../config/env";
+import { HttpError } from "./error";
 
-fs.mkdirSync(env.uploadsDir, { recursive: true });
+const cloudinaryConfigured = !!(env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecret);
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, env.uploadsDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
-  },
-});
+if (cloudinaryConfigured) {
+  cloudinary.config({
+    cloud_name: env.cloudinary.cloudName,
+    api_key: env.cloudinary.apiKey,
+    api_secret: env.cloudinary.apiSecret,
+  });
+}
 
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
@@ -24,6 +24,20 @@ export const upload = multer({
   },
 });
 
-export function fileUrl(filename: string): string {
-  return `${env.publicBaseUrl}/uploads/${filename}`;
+export function uploadToCloudinary(file: Express.Multer.File): Promise<string> {
+  if (!cloudinaryConfigured) {
+    return Promise.reject(
+      new HttpError(500, "Image uploads are not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.")
+    );
+  }
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "travel-social", resource_type: "image" },
+      (err, result) => {
+        if (err || !result) return reject(err ?? new Error("Cloudinary upload failed"));
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(file.buffer);
+  });
 }

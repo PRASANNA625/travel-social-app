@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -27,11 +28,13 @@ export function TripCard({
   onPress: () => void;
   onDelete?: () => void;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
       <View style={styles.imageWrap}>
-        {trip.images[0] ? (
-          <Image source={{ uri: trip.images[0] }} style={styles.image} />
+        {trip.images[0] && !imageFailed ? (
+          <Image source={{ uri: trip.images[0] }} style={styles.image} onError={() => setImageFailed(true)} />
         ) : (
           <LinearGradient colors={["#1d4ed8", "#0f766e"]} style={[styles.image, styles.imagePlaceholder]}>
             <MaterialCommunityIcons

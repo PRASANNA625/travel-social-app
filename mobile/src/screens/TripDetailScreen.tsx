@@ -76,6 +76,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const [editImages, setEditImages] = useState<string[]>([]);
   const [newPhotoAssets, setNewPhotoAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
@@ -313,9 +314,20 @@ export function TripDetailScreen({ route, navigation }: Props) {
                 style={styles.heroList}
                 data={trip.images}
                 keyExtractor={(uri) => uri}
-                renderItem={({ item }) => (
-                  <Image source={{ uri: item }} style={[styles.heroImage, { width: heroWidth, height: heroHeight }]} />
-                )}
+                renderItem={({ item }) =>
+                  failedImages.has(item) ? (
+                    <LinearGradient
+                      colors={["#2563eb", "#0f766e"]}
+                      style={[styles.heroImage, { width: heroWidth, height: heroHeight }]}
+                    />
+                  ) : (
+                    <Image
+                      source={{ uri: item }}
+                      style={[styles.heroImage, { width: heroWidth, height: heroHeight }]}
+                      onError={() => setFailedImages((prev) => new Set(prev).add(item))}
+                    />
+                  )
+                }
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}

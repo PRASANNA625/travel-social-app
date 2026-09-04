@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import type { AuthedRequest } from "../../middleware/auth";
-import { fileUrl } from "../../middleware/upload";
+import { uploadToCloudinary } from "../../middleware/upload";
 import { HttpError } from "../../middleware/error";
 import * as service from "./messages.service";
 
@@ -11,5 +11,6 @@ export async function list(req: AuthedRequest, res: Response) {
 
 export async function uploadImage(req: AuthedRequest, res: Response) {
   if (!req.file) throw new HttpError(400, "No file uploaded");
-  res.json({ url: fileUrl(req.file.filename) });
+  const url = await uploadToCloudinary(req.file);
+  res.json({ url });
 }

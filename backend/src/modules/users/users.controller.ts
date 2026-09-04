@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import { z } from "zod";
 import type { AuthedRequest } from "../../middleware/auth";
-import { fileUrl } from "../../middleware/upload";
+import { uploadToCloudinary } from "../../middleware/upload";
 import { HttpError } from "../../middleware/error";
 import { travelModes } from "../trips/trips.types";
 import * as service from "./users.service";
@@ -33,7 +33,8 @@ export async function updateMe(req: AuthedRequest, res: Response) {
 
 export async function uploadPhoto(req: AuthedRequest, res: Response) {
   if (!req.file) throw new HttpError(400, "No file uploaded");
-  const user = await service.setPhoto(req.userId!, fileUrl(req.file.filename));
+  const url = await uploadToCloudinary(req.file);
+  const user = await service.setPhoto(req.userId!, url);
   res.json(user);
 }
 

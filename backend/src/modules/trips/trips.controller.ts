@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import { z } from "zod";
 import type { AuthedRequest } from "../../middleware/auth";
-import { fileUrl } from "../../middleware/upload";
+import { uploadToCloudinary } from "../../middleware/upload";
 import { HttpError } from "../../middleware/error";
 import * as service from "./trips.service";
 import { createTripSchema, tripFiltersSchema, updateTripSchema } from "./trips.types";
@@ -85,5 +85,6 @@ export async function listComments(req: AuthedRequest, res: Response) {
 export async function uploadImages(req: AuthedRequest, res: Response) {
   const files = req.files as Express.Multer.File[] | undefined;
   if (!files?.length) throw new HttpError(400, "No files uploaded");
-  res.json({ urls: files.map((f) => fileUrl(f.filename)) });
+  const urls = await Promise.all(files.map((f) => uploadToCloudinary(f)));
+  res.json({ urls });
 }
