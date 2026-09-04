@@ -6,3 +6,4 @@ backend/uploads/*
 .expo/
 *.log
 .claude/
+.superpowers/
