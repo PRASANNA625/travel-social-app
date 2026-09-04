@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "./types";
 import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
+import { PhoneLoginScreen } from "../screens/PhoneLoginScreen";
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -10,6 +11,7 @@ export function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="PhoneLogin" component={PhoneLoginScreen} />
     </Stack.Navigator>
   );
 }

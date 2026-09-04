@@ -18,15 +18,17 @@ export const phoneProvider = {
     console.log(`[MockPhoneProvider] OTP for ${phone}: ${code}`);
   },
 
-  async verifyOtp(phone: string, code: string): Promise<boolean> {
+  async checkOtp(phone: string, code: string): Promise<boolean> {
     const pending = pendingOtps.get(phone);
     if (!pending) return false;
     if (Date.now() > pending.expiresAt) {
       pendingOtps.delete(phone);
       return false;
     }
-    const isValid = pending.code === code;
-    if (isValid) pendingOtps.delete(phone);
-    return isValid;
+    return pending.code === code;
+  },
+
+  async consumeOtp(phone: string): Promise<void> {
+    pendingOtps.delete(phone);
   },
 };
