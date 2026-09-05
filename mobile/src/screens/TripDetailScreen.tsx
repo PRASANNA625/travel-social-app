@@ -32,7 +32,6 @@ import {
 import { useExpressInterest } from "../api/joinRequests";
 import { useMyJoinRequests } from "../api/joinRequests";
 import { useGroupByTrip } from "../api/groups";
-import type { Trip } from "../types";
 import { Alert } from "../utils/alert";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
@@ -204,6 +203,12 @@ export function TripDetailScreen({ route, navigation }: Props) {
     actionSlot = (
       <View style={styles.pendingBadge}>
         <Text style={styles.pendingText}>This trip is full</Text>
+      </View>
+    );
+  } else if (trip.status === "COMPLETED") {
+    actionSlot = (
+      <View style={styles.pendingBadge}>
+        <Text style={styles.pendingText}>This trip has ended</Text>
       </View>
     );
   } else {

@@ -150,13 +150,22 @@ export function CreateTripScreen({ navigation, route }: Props) {
       Alert.alert("Missing details", "Please fill in all required fields, highlighted in red.");
       return;
     }
-    if (endDate && isBeforeToday(endDate)) {
-      Alert.alert("Invalid end date", "End date must be today or a future date.");
-      return;
-    }
-    if (endDate && isAfterDate(startDate, endDate)) {
-      Alert.alert("Invalid dates", "Start date cannot be after the end date.");
-      return;
+
+    const datesChanged =
+      !isEditMode ||
+      !existingTrip ||
+      startDate.getTime() !== new Date(existingTrip.startDate).getTime() ||
+      (endDate?.getTime() ?? null) !== new Date(existingTrip.endDate).getTime();
+
+    if (datesChanged) {
+      if (endDate && isBeforeToday(endDate)) {
+        Alert.alert("Invalid end date", "End date must be today or a future date.");
+        return;
+      }
+      if (endDate && isAfterDate(startDate, endDate)) {
+        Alert.alert("Invalid dates", "Start date cannot be after the end date.");
+        return;
+      }
     }
     const seatsNum = Number(seats);
     if (!seatsNum || seatsNum < 1) {
@@ -172,12 +181,13 @@ export function CreateTripScreen({ navigation, route }: Props) {
             title: title.trim(),
             destination: destination.trim(),
             startLocation: startLocation.trim(),
-            startLat: startLocationCoords?.lat,
-            startLng: startLocationCoords?.lng,
-            destLat: destinationCoords?.lat,
-            destLng: destinationCoords?.lng,
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
+            startLat: startLocationCoords?.lat ?? null,
+            startLng: startLocationCoords?.lng ?? null,
+            destLat: destinationCoords?.lat ?? null,
+            destLng: destinationCoords?.lng ?? null,
+            ...(datesChanged
+              ? { startDate: startDate.toISOString(), endDate: endDate.toISOString() }
+              : {}),
             travelMode,
             budget: budget ? Number(budget) : undefined,
             seats: seatsNum,
@@ -204,10 +214,10 @@ export function CreateTripScreen({ navigation, route }: Props) {
         title: title.trim(),
         destination: destination.trim(),
         startLocation: startLocation.trim(),
-        startLat: startLocationCoords?.lat,
-        startLng: startLocationCoords?.lng,
-        destLat: destinationCoords?.lat,
-        destLng: destinationCoords?.lng,
+        startLat: startLocationCoords?.lat ?? null,
+        startLng: startLocationCoords?.lng ?? null,
+        destLat: destinationCoords?.lat ?? null,
+        destLng: destinationCoords?.lng ?? null,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         travelMode,

@@ -1,6 +1,7 @@
 import type { TravelMode } from "@prisma/client";
 import { prisma } from "../../config/prisma";
 import { HttpError } from "../../middleware/error";
+import { closeExpiredTrips } from "../trips/trips.service";
 
 export const publicUserSelect = {
   id: true,
@@ -46,6 +47,7 @@ export async function setCoverPhoto(userId: string, coverPhotoUrl: string) {
 }
 
 export async function getCompletedTrips(userId: string) {
+  await closeExpiredTrips();
   return prisma.trip.findMany({
     where: {
       status: "COMPLETED",

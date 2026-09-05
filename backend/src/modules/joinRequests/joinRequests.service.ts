@@ -27,7 +27,7 @@ export async function createJoinRequest(tripId: string, userId: string, message?
   const trip = await prisma.trip.findUnique({ where: { id: tripId } });
   if (!trip) throw new HttpError(404, "Trip not found");
   if (trip.ownerId === userId) throw new HttpError(400, "You can't request to join your own trip");
-  if (trip.status === "CANCELLED" || trip.status === "FULL") {
+  if (trip.status === "CANCELLED" || trip.status === "FULL" || trip.status === "COMPLETED") {
     throw new HttpError(400, "This trip is no longer accepting participants");
   }
   if (trip.joinType === "INVITE_ONLY") {

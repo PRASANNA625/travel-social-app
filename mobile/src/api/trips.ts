@@ -51,10 +51,10 @@ export interface CreateTripInput {
   title: string;
   destination: string;
   startLocation: string;
-  startLat?: number;
-  startLng?: number;
-  destLat?: number;
-  destLng?: number;
+  startLat?: number | null;
+  startLng?: number | null;
+  destLat?: number | null;
+  destLng?: number | null;
   startDate: string;
   endDate: string;
   travelMode: TravelMode;

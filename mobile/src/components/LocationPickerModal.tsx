@@ -55,8 +55,8 @@ function buildMapHtml(): string {
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    var map = L.map('map', { attributionControl: false }).setView([${DEFAULT_CENTER.lat}, ${DEFAULT_CENTER.lng}], 4);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    var map = L.map('map').setView([${DEFAULT_CENTER.lat}, ${DEFAULT_CENTER.lng}], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
     var marker = null;
 
     function sendToHost(payload) {
@@ -177,11 +177,13 @@ export function LocationPickerModal({
         );
         const data: NominatimResult[] = await response.json();
         setResults(
-          data.map((item) => ({
-            name: item.display_name,
-            lat: parseFloat(item.lat),
-            lng: parseFloat(item.lon),
-          }))
+          data
+            .map((item) => ({
+              name: item.display_name,
+              lat: parseFloat(item.lat),
+              lng: parseFloat(item.lon),
+            }))
+            .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
         );
       } catch {
         setResults([]);

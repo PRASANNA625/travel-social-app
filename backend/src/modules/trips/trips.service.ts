@@ -20,9 +20,14 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function todayUTCStart(): Date {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+}
+
 function assertValidTripDates(start: Date, end: Date): void {
-  const todayUTC = new Date();
-  todayUTC.setUTCHours(0, 0, 0, 0);
+  const todayUTC = todayUTCStart();
   if (end.getTime() < start.getTime()) {
     throw new HttpError(400, "End date cannot be before the start date");
   }
@@ -31,9 +36,9 @@ function assertValidTripDates(start: Date, end: Date): void {
   }
 }
 
-async function closeExpiredTrips(): Promise<void> {
+export async function closeExpiredTrips(): Promise<void> {
   await prisma.trip.updateMany({
-    where: { endDate: { lt: new Date() }, status: { notIn: ["CANCELLED", "COMPLETED"] } },
+    where: { endDate: { lt: todayUTCStart() }, status: { notIn: ["CANCELLED", "COMPLETED"] } },
     data: { status: "COMPLETED" },
   });
 }
@@ -163,7 +168,7 @@ export async function updateTrip(tripId: string, ownerId: string, input: UpdateT
   }
 
   let data = input;
-  if (effectiveEnd.getTime() < Date.now() && data.status && data.status !== "CANCELLED") {
+  if (effectiveEnd.getTime() < todayUTCStart().getTime() && data.status && data.status !== "CANCELLED") {
     data = { ...data, status: "COMPLETED" };
   }
 
