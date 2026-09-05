@@ -75,6 +75,8 @@ export interface Trip {
   startLocation: string;
   startLat?: number | null;
   startLng?: number | null;
+  destLat?: number | null;
+  destLng?: number | null;
   startDate: string;
   endDate: string;
   travelMode: TravelMode;

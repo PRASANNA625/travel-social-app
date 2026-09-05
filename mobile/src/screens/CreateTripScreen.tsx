@@ -12,11 +12,13 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useCreateTrip, useTrip, useUpdateTrip, useUploadTripImages } from "../api/trips";
 import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type JoinType, type TravelMode } from "../types";
 import { TripDateFields } from "../components/TripDateFields";
+import { LocationPickerModal, type LocationValue } from "../components/LocationPickerModal";
 import { Alert } from "../utils/alert";
 import { isAfterDate, isBeforeToday } from "../utils/date";
 
@@ -51,6 +53,9 @@ export function CreateTripScreen({ navigation, route }: Props) {
   const [title, setTitle] = useState("");
   const [destination, setDestination] = useState("");
   const [startLocation, setStartLocation] = useState("");
+  const [startLocationCoords, setStartLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [activePicker, setActivePicker] = useState<"start" | "destination" | null>(null);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [travelMode, setTravelMode] = useState<TravelMode | undefined>(undefined);
@@ -74,6 +79,16 @@ export function CreateTripScreen({ navigation, route }: Props) {
     setTitle(existingTrip.title);
     setDestination(existingTrip.destination);
     setStartLocation(existingTrip.startLocation);
+    setStartLocationCoords(
+      existingTrip.startLat != null && existingTrip.startLng != null
+        ? { lat: existingTrip.startLat, lng: existingTrip.startLng }
+        : null
+    );
+    setDestinationCoords(
+      existingTrip.destLat != null && existingTrip.destLng != null
+        ? { lat: existingTrip.destLat, lng: existingTrip.destLng }
+        : null
+    );
     setStartDate(new Date(existingTrip.startDate));
     setEndDate(new Date(existingTrip.endDate));
     setTravelMode(existingTrip.travelMode);
@@ -157,6 +172,10 @@ export function CreateTripScreen({ navigation, route }: Props) {
             title: title.trim(),
             destination: destination.trim(),
             startLocation: startLocation.trim(),
+            startLat: startLocationCoords?.lat,
+            startLng: startLocationCoords?.lng,
+            destLat: destinationCoords?.lat,
+            destLng: destinationCoords?.lng,
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
             travelMode,
@@ -185,6 +204,10 @@ export function CreateTripScreen({ navigation, route }: Props) {
         title: title.trim(),
         destination: destination.trim(),
         startLocation: startLocation.trim(),
+        startLat: startLocationCoords?.lat,
+        startLng: startLocationCoords?.lng,
+        destLat: destinationCoords?.lat,
+        destLng: destinationCoords?.lng,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         travelMode,
@@ -244,8 +267,15 @@ export function CreateTripScreen({ navigation, route }: Props) {
             placeholder="e.g., Chennai, India"
             placeholderTextColor="#94a3b8"
             value={startLocation}
-            onChangeText={setStartLocation}
+            onChangeText={(text) => {
+              setStartLocation(text);
+              if (startLocationCoords) setStartLocationCoords(null);
+            }}
           />
+          <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("start")}>
+            <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color="#0f766e" />
+            <Text style={styles.pickOnMapText}>Pick on map</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.flex1}>
           <FieldLabel text="Destination" required />
@@ -254,10 +284,40 @@ export function CreateTripScreen({ navigation, route }: Props) {
             placeholder="e.g., Ladakh, India"
             placeholderTextColor="#94a3b8"
             value={destination}
-            onChangeText={setDestination}
+            onChangeText={(text) => {
+              setDestination(text);
+              if (destinationCoords) setDestinationCoords(null);
+            }}
           />
+          <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("destination")}>
+            <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color="#0f766e" />
+            <Text style={styles.pickOnMapText}>Pick on map</Text>
+          </TouchableOpacity>
         </View>
       </View>
+
+      <LocationPickerModal
+        visible={activePicker === "start"}
+        title="Starting Location"
+        initialValue={startLocationCoords ? { name: startLocation, ...startLocationCoords } : null}
+        onClose={() => setActivePicker(null)}
+        onSelect={(value: LocationValue) => {
+          setStartLocation(value.name);
+          setStartLocationCoords({ lat: value.lat, lng: value.lng });
+          setActivePicker(null);
+        }}
+      />
+      <LocationPickerModal
+        visible={activePicker === "destination"}
+        title="Destination"
+        initialValue={destinationCoords ? { name: destination, ...destinationCoords } : null}
+        onClose={() => setActivePicker(null)}
+        onSelect={(value: LocationValue) => {
+          setDestination(value.name);
+          setDestinationCoords({ lat: value.lat, lng: value.lng });
+          setActivePicker(null);
+        }}
+      />
 
       <View style={styles.row}>
         <View style={styles.flex1}>
@@ -504,4 +564,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  pickOnMapLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+  pickOnMapText: { color: "#0f766e", fontSize: 12, fontWeight: "600" },
 });
