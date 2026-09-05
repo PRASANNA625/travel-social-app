@@ -12,6 +12,7 @@ export function PrimaryButton({
   loading,
   disabled,
   style,
+  variant = "solid",
 }: {
   label: string;
   onPress: () => void;
@@ -19,20 +20,24 @@ export function PrimaryButton({
   loading?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
+  variant?: "solid" | "outline";
 }) {
+  const isOutline = variant === "outline";
+  const contentColor = isOutline ? COLORS.primary : COLORS.white;
+
   return (
     <TouchableOpacity
-      style={[styles.button, disabled && styles.buttonDisabled, style]}
+      style={[styles.button, isOutline && styles.buttonOutline, disabled && styles.buttonDisabled, style]}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.9}
     >
       {loading ? (
-        <ActivityIndicator color={COLORS.white} />
+        <ActivityIndicator color={contentColor} />
       ) : (
         <>
-          <Text style={styles.text}>{label}</Text>
-          {icon && <MaterialCommunityIcons name={icon} size={18} color={COLORS.white} />}
+          <Text style={[styles.text, isOutline && styles.textOutline]}>{label}</Text>
+          {icon && <MaterialCommunityIcons name={icon} size={18} color={contentColor} />}
         </>
       )}
     </TouchableOpacity>
@@ -50,6 +55,16 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     ...SHADOW.button,
   },
+  buttonOutline: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    shadowColor: "transparent",
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
   buttonDisabled: { opacity: 0.6 },
   text: { color: COLORS.white, fontSize: 16, fontWeight: "700" },
+  textOutline: { color: COLORS.primary },
 });

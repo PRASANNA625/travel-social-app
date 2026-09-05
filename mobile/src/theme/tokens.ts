@@ -14,6 +14,12 @@ export const COLORS = {
   primary: "#0f766e",
   danger: "#dc2626",
   white: "#ffffff",
+  dangerBg: "#fef2f2",
+  dangerBorderLight: "#fecaca",
+  successBg: "#ecfdf5",
+  successBorderLight: "#a7f3d0",
+  warningBg: "#fef9c3",
+  warningText: "#854d0e",
 };
 
 export const RADIUS = { pill: 999, card: 24, field: 14, chip: 16, badge: 14 };
