@@ -21,10 +21,12 @@ import { useTrips } from "../api/trips";
 import { useMe } from "../api/users";
 import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
+import { TripCardSkeleton } from "../components/TripCardSkeleton";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { COLORS, RADIUS } from "../theme/tokens";
+import { optimizedImageUrl } from "../utils/optimizedImage";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -88,7 +90,7 @@ export function DiscoverScreen({ navigation }: Props) {
           </View>
           <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
             {me?.photoUrl ? (
-              <Image source={{ uri: me.photoUrl }} style={styles.avatar} />
+              <Image source={{ uri: optimizedImageUrl(me.photoUrl, 84) }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarInitial}>{(me?.name ?? "?").charAt(0).toUpperCase()}</Text>
@@ -154,7 +156,11 @@ export function DiscoverScreen({ navigation }: Props) {
       />
 
       {isLoading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} size="large" />
+        <View style={styles.list}>
+          <TripCardSkeleton />
+          <TripCardSkeleton />
+          <TripCardSkeleton />
+        </View>
       ) : (
         <FlatList
           contentContainerStyle={styles.list}

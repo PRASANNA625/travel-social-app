@@ -6,6 +6,7 @@ import type { Trip } from "../types";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
 import { COLORS, RADIUS } from "../theme/tokens";
+import { optimizedImageUrl } from "../utils/optimizedImage";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -26,7 +27,11 @@ export function TripCard({
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
       <View style={styles.imageWrap}>
         {trip.images[0] && !imageFailed ? (
-          <Image source={{ uri: trip.images[0] }} style={styles.image} onError={() => setImageFailed(true)} />
+          <Image
+            source={{ uri: optimizedImageUrl(trip.images[0], 500) }}
+            style={styles.image}
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           <LinearGradient colors={["#1d4ed8", "#0f766e"]} style={[styles.image, styles.imagePlaceholder]}>
             <MaterialCommunityIcons

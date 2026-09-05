@@ -21,6 +21,8 @@ import { useGroup } from "../api/groups";
 import { useLiveGroupChat, useMessageHistory, useUploadChatImage } from "../api/messages";
 import type { ChatMessage } from "../types";
 import { Alert } from "../utils/alert";
+import { optimizedImageUrl } from "../utils/optimizedImage";
+import { Skeleton } from "../components/theme/Skeleton";
 
 type Props = NativeStackScreenProps<AppStackParamList, "GroupChat">;
 
@@ -83,7 +85,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
       <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}>
         {!isMine &&
           (item.sender.photoUrl ? (
-            <Image source={{ uri: item.sender.photoUrl }} style={styles.avatar} />
+            <Image source={{ uri: optimizedImageUrl(item.sender.photoUrl, 28) }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
               <Text style={styles.avatarInitial}>{item.sender.name.charAt(0).toUpperCase()}</Text>
@@ -99,7 +101,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
           >
             {!isMine && <Text style={styles.senderName}>{item.sender.name}</Text>}
             {item.type === "IMAGE" && item.mediaUrl ? (
-              <Image source={{ uri: item.mediaUrl }} style={styles.messageImage} />
+              <Image source={{ uri: optimizedImageUrl(item.mediaUrl, 190) }} style={styles.messageImage} />
             ) : (
               <Text style={[styles.messageText, isMine && styles.messageTextMine]}>{item.content}</Text>
             )}
@@ -135,7 +137,19 @@ export function GroupChatScreen({ route, navigation }: Props) {
 
       <View style={[styles.body, isWeb && styles.bodyWeb]}>
         {isLoading ? (
-          <ActivityIndicator style={{ marginTop: 40 }} size="large" />
+          <View style={styles.listContent}>
+            <View style={[styles.bubbleRow]}>
+              <Skeleton style={styles.skeletonAvatar} />
+              <Skeleton style={styles.skeletonBubble} />
+            </View>
+            <View style={[styles.bubbleRow, styles.bubbleRowMine]}>
+              <Skeleton style={[styles.skeletonBubble, styles.skeletonBubbleMine]} />
+            </View>
+            <View style={[styles.bubbleRow]}>
+              <Skeleton style={styles.skeletonAvatar} />
+              <Skeleton style={styles.skeletonBubble} />
+            </View>
+          </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyWrap}>
             <MaterialCommunityIcons name="chat-outline" size={40} color="#cbd5e1" />
@@ -235,6 +249,9 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 13.5, color: "#94a3b8", textAlign: "center" },
   bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
   bubbleRowMine: { justifyContent: "flex-end" },
+  skeletonAvatar: { width: 28, height: 28, borderRadius: 14 },
+  skeletonBubble: { width: "55%", height: 40, borderRadius: 16 },
+  skeletonBubbleMine: { width: "40%" },
   avatar: { width: 28, height: 28, borderRadius: 14 },
   avatarPlaceholder: { backgroundColor: "#0f766e", alignItems: "center", justifyContent: "center" },
   avatarInitial: { color: "#fff", fontSize: 12, fontWeight: "700" },

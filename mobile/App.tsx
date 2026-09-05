@@ -9,7 +9,17 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { LanguageProvider } from "./src/i18n/LanguageContext";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1 } },
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      // Treat data as fresh for 30s so switching tabs/screens shows cached
+      // data instantly instead of re-fetching from the network every time -
+      // mutations already call invalidateQueries/setQueryData explicitly
+      // wherever a change needs to be reflected sooner, and sockets push
+      // real-time updates (notifications, chat) independent of this.
+      staleTime: 30_000,
+    },
+  },
 });
 
 export default function App() {

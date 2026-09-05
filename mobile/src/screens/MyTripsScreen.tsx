@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useBookmarkedTrips, useDeleteTrip, useMyTrips } from "../api/trips";
 import { TripCard } from "../components/TripCard";
+import { TripCardSkeleton } from "../components/TripCardSkeleton";
 import type { Trip } from "../types";
 import { Alert } from "../utils/alert";
 import { COLORS } from "../theme/tokens";
@@ -50,7 +51,11 @@ export function MyTripsScreen({ navigation }: Props) {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} size="large" />
+        <View style={styles.list}>
+          <TripCardSkeleton />
+          <TripCardSkeleton />
+          <TripCardSkeleton />
+        </View>
       ) : (
         <FlatList
           contentContainerStyle={styles.list}

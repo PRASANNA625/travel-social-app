@@ -36,7 +36,9 @@ import { Alert } from "../utils/alert";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
+import { Skeleton } from "../components/theme/Skeleton";
 import { COLORS, RADIUS } from "../theme/tokens";
+import { optimizedImageUrl } from "../utils/optimizedImage";
 
 type Props = NativeStackScreenProps<AppStackParamList, "TripDetail">;
 
@@ -83,7 +85,16 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const updateTripImages = useUpdateTripImages();
 
   if (isLoading || !trip) {
-    return <ActivityIndicator style={{ marginTop: 40 }} size="large" />;
+    return (
+      <View style={styles.flexScreen}>
+        <Skeleton style={styles.skeletonHero} />
+        <View style={styles.skeletonSection}>
+          <Skeleton style={styles.skeletonLine} />
+          <Skeleton style={styles.skeletonLineShort} />
+          <Skeleton style={styles.skeletonLine} />
+        </View>
+      </View>
+    );
   }
 
   const isOwner = trip.ownerId === me?.id;
@@ -249,7 +260,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
             <View style={styles.photoEditRow}>
               {editImages.map((uri) => (
                 <View key={uri} style={styles.photoEditThumbWrap}>
-                  <Image source={{ uri }} style={styles.photoEditThumb} />
+                  <Image source={{ uri: optimizedImageUrl(uri, 76) }} style={styles.photoEditThumb} />
                   <TouchableOpacity
                     style={styles.photoRemoveBadge}
                     onPress={() => setEditImages((prev) => prev.filter((i) => i !== uri))}
@@ -308,7 +319,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
                     />
                   ) : (
                     <Image
-                      source={{ uri: item }}
+                      source={{ uri: optimizedImageUrl(item, heroWidth) }}
                       style={[styles.heroImage, { width: heroWidth, height: heroHeight }]}
                       onError={() => setFailedImages((prev) => new Set(prev).add(item))}
                     />
@@ -467,7 +478,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
               {comments.map((c) => (
                 <View key={c.id} style={styles.commentCard}>
                   {c.user.photoUrl ? (
-                    <Image source={{ uri: c.user.photoUrl }} style={styles.commentAvatar} />
+                    <Image source={{ uri: optimizedImageUrl(c.user.photoUrl, 34) }} style={styles.commentAvatar} />
                   ) : (
                     <View style={[styles.commentAvatar, styles.commentAvatarPlaceholder]}>
                       <Text style={styles.commentAvatarInitial}>{c.user.name.charAt(0).toUpperCase()}</Text>
@@ -519,6 +530,10 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   flexScreen: { flex: 1, backgroundColor: COLORS.white },
+  skeletonHero: { width: "100%", height: 260, borderRadius: 0 },
+  skeletonSection: { padding: 16, gap: 12 },
+  skeletonLine: { height: 14, width: "80%" },
+  skeletonLineShort: { height: 14, width: "50%" },
   container: { flex: 1, backgroundColor: COLORS.white },
   scrollContent: { paddingBottom: 24 },
   header: {
