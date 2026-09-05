@@ -42,6 +42,7 @@
   "register.signUp": "Sign Up",
   "register.haveAccount": "Already have an account? Log in",
 
+  "phoneLogin.brand": "Triply",
   "phoneLogin.title": "Log in with phone",
   "phoneLogin.phoneStepSubtitle": "We'll text you a one-time code.",
   "phoneLogin.phoneNumber": "Phone number",

@@ -42,6 +42,7 @@
   "register.signUp": "ಸೈನ್ ಅಪ್ ಮಾಡಿ",
   "register.haveAccount": "ಈಗಾಗಲೇ ಖಾತೆ ಇದೆಯೇ? ಲಾಗಿನ್ ಮಾಡಿ",
 
+  "phoneLogin.brand": "Triply",
   "phoneLogin.title": "ಫೋನ್ ಮೂಲಕ ಲಾಗಿನ್ ಮಾಡಿ",
   "phoneLogin.phoneStepSubtitle": "ನಾವು ನಿಮಗೆ ಒಂದು ಬಾರಿಯ ಕೋಡ್ ಕಳುಹಿಸುತ್ತೇವೆ.",
   "phoneLogin.phoneNumber": "ಫೋನ್ ಸಂಖ್ಯೆ",

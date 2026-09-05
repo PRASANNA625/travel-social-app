@@ -42,6 +42,7 @@
   "register.signUp": "பதிவு செய்யவும்",
   "register.haveAccount": "ஏற்கனவே கணக்கு உள்ளதா? உள்நுழையவும்",
 
+  "phoneLogin.brand": "Triply",
   "phoneLogin.title": "தொலைபேசி மூலம் உள்நுழையவும்",
   "phoneLogin.phoneStepSubtitle": "நாங்கள் உங்களுக்கு ஒரு முறை குறியீட்டை அனுப்புவோம்.",
   "phoneLogin.phoneNumber": "தொலைபேசி எண்",

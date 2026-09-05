@@ -42,6 +42,7 @@
   "register.signUp": "సైన్ అప్ చేయండి",
   "register.haveAccount": "ఇప్పటికే ఖాతా ఉందా? లాగిన్ చేయండి",
 
+  "phoneLogin.brand": "Triply",
   "phoneLogin.title": "ఫోన్‌తో లాగిన్ చేయండి",
   "phoneLogin.phoneStepSubtitle": "మేము మీకు వన్-టైమ్ కోడ్ పంపుతాము.",
   "phoneLogin.phoneNumber": "ఫోన్ నంబర్",
