@@ -8,6 +8,7 @@ import { useBookmarkedTrips, useDeleteTrip, useMyTrips } from "../api/trips";
 import { TripCard } from "../components/TripCard";
 import type { Trip } from "../types";
 import { Alert } from "../utils/alert";
+import { COLORS } from "../theme/tokens";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "MyTrips">,
@@ -74,12 +75,20 @@ export function MyTripsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1, backgroundColor: COLORS.fieldBg },
   tabRow: { flexDirection: "row", padding: 12, gap: 8 },
-  tab: { flex: 1, padding: 10, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", borderWidth: 1, borderColor: "#e2e8f0" },
-  tabActive: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
+  tab: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: COLORS.white,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tabActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   tabText: { color: "#334155", fontWeight: "600" },
-  tabTextActive: { color: "#fff" },
+  tabTextActive: { color: COLORS.white },
   list: { padding: 12 },
-  empty: { textAlign: "center", color: "#94a3b8", marginTop: 40 },
+  empty: { textAlign: "center", color: COLORS.mutedLight, marginTop: 40 },
 });
