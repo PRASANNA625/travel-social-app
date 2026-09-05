@@ -34,7 +34,11 @@ export function AppTabs() {
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} options={{ title: "Discover" }} />
       <Tab.Screen name="MyTrips" component={MyTripsScreen} options={{ title: "My Trips" }} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: "Notifications", headerShown: false }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: "Profile", headerShown: false }} />
     </Tab.Navigator>
   );
