@@ -1,17 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
+
+// Metro-platform-split sibling of LocationPickerModal.tsx (same convention
+// as TripDateFields.tsx / TripDateFields.web.tsx): react-native-webview has
+// no web implementation (its web bundle resolves to a stub that just renders
+// "does not support this platform"), so this variant renders the same
+// Leaflet page in a plain <iframe> instead of a native WebView. Same
+// exported interface, same props, same search/current-location/reverse-geo
+// logic as the native file - only the map-rendering and messaging mechanism
+// differs.
 
 export interface LocationValue {
   name: string;
@@ -27,20 +34,21 @@ interface NominatimResult {
 
 const DEFAULT_CENTER = { lat: 22.5937, lng: 78.9629 }; // India centroid
 
+// Browsers block setting a custom User-Agent header from JS, so the web
+// variant always uses a plain fetch (kept as its own function, mirroring the
+// native file's nominatimFetch, so the two stay easy to compare side by side).
 async function nominatimFetch(url: string): Promise<Response> {
-  const headers = Platform.OS === "web" ? undefined : { "User-Agent": "TriplyApp/1.0 (Expo app)" };
-  return fetch(url, headers ? { headers } : undefined);
+  return fetch(url);
 }
 
-// Shared verbatim with LocationPickerModal.web.tsx (Metro's platform-split
-// sibling for web, since react-native-webview has no web implementation):
-// the page posts messages via window.ReactNativeWebView.postMessage when
-// embedded in a native WebView, and falls back to window.parent.postMessage
-// when embedded in a plain <iframe> on web. It also exposes window.setPin as
-// a plain global - called directly via injectJavaScript on native - AND
-// listens for a {type:"SET_PIN", lat, lng, zoom} postMessage, which is how
-// the web variant drives the same setPin/placeMarker logic (injectJavaScript
-// does not apply to iframes). Both paths converge on one implementation.
+// Shared verbatim with LocationPickerModal.tsx: the page posts messages via
+// window.ReactNativeWebView.postMessage when embedded in a native WebView,
+// and falls back to window.parent.postMessage when embedded in this file's
+// <iframe>. It also exposes window.setPin as a plain global - called
+// directly via injectJavaScript on native - AND listens for a
+// {type:"SET_PIN", lat, lng, zoom} postMessage, which is how this file
+// drives the same setPin/placeMarker logic (injectJavaScript does not apply
+// to iframes). Both paths converge on one implementation.
 function buildMapHtml(): string {
   return `<!DOCTYPE html>
 <html>
@@ -117,6 +125,11 @@ function buildMapHtml(): string {
 </html>`;
 }
 
+// Plain CSS for the raw DOM <iframe> element - it is not a react-native-web
+// component, so it takes a normal React DOM style object rather than an RN
+// StyleSheet style.
+const iframeStyle: CSSProperties = { flex: 1, width: "100%", height: "100%", border: "none" };
+
 export function LocationPickerModal({
   visible,
   title,
@@ -130,7 +143,7 @@ export function LocationPickerModal({
   onClose: () => void;
   onSelect: (value: LocationValue) => void;
 }) {
-  const webviewRef = useRef<WebView>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LocationValue[]>([]);
   const [searching, setSearching] = useState(false);
@@ -139,10 +152,13 @@ export function LocationPickerModal({
   const [mapReady, setMapReady] = useState(false);
   const [preview, setPreview] = useState<LocationValue | null>(null);
   const mapHtml = useMemo(buildMapHtml, []);
-  // WebView diffs `source` by reference, so a fresh `{ html: mapHtml }`
-  // object literal on every render (e.g. every search-box keystroke) would
-  // otherwise look like a new source and could reload the map. Memoize it.
-  const mapSource = useMemo(() => ({ html: mapHtml }), [mapHtml]);
+
+  // Native's equivalent of this is webviewRef.current?.injectJavaScript(...);
+  // an iframe has no injectJavaScript, so this posts a message that the
+  // page's own listener (above) forwards into window.setPin(...).
+  const sendToMap = (payload: { type: string; lat: number; lng: number; zoom?: number }) => {
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify(payload), "*");
+  };
 
   useEffect(() => {
     if (!visible) {
@@ -157,9 +173,7 @@ export function LocationPickerModal({
 
   useEffect(() => {
     if (visible && mapReady && initialValue) {
-      webviewRef.current?.injectJavaScript(
-        `window.setPin(${initialValue.lat}, ${initialValue.lng}, 12); true;`
-      );
+      sendToMap({ type: "SET_PIN", lat: initialValue.lat, lng: initialValue.lng, zoom: 12 });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, mapReady]);
@@ -196,7 +210,7 @@ export function LocationPickerModal({
     setPreview(value);
     setResults([]);
     setQuery("");
-    webviewRef.current?.injectJavaScript(`window.setPin(${value.lat}, ${value.lng}, 12); true;`);
+    sendToMap({ type: "SET_PIN", lat: value.lat, lng: value.lng, zoom: 12 });
   };
 
   const reverseGeocode = async (lat: number, lng: number) => {
@@ -218,7 +232,7 @@ export function LocationPickerModal({
     setLocating(true);
     try {
       const coords = await getCurrentLocationOrThrow();
-      webviewRef.current?.injectJavaScript(`window.setPin(${coords.lat}, ${coords.lng}, 13); true;`);
+      sendToMap({ type: "SET_PIN", lat: coords.lat, lng: coords.lng, zoom: 13 });
       await reverseGeocode(coords.lat, coords.lng);
     } catch {
       // Discover's own Near Me flow already owns the user-facing
@@ -230,18 +244,27 @@ export function LocationPickerModal({
     }
   };
 
-  const onWebViewMessage = (event: WebViewMessageEvent) => {
-    try {
-      const message = JSON.parse(event.nativeEvent.data);
-      if (message.type === "MAP_READY") {
-        setMapReady(true);
-      } else if (message.type === "PIN_MOVED") {
-        reverseGeocode(message.lat, message.lng);
+  // Native's equivalent of this is the WebView's onMessage prop; an iframe
+  // instead posts to window.parent, so this listens on the window itself and
+  // filters to messages that actually came from this modal's own iframe.
+  useEffect(() => {
+    const handleWindowMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      try {
+        const message = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (message.type === "MAP_READY") {
+          setMapReady(true);
+        } else if (message.type === "PIN_MOVED") {
+          reverseGeocode(message.lat, message.lng);
+        }
+      } catch {
+        // ignore malformed messages
       }
-    } catch {
-      // ignore malformed messages
-    }
-  };
+    };
+    window.addEventListener("message", handleWindowMessage);
+    return () => window.removeEventListener("message", handleWindowMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -292,7 +315,7 @@ export function LocationPickerModal({
         </TouchableOpacity>
 
         <View style={styles.mapWrap}>
-          <WebView ref={webviewRef} source={mapSource} onMessage={onWebViewMessage} style={styles.map} />
+          <iframe ref={iframeRef} srcDoc={mapHtml} style={iframeStyle} title="Location map" />
         </View>
 
         <View style={styles.footer}>
@@ -375,7 +398,6 @@ const styles = StyleSheet.create({
   },
   currentLocationText: { color: "#0f766e", fontWeight: "700", fontSize: 13 },
   mapWrap: { flex: 1, marginTop: 12, marginHorizontal: 16, borderRadius: 12, overflow: "hidden" },
-  map: { flex: 1 },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: "#e2e8f0" },
   previewText: { fontSize: 13, color: "#334155", marginBottom: 10 },
   footerButtons: { flexDirection: "row", gap: 10 },
