@@ -23,6 +23,8 @@ import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
+import { GradientBackground } from "../components/theme/GradientBackground";
+import { COLORS, RADIUS } from "../theme/tokens";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -78,28 +80,30 @@ export function DiscoverScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hi, {me?.name?.split(" ")[0] ?? "there"} 👋</Text>
-          <Text style={styles.greetingSub}>Where to next?</Text>
+      <GradientBackground style={styles.header}>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.greeting}>Hi, {me?.name?.split(" ")[0] ?? "there"} 👋</Text>
+            <Text style={styles.greetingSub}>Where to next?</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
+            {me?.photoUrl ? (
+              <Image source={{ uri: me.photoUrl }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitial}>{(me?.name ?? "?").charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-          {me?.photoUrl ? (
-            <Image source={{ uri: me.photoUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarInitial}>{(me?.name ?? "?").charAt(0).toUpperCase()}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
+      </GradientBackground>
 
       <View style={styles.searchWrap}>
-        <MaterialCommunityIcons name="magnify" size={18} color="#94a3b8" />
+        <MaterialCommunityIcons name="magnify" size={18} color={COLORS.mutedLight} />
         <TextInput
           style={styles.search}
           placeholder="Search trips, destinations..."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={COLORS.mutedLight}
           value={search}
           onChangeText={setSearch}
         />
@@ -121,14 +125,14 @@ export function DiscoverScreen({ navigation }: Props) {
                 disabled={locating}
               >
                 {locating ? (
-                  <ActivityIndicator size="small" color={nearMe ? "#fff" : "#0f766e"} />
+                  <ActivityIndicator size="small" color={nearMe ? COLORS.white : COLORS.primary} />
                 ) : (
-                  <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? "#fff" : "#334155"} />
+                  <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? COLORS.white : "#334155"} />
                 )}
                 <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>
                   {nearMe ? `Near me · ${radiusKm} km` : "Near me"}
                 </Text>
-                {nearMe && <MaterialCommunityIcons name="chevron-down" size={14} color="#fff" />}
+                {nearMe && <MaterialCommunityIcons name="chevron-down" size={14} color={COLORS.white} />}
               </TouchableOpacity>
             );
           }
@@ -141,7 +145,7 @@ export function DiscoverScreen({ navigation }: Props) {
               <MaterialCommunityIcons
                 name={TRAVEL_MODE_ICONS[item]}
                 size={15}
-                color={active ? "#fff" : "#334155"}
+                color={active ? COLORS.white : "#334155"}
               />
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{travelModeText(item)}</Text>
             </TouchableOpacity>
@@ -183,7 +187,7 @@ export function DiscoverScreen({ navigation }: Props) {
       )}
 
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("CreateTrip")} activeOpacity={0.9}>
-        <MaterialCommunityIcons name="plus" size={18} color="#fff" />
+        <MaterialCommunityIcons name="plus" size={18} color={COLORS.white} />
         <Text style={styles.fabText}>Create Trip</Text>
       </TouchableOpacity>
 
@@ -214,7 +218,7 @@ export function DiscoverScreen({ navigation }: Props) {
               ))}
             </View>
             <TouchableOpacity style={styles.clearFilterButton} onPress={clearNearMe}>
-              <MaterialCommunityIcons name="close-circle-outline" size={16} color="#dc2626" />
+              <MaterialCommunityIcons name="close-circle-outline" size={16} color={COLORS.danger} />
               <Text style={styles.clearFilterText}>Clear filter</Text>
             </TouchableOpacity>
           </Pressable>
@@ -230,7 +234,7 @@ export function DiscoverScreen({ navigation }: Props) {
         <Pressable style={styles.backdrop} onPress={() => setLocationDeniedVisible(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.permissionIconWrap}>
-              <MaterialCommunityIcons name="map-marker-off-outline" size={26} color="#dc2626" />
+              <MaterialCommunityIcons name="map-marker-off-outline" size={26} color={COLORS.danger} />
             </View>
             <Text style={styles.sheetTitle}>Location access needed</Text>
             <Text style={styles.sheetSubtitle}>
@@ -262,32 +266,33 @@ export function DiscoverScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
-  header: {
+  container: { flex: 1, backgroundColor: COLORS.fieldBg },
+  header: { paddingBottom: 20 },
+  headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  greeting: { fontSize: 21, fontWeight: "700", color: "#0f172a" },
-  greetingSub: { fontSize: 13, color: "#64748b", marginTop: 2 },
+  greeting: { fontSize: 21, fontWeight: "700", color: COLORS.white },
+  greetingSub: { fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 2 },
   avatar: { width: 42, height: 42, borderRadius: 21 },
-  avatarPlaceholder: { backgroundColor: "#0f766e", alignItems: "center", justifyContent: "center" },
-  avatarInitial: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  avatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
+  avatarInitial: { color: COLORS.white, fontWeight: "700", fontSize: 16 },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginHorizontal: 16,
     marginTop: 14,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
     paddingHorizontal: 14,
   },
-  search: { flex: 1, paddingVertical: 12, fontSize: 14, color: "#0f172a" },
+  search: { flex: 1, paddingVertical: 12, fontSize: 14, color: COLORS.ink },
   filterRow: { height: 46, marginTop: 12, flexGrow: 0 },
   filterRowContent: { paddingHorizontal: 16, paddingRight: 24, alignItems: "center", gap: 8 },
   chip: {
@@ -295,20 +300,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     justifyContent: "center",
-    backgroundColor: "#fff",
-    borderRadius: 999,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
   },
-  chipActive: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
+  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   chipText: { fontSize: 12.5, color: "#334155", fontWeight: "500" },
-  chipTextActive: { color: "#fff", fontWeight: "700" },
+  chipTextActive: { color: COLORS.white, fontWeight: "700" },
   list: { padding: 16, paddingBottom: 110 },
   emptyWrap: { alignItems: "center", marginTop: 48, gap: 10 },
-  empty: { textAlign: "center", color: "#94a3b8", fontSize: 13, paddingHorizontal: 32 },
-  emptyClearLink: { color: "#0f766e", fontSize: 13, fontWeight: "700", marginTop: 2 },
+  empty: { textAlign: "center", color: COLORS.mutedLight, fontSize: 13, paddingHorizontal: 32 },
+  emptyClearLink: { color: COLORS.primary, fontSize: 13, fontWeight: "700", marginTop: 2 },
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(15,23,42,0.4)",
@@ -319,29 +324,29 @@ const styles = StyleSheet.create({
   sheet: {
     width: "100%",
     maxWidth: 340,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     borderRadius: 20,
     padding: 20,
-    shadowColor: "#0f172a",
+    shadowColor: COLORS.ink,
     shadowOpacity: 0.2,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
   },
-  sheetTitle: { fontSize: 16, fontWeight: "700", color: "#0f172a", textAlign: "center" },
-  sheetSubtitle: { fontSize: 13, color: "#64748b", textAlign: "center", marginTop: 6, lineHeight: 18 },
+  sheetTitle: { fontSize: 16, fontWeight: "700", color: COLORS.ink, textAlign: "center" },
+  sheetSubtitle: { fontSize: 13, color: COLORS.muted, textAlign: "center", marginTop: 6, lineHeight: 18 },
   radiusOptionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16, justifyContent: "center" },
   radiusOption: {
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#f8fafc",
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.fieldBg,
   },
-  radiusOptionActive: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
+  radiusOptionActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   radiusOptionText: { fontSize: 13, fontWeight: "600", color: "#334155" },
-  radiusOptionTextActive: { color: "#fff" },
+  radiusOptionTextActive: { color: COLORS.white },
   clearFilterButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -350,15 +355,15 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: "#fef2f2",
+    backgroundColor: COLORS.dangerBg,
   },
-  clearFilterText: { color: "#dc2626", fontWeight: "700", fontSize: 13 },
+  clearFilterText: { color: COLORS.danger, fontWeight: "700", fontSize: 13 },
   permissionIconWrap: {
     alignSelf: "center",
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#fef2f2",
+    backgroundColor: COLORS.dangerBg,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
@@ -377,9 +382,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
-    backgroundColor: "#0f766e",
+    backgroundColor: COLORS.primary,
   },
-  permissionRetryText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  permissionRetryText: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
   fab: {
     position: "absolute",
     right: 16,
@@ -387,8 +392,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#0f766e",
-    borderRadius: 999,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.pill,
     paddingVertical: 14,
     paddingHorizontal: 20,
     shadowColor: "#0f172a",
@@ -397,5 +402,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
   },
-  fabText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  fabText: { color: COLORS.white, fontWeight: "700", fontSize: 14 },
 });
