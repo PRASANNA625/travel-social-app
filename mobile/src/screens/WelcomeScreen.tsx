@@ -8,6 +8,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useLanguage } from "../i18n/LanguageContext";
 import { LanguageSelector } from "../components/LanguageSelector";
+import { GRADIENT_PRIMARY } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -33,7 +34,7 @@ export function WelcomeScreen({ navigation }: Props) {
   }, [fade, rise]);
 
   return (
-    <LinearGradient colors={["#0c4a6e", "#0f766e", "#134e4a"]} style={styles.flex}>
+    <LinearGradient colors={GRADIENT_PRIMARY.colors} locations={GRADIENT_PRIMARY.locations} style={styles.flex}>
       <View style={[styles.decorCircle, styles.decorCircleTop]} />
       <View style={[styles.decorCircle, styles.decorCircleBottom]} />
       <MaterialCommunityIcons name="compass-outline" size={220} color="rgba(255,255,255,0.05)" style={styles.decorCompass} />
