@@ -47,12 +47,15 @@ export async function setCoverPhoto(userId: string, coverPhotoUrl: string) {
 }
 
 export async function getCompletedTrips(userId: string) {
-  await closeExpiredTrips();
-  return prisma.trip.findMany({
-    where: {
-      status: "COMPLETED",
-      OR: [{ ownerId: userId }, { joinRequests: { some: { userId, status: "APPROVED" } } }],
-    },
-    orderBy: { startDate: "desc" },
-  });
+  const [trips] = await Promise.all([
+    prisma.trip.findMany({
+      where: {
+        status: "COMPLETED",
+        OR: [{ ownerId: userId }, { joinRequests: { some: { userId, status: "APPROVED" } } }],
+      },
+      orderBy: { startDate: "desc" },
+    }),
+    closeExpiredTrips(),
+  ]);
+  return trips;
 }

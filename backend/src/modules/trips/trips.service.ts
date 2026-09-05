@@ -67,7 +67,11 @@ export async function createTrip(ownerId: string, input: CreateTripInput) {
 }
 
 export async function listTrips(filters: TripFilters, viewerId?: string) {
-  await closeExpiredTrips();
+  // Run the expired-trips sweep concurrently with the read below instead of
+  // blocking in front of it - it touches the same table but not the same
+  // rows a viewer cares about within a single request, so serializing them
+  // only adds a redundant round-trip to every list load for no benefit.
+  const closeExpiredPromise = closeExpiredTrips();
   const pageParams = parsePageParams(filters as unknown as Record<string, unknown>);
 
   const where: Prisma.TripWhereInput = {
@@ -101,12 +105,15 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
   if (useGeoSort) {
     // Geo sort/filter happens in-memory (no PostGIS in this MVP), so pull a
     // bounded working set ordered by recency, then re-sort by distance.
-    const candidates = await prisma.trip.findMany({
-      where,
-      include: cardInclude,
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    });
+    const [candidates] = await Promise.all([
+      prisma.trip.findMany({
+        where,
+        include: cardInclude,
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      }),
+      closeExpiredPromise,
+    ]);
 
     let withDistance = candidates
       .filter((t) => t.startLat !== null && t.startLng !== null)
@@ -133,22 +140,28 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
       take: pageParams.pageSize,
     }),
     prisma.trip.count({ where }),
+    closeExpiredPromise,
   ]);
 
   return { items: await attachViewerFlags(items, viewerId), total, ...pageParams };
 }
 
 export async function getTripById(id: string, viewerId?: string) {
-  await closeExpiredTrips();
-  const trip = await prisma.trip.findUnique({ where: { id }, include: cardInclude });
+  const [trip] = await Promise.all([
+    prisma.trip.findUnique({ where: { id }, include: cardInclude }),
+    closeExpiredTrips(),
+  ]);
   if (!trip) throw new HttpError(404, "Trip not found");
   const [withFlags] = await attachViewerFlags([trip], viewerId);
   return withFlags;
 }
 
 export async function getMyTrips(ownerId: string) {
-  await closeExpiredTrips();
-  return prisma.trip.findMany({ where: { ownerId }, include: cardInclude, orderBy: { createdAt: "desc" } });
+  const [trips] = await Promise.all([
+    prisma.trip.findMany({ where: { ownerId }, include: cardInclude, orderBy: { createdAt: "desc" } }),
+    closeExpiredTrips(),
+  ]);
+  return trips;
 }
 
 async function assertOwner(tripId: string, ownerId: string) {
@@ -210,12 +223,14 @@ export async function unbookmarkTrip(tripId: string, userId: string) {
 }
 
 export async function getBookmarkedTrips(userId: string) {
-  await closeExpiredTrips();
-  const bookmarks = await prisma.tripBookmark.findMany({
-    where: { userId },
-    include: { trip: { include: cardInclude } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [bookmarks] = await Promise.all([
+    prisma.tripBookmark.findMany({
+      where: { userId },
+      include: { trip: { include: cardInclude } },
+      orderBy: { createdAt: "desc" },
+    }),
+    closeExpiredTrips(),
+  ]);
   return bookmarks.map((b) => b.trip);
 }
 
