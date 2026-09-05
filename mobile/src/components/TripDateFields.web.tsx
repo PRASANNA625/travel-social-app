@@ -1,59 +1,81 @@
-import { useEffect, useState } from "react";
-import { StyleSheet, TextInput, View, type StyleProp, type TextStyle } from "react-native";
+import type { CSSProperties } from "react";
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { formatDDMMYYYY, isBeforeToday } from "../utils/date";
+import { formatDDMMYYYY, startOfToday } from "../utils/date";
 import { COLORS } from "../theme/tokens";
 
-function parseDateInput(text: string): Date | null {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
-  if (!match) return null;
-  const [, day, month, year] = match;
-  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
-  if (Number.isNaN(parsed.getTime())) return null;
-  // Reject impossible calendar dates (e.g. 31/02/2026) that Date silently rolls forward a day.
-  if (parsed.getDate() !== Number(day) || parsed.getMonth() !== Number(month) - 1) return null;
-  return parsed;
+// Metro-platform-split sibling of TripDateFields.tsx: the native file opens
+// @react-native-community/datetimepicker (no web build), so this variant
+// uses a real HTML5 <input type="date"> instead - the browser's own
+// calendar picker, with "min" disabling past dates natively. The input is
+// rendered invisible and stretched over the field; the field's own Text
+// shows the DD/MM/YYYY display so the look matches the native button
+// exactly, and clicking anywhere on the field opens the browser's date
+// picker underneath.
+
+function toISODateValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function DateTextField({
+function parseISODateValue(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day));
+}
+
+// Plain CSS for the raw DOM <input> element - it is not a react-native-web
+// component, so it takes a normal React DOM style object rather than an RN
+// StyleSheet style. Invisible and stretched over the field so a click
+// anywhere opens the browser's native date picker.
+const dateInputStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  opacity: 0,
+  cursor: "pointer",
+  border: "none",
+  padding: 0,
+  margin: 0,
+};
+
+function DateField({
   value,
   onChangeValidDate,
+  label,
   placeholder,
+  min,
   style,
-  errorStyle,
+  placeholderStyle,
 }: {
   value: Date | undefined;
   onChangeValidDate: (date: Date) => void;
+  label: string;
   placeholder: string;
-  style: StyleProp<TextStyle>;
-  errorStyle: StyleProp<TextStyle>;
+  min: string;
+  style: StyleProp<ViewStyle>;
+  placeholderStyle: object;
 }) {
-  const [text, setText] = useState(value ? formatDDMMYYYY(value) : "");
-  const [invalid, setInvalid] = useState(false);
-
-  // Keep the buffer in sync when the committed date changes from outside (e.g. cleared on submit).
-  useEffect(() => {
-    setText(value ? formatDDMMYYYY(value) : "");
-    setInvalid(false);
-  }, [value]);
-
   return (
-    <View style={[style, styles.fieldRow, invalid && errorStyle]}>
+    <View style={[style, styles.fieldRow]}>
       <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={COLORS.muted} />
-      <TextInput
-        style={styles.textInput}
-        placeholder={placeholder}
-        value={text}
-        onChangeText={(next) => {
-          setText(next);
-          const parsed = parseDateInput(next);
-          if (parsed && !isBeforeToday(parsed)) {
-            setInvalid(false);
-            onChangeValidDate(parsed);
-          } else {
-            setInvalid(next.length > 0);
-          }
+      <Text style={[styles.displayText, !value && placeholderStyle]}>
+        {value ? `${label}: ${formatDDMMYYYY(value)}` : placeholder}
+      </Text>
+      <input
+        type="date"
+        value={value ? toISODateValue(value) : ""}
+        min={min}
+        aria-label={label}
+        onChange={(e) => {
+          const parsed = parseISODateValue(e.target.value);
+          if (parsed) onChangeValidDate(parsed);
         }}
+        style={dateInputStyle}
       />
     </View>
   );
@@ -67,6 +89,7 @@ export function TripDateFields({
   endError,
   inputStyle,
   errorStyle,
+  placeholderStyle,
 }: {
   startDate: Date;
   endDate: Date | undefined;
@@ -77,21 +100,27 @@ export function TripDateFields({
   errorStyle: object;
   placeholderStyle: object;
 }) {
+  const todayIso = toISODateValue(startOfToday());
+
   return (
     <View style={styles.row}>
-      <DateTextField
+      <DateField
         style={[inputStyle, styles.flex1]}
-        errorStyle={errorStyle}
+        label="Start"
         placeholder="DD/MM/YYYY"
+        min={todayIso}
         value={startDate}
         onChangeValidDate={onChangeStart}
+        placeholderStyle={placeholderStyle}
       />
-      <DateTextField
+      <DateField
         style={[inputStyle, styles.flex1, endError && errorStyle]}
-        errorStyle={errorStyle}
-        placeholder="DD/MM/YYYY"
+        label="End"
+        placeholder="End date"
+        min={todayIso}
         value={endDate}
         onChangeValidDate={onChangeEnd}
+        placeholderStyle={placeholderStyle}
       />
     </View>
   );
@@ -100,6 +129,6 @@ export function TripDateFields({
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 10 },
   flex1: { flex: 1 },
-  fieldRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  textInput: { flex: 1, fontSize: 15, color: COLORS.ink },
+  fieldRow: { flexDirection: "row", alignItems: "center", gap: 8, position: "relative" },
+  displayText: { flex: 1, fontSize: 15, color: COLORS.ink },
 });

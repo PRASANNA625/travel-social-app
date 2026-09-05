@@ -30,17 +30,10 @@ import { isAfterDate, isBeforeToday } from "../utils/date";
 type Props = NativeStackScreenProps<AppStackParamList, "CreateTrip">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const JOIN_TYPES: { value: JoinType; label: string }[] = [
-  { value: "OPEN", label: "Open to everyone" },
-  { value: "APPROVAL", label: "Requires approval" },
-  { value: "INVITE_ONLY", label: "Invite-only" },
+const JOIN_TYPES: { value: JoinType; label: string; icon: IconName }[] = [
+  { value: "OPEN", label: "Open to everyone", icon: "earth" },
+  { value: "APPROVAL", label: "Requires approval", icon: "shield-check-outline" },
 ];
-
-const JOIN_TYPE_ICONS: Record<JoinType, IconName> = {
-  OPEN: "earth",
-  APPROVAL: "shield-check-outline",
-  INVITE_ONLY: "lock-outline",
-};
 
 function FieldLabel({ text, required }: { text: string; required?: boolean }) {
   return (
@@ -408,7 +401,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
           <Text style={styles.sectionHeading}>Travel & Capacity</Text>
           <View>
             <FieldLabel text="Travel mode" required />
-            <Text style={styles.helperText}>Select how you are planning to travel</Text>
+            <Text style={styles.helperText}>How will you travel?</Text>
             <View style={[styles.modeGrid, submitted && !travelMode && styles.selectorError]}>
               {TRAVEL_MODES.map((mode) => (
                 <SelectableChip
@@ -455,7 +448,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
             <IconInput
               icon="text-box-outline"
               error={submitted && !description.trim()}
-              placeholder="Share a short description about your trip, what you plan to do, and what kind of companions you're looking for..."
+              placeholder="Add a short description"
               multiline
               maxLength={500}
               value={description}
@@ -468,17 +461,17 @@ export function CreateTripScreen({ navigation, route }: Props) {
             <FieldLabel text="Places to visit (comma-separated)" />
             <IconInput
               icon="map-marker-multiple"
-              placeholder="e.g., Pangong Lake, Nubra Valley, Khardung La"
+              placeholder="Places to visit"
               value={placesToVisit}
               onChangeText={setPlacesToVisit}
             />
           </View>
 
           <View>
-            <FieldLabel text="Special requirements or notes (optional)" />
+            <FieldLabel text="Special notes (optional)" />
             <IconInput
               icon="note-text-outline"
-              placeholder="e.g., fitness level, equipment needed, language preference, etc."
+              placeholder="Add any notes"
               multiline
               value={notes}
               onChangeText={setNotes}
@@ -491,7 +484,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
               {JOIN_TYPES.map((jt) => (
                 <SelectableChip
                   key={jt.value}
-                  icon={JOIN_TYPE_ICONS[jt.value]}
+                  icon={jt.icon}
                   label={jt.label}
                   active={joinType === jt.value}
                   onPress={() => setJoinType(jt.value)}
@@ -538,8 +531,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 13,
   },
-  modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  modeChip: { flexBasis: "48%", flexGrow: 1 },
+  modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8, width: "100%" },
+  modeChip: { flexBasis: "48%", flexGrow: 1, flexShrink: 1, minWidth: 0 },
   joinTypeList: { gap: 8, marginTop: 8 },
   joinTypeChip: { width: "100%", justifyContent: "flex-start", paddingHorizontal: 14 },
   pickOnMapLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
