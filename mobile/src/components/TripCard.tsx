@@ -4,16 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Trip } from "../types";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
-
-const STATUS_COLORS: Record<Trip["status"], string> = {
-  PLANNING: "#94a3b8",
-  OPEN: "#0f766e",
-  ALMOST_FULL: "#d97706",
-  FULL: "#dc2626",
-  STARTED: "#2563eb",
-  COMPLETED: "#6b7280",
-  CANCELLED: "#991b1b",
-};
+import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -46,8 +37,8 @@ export function TripCard({
           </LinearGradient>
         )}
 
-        <View style={[styles.statusPill, { backgroundColor: STATUS_COLORS[trip.status] }]}>
-          <Text style={styles.statusText}>{trip.status.replace("_", " ")}</Text>
+        <View style={[styles.statusPill, { backgroundColor: TRIP_STATUS_COLORS[trip.status] }]}>
+          <Text style={styles.statusText}>{TRIP_STATUS_LABELS[trip.status]}</Text>
         </View>
 
         {onDelete && (
