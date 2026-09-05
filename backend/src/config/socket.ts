@@ -114,8 +114,16 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
 
     socket.on("presence:get", async (data: { userIds: string[] }) => {
       try {
+        if (!Array.isArray(data?.userIds)) return;
+        const requested = data.userIds.slice(0, 200);
+        const myGroupIds = await groupIdsForUser(userId);
+        const shared = await prisma.groupMember.findMany({
+          where: { groupId: { in: myGroupIds }, userId: { in: requested } },
+          select: { userId: true },
+        });
+        const visibleIds = [...new Set(shared.map((m) => m.userId))];
         const users = await prisma.user.findMany({
-          where: { id: { in: data.userIds } },
+          where: { id: { in: visibleIds } },
           select: { id: true, lastSeenAt: true },
         });
         const snapshot: Record<string, { online: boolean; lastSeenAt: string | null }> = {};

@@ -27,7 +27,7 @@ import { Skeleton } from "../components/theme/Skeleton";
 import { AttachmentSheet } from "../components/AttachmentSheet";
 import { GroupMembersModal } from "../components/GroupMembersModal";
 import { ReactionPickerModal } from "../components/ReactionPickerModal";
-import { COLORS } from "../theme/tokens";
+import { COLORS, TYPE } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AppStackParamList, "GroupChat">;
 
@@ -198,8 +198,12 @@ export function GroupChatScreen({ route, navigation }: Props) {
             </View>
           )}
         </View>
-        <TouchableOpacity style={styles.headerButton} onPress={() => setMembersModalVisible(true)}>
+        <TouchableOpacity
+          style={[styles.headerButton, styles.headerMembersButton]}
+          onPress={() => setMembersModalVisible(true)}
+        >
           <MaterialCommunityIcons name="account-group" size={18} color={COLORS.ink} />
+          <Text style={styles.headerMembersCount}>{group?.members?.length ?? 0}</Text>
         </TouchableOpacity>
       </View>
 
@@ -265,7 +269,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
         ) : (
           <View style={[styles.inputRow, { paddingBottom: 10 + insets.bottom }]}>
             <TouchableOpacity onPress={() => setAttachmentSheetVisible(true)} style={styles.attachButton}>
-              <MaterialCommunityIcons name="camera-outline" size={22} color={COLORS.primary} />
+              <MaterialCommunityIcons name="paperclip" size={22} color={COLORS.primary} />
             </TouchableOpacity>
             <TextInput
               style={styles.input}
@@ -327,6 +331,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: COLORS.fieldBg,
   },
+  headerMembersButton: { width: undefined, minWidth: 40, paddingHorizontal: 10, flexDirection: "row", gap: 4 },
+  headerMembersCount: { ...TYPE.label, fontSize: 12 },
   headerTextWrap: { flex: 1, alignItems: "center", paddingHorizontal: 6 },
   headerTitle: { fontSize: 16, fontWeight: "700", color: COLORS.ink },
   headerSubRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2, maxWidth: "100%" },
