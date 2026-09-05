@@ -31,6 +31,13 @@ function assertValidTripDates(start: Date, end: Date): void {
   }
 }
 
+async function closeExpiredTrips(): Promise<void> {
+  await prisma.trip.updateMany({
+    where: { endDate: { lt: new Date() }, status: { notIn: ["CANCELLED", "COMPLETED"] } },
+    data: { status: "COMPLETED" },
+  });
+}
+
 async function attachViewerFlags<T extends { id: string }>(trips: T[], viewerId?: string) {
   if (!viewerId || trips.length === 0) return trips.map((t) => ({ ...t, isLiked: false, isBookmarked: false }));
 
@@ -55,6 +62,7 @@ export async function createTrip(ownerId: string, input: CreateTripInput) {
 }
 
 export async function listTrips(filters: TripFilters, viewerId?: string) {
+  await closeExpiredTrips();
   const pageParams = parsePageParams(filters as unknown as Record<string, unknown>);
 
   const where: Prisma.TripWhereInput = {
@@ -126,6 +134,7 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
 }
 
 export async function getTripById(id: string, viewerId?: string) {
+  await closeExpiredTrips();
   const trip = await prisma.trip.findUnique({ where: { id }, include: cardInclude });
   if (!trip) throw new HttpError(404, "Trip not found");
   const [withFlags] = await attachViewerFlags([trip], viewerId);
@@ -133,6 +142,7 @@ export async function getTripById(id: string, viewerId?: string) {
 }
 
 export async function getMyTrips(ownerId: string) {
+  await closeExpiredTrips();
   return prisma.trip.findMany({ where: { ownerId }, include: cardInclude, orderBy: { createdAt: "desc" } });
 }
 
@@ -152,7 +162,12 @@ export async function updateTrip(tripId: string, ownerId: string, input: UpdateT
     assertValidTripDates(effectiveStart, effectiveEnd);
   }
 
-  return prisma.trip.update({ where: { id: tripId }, data: input });
+  let data = input;
+  if (effectiveEnd.getTime() < Date.now() && data.status && data.status !== "CANCELLED") {
+    data = { ...data, status: "COMPLETED" };
+  }
+
+  return prisma.trip.update({ where: { id: tripId }, data });
 }
 
 export async function cancelTrip(tripId: string, ownerId: string) {
@@ -190,6 +205,7 @@ export async function unbookmarkTrip(tripId: string, userId: string) {
 }
 
 export async function getBookmarkedTrips(userId: string) {
+  await closeExpiredTrips();
   const bookmarks = await prisma.tripBookmark.findMany({
     where: { userId },
     include: { trip: { include: cardInclude } },
