@@ -86,6 +86,7 @@ model User {
   messages        Message[]
   notifications   Notification[]
   reactions       MessageReaction[]
+  reads           MessageRead[]
 }
 
 model Trip {
@@ -206,6 +207,7 @@ model Message {
   createdAt DateTime    @default(now())
 
   reactions MessageReaction[]
+  reads     MessageRead[]
 
   @@index([groupId, createdAt])
 }
@@ -218,6 +220,18 @@ model MessageReaction {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   emoji     String
   createdAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now())
 
   @@unique([messageId, userId])
   @@index([messageId])
