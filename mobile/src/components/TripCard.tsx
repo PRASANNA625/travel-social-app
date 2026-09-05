@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Trip } from "../types";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
+import { COLORS } from "../theme/tokens";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -43,7 +44,7 @@ export function TripCard({
 
         {onDelete && (
           <TouchableOpacity style={styles.deleteButton} onPress={onDelete} hitSlop={8}>
-            <MaterialCommunityIcons name="trash-can-outline" size={15} color="#fff" />
+            <MaterialCommunityIcons name="trash-can-outline" size={15} color={COLORS.white} />
           </TouchableOpacity>
         )}
 
@@ -52,7 +53,7 @@ export function TripCard({
             {trip.title}
           </Text>
           <View style={styles.overlayMetaRow}>
-            <MaterialCommunityIcons name="map-marker" size={13} color="#e2e8f0" />
+            <MaterialCommunityIcons name="map-marker" size={13} color={COLORS.border} />
             <Text style={styles.overlayMeta} numberOfLines={1}>
               {trip.destination} · {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
               {typeof trip.distanceKm === "number"
@@ -65,12 +66,12 @@ export function TripCard({
 
       <View style={styles.body}>
         <View style={styles.modeRow}>
-          <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={14} color="#0f766e" />
+          <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={14} color={COLORS.primary} />
           <Text style={styles.mode}>{travelModeText(trip.travelMode)}</Text>
         </View>
         <View style={styles.rowBetween}>
           <View style={styles.metaGroup}>
-            <MaterialCommunityIcons name="account-multiple" size={14} color="#64748b" />
+            <MaterialCommunityIcons name="account-multiple" size={14} color={COLORS.muted} />
             <Text style={styles.meta}>
               {trip.seatsFilled}/{trip.seats} joined
             </Text>
@@ -79,12 +80,12 @@ export function TripCard({
             <MaterialCommunityIcons
               name={trip.isLiked ? "heart" : "heart-outline"}
               size={14}
-              color={trip.isLiked ? "#dc2626" : "#64748b"}
+              color={trip.isLiked ? COLORS.danger : COLORS.muted}
             />
             <Text style={styles.meta}>{trip._count.likes}</Text>
-            <MaterialCommunityIcons name="comment-outline" size={14} color="#64748b" style={styles.metaIconSpacer} />
+            <MaterialCommunityIcons name="comment-outline" size={14} color={COLORS.muted} style={styles.metaIconSpacer} />
             <Text style={styles.meta}>{trip._count.comments}</Text>
-            <MaterialCommunityIcons name="hand-front-right" size={14} color="#64748b" style={styles.metaIconSpacer} />
+            <MaterialCommunityIcons name="hand-front-right" size={14} color={COLORS.muted} style={styles.metaIconSpacer} />
             <Text style={styles.meta}>{trip._count.joinRequests}</Text>
           </View>
         </View>
@@ -95,11 +96,11 @@ export function TripCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
-    shadowColor: "#0f172a",
+    shadowColor: COLORS.ink,
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
-  statusText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  statusText: { color: COLORS.white, fontSize: 10, fontWeight: "700" },
   deleteButton: {
     position: "absolute",
     top: 10,
@@ -140,12 +141,12 @@ const styles = StyleSheet.create({
   },
   body: { padding: 14, paddingTop: 10, gap: 8 },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 17, fontWeight: "700", color: "#fff" },
+  title: { fontSize: 17, fontWeight: "700", color: COLORS.white },
   overlayMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  overlayMeta: { fontSize: 12, color: "#e2e8f0", flexShrink: 1 },
+  overlayMeta: { fontSize: 12, color: COLORS.border, flexShrink: 1 },
   modeRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  mode: { fontSize: 12, fontWeight: "600", color: "#0f766e" },
+  mode: { fontSize: 12, fontWeight: "600", color: COLORS.primary },
   metaGroup: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaIconSpacer: { marginLeft: 6 },
-  meta: { fontSize: 12, color: "#64748b" },
+  meta: { fontSize: 12, color: COLORS.muted },
 });
