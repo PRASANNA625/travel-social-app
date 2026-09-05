@@ -1,28 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import {
   ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useCreateTrip, useTrip, useUpdateTrip, useUploadTripImages } from "../api/trips";
-import { TRAVEL_MODES, TRAVEL_MODE_LABELS, type JoinType, type TravelMode } from "../types";
+import { TRAVEL_MODES, type JoinType, type TravelMode } from "../types";
+import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TripDateFields } from "../components/TripDateFields";
 import { LocationPickerModal, type LocationValue } from "../components/LocationPickerModal";
+import { GradientBackground } from "../components/theme/GradientBackground";
+import { Card } from "../components/theme/Card";
+import { IconInput } from "../components/theme/IconInput";
+import { PrimaryButton } from "../components/theme/PrimaryButton";
+import { SelectableChip } from "../components/theme/SelectableChip";
+import { COLORS, RADIUS, TYPE } from "../theme/tokens";
 import { Alert } from "../utils/alert";
 import { isAfterDate, isBeforeToday } from "../utils/date";
 
 type Props = NativeStackScreenProps<AppStackParamList, "CreateTrip">;
+type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 const JOIN_TYPES: { value: JoinType; label: string }[] = [
   { value: "OPEN", label: "Open to everyone" },
@@ -30,10 +36,11 @@ const JOIN_TYPES: { value: JoinType; label: string }[] = [
   { value: "INVITE_ONLY", label: "Invite-only" },
 ];
 
-function splitModeLabel(label: string): { icon: string; text: string } {
-  const [icon, ...rest] = label.split(" ");
-  return { icon, text: rest.join(" ") };
-}
+const JOIN_TYPE_ICONS: Record<JoinType, IconName> = {
+  OPEN: "earth",
+  APPROVAL: "shield-check-outline",
+  INVITE_ONLY: "lock-outline",
+};
 
 function FieldLabel({ text, required }: { text: string; required?: boolean }) {
   return (
@@ -249,311 +256,317 @@ export function CreateTripScreen({ navigation, route }: Props) {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ padding: 16, paddingBottom: 16 + insets.bottom, gap: 12 }}
-    >
-      <Text style={styles.sectionTitle}>{isEditMode ? "Edit Trip" : "Trip Information"}</Text>
-      <Text style={styles.sectionSubtitle}>
-        {isEditMode ? "Update your trip details below" : "Share your travel plan and find like-minded companions"}
-      </Text>
-
-      <FieldLabel text="Trip title" required />
-      <TextInput
-        style={[styles.input, submitted && !title.trim() && styles.inputError]}
-        placeholder="e.g., Spiti Valley Road Trip"
-        placeholderTextColor="#94a3b8"
-        maxLength={60}
-        value={title}
-        onChangeText={setTitle}
-      />
-      <Text style={styles.counter}>{title.length}/60</Text>
-
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <FieldLabel text="Starting location" required />
-          <TextInput
-            style={[styles.input, submitted && !startLocation.trim() && styles.inputError]}
-            placeholder="e.g., Chennai, India"
-            placeholderTextColor="#94a3b8"
-            value={startLocation}
-            onChangeText={(text) => {
-              setStartLocation(text);
-              if (startLocationCoords) setStartLocationCoords(null);
-            }}
-          />
-          <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("start")}>
-            <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color="#0f766e" />
-            <Text style={styles.pickOnMapText}>Pick on map</Text>
-          </TouchableOpacity>
+    <View style={styles.screen}>
+      <GradientBackground style={styles.hero}>
+        <View style={{ paddingTop: insets.top + 20 }}>
+          <Text style={styles.heroTitle}>{isEditMode ? "Edit Trip" : "Create a Trip"}</Text>
+          <Text style={styles.heroSubtitle}>
+            {isEditMode ? "Update your trip details below" : "Share your travel plan and find like-minded companions"}
+          </Text>
         </View>
-        <View style={styles.flex1}>
-          <FieldLabel text="Destination" required />
-          <TextInput
-            style={[styles.input, submitted && !destination.trim() && styles.inputError]}
-            placeholder="e.g., Ladakh, India"
-            placeholderTextColor="#94a3b8"
-            value={destination}
-            onChangeText={(text) => {
-              setDestination(text);
-              if (destinationCoords) setDestinationCoords(null);
-            }}
-          />
-          <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("destination")}>
-            <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color="#0f766e" />
-            <Text style={styles.pickOnMapText}>Pick on map</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </GradientBackground>
 
-      <LocationPickerModal
-        visible={activePicker === "start"}
-        title="Starting Location"
-        initialValue={startLocationCoords ? { name: startLocation, ...startLocationCoords } : null}
-        onClose={() => setActivePicker(null)}
-        onSelect={(value: LocationValue) => {
-          setStartLocation(value.name);
-          setStartLocationCoords({ lat: value.lat, lng: value.lng });
-          setActivePicker(null);
-        }}
-      />
-      <LocationPickerModal
-        visible={activePicker === "destination"}
-        title="Destination"
-        initialValue={destinationCoords ? { name: destination, ...destinationCoords } : null}
-        onClose={() => setActivePicker(null)}
-        onSelect={(value: LocationValue) => {
-          setDestination(value.name);
-          setDestinationCoords({ lat: value.lat, lng: value.lng });
-          setActivePicker(null);
-        }}
-      />
-
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <FieldLabel text="Start date" required />
-        </View>
-        <View style={styles.flex1}>
-          <FieldLabel text="End date" required />
-        </View>
-      </View>
-      <TripDateFields
-        startDate={startDate}
-        endDate={endDate}
-        onChangeStart={handleStartDateChange}
-        onChangeEnd={setEndDate}
-        endError={submitted && !endDate}
-        inputStyle={styles.input}
-        errorStyle={styles.inputError}
-        placeholderStyle={styles.placeholderText}
-      />
-
-      <FieldLabel text="Travel mode" required />
-      <Text style={styles.helperText}>Select how you are planning to travel</Text>
-      <View style={[styles.modeGrid, submitted && !travelMode && styles.selectorError]}>
-        {TRAVEL_MODES.map((mode) => {
-          const { icon, text } = splitModeLabel(TRAVEL_MODE_LABELS[mode]);
-          const active = travelMode === mode;
-          return (
-            <TouchableOpacity
-              key={mode}
-              style={[styles.modeCard, active && styles.modeCardActive]}
-              onPress={() => setTravelMode(mode)}
-            >
-              <Text style={styles.modeIcon}>{icon}</Text>
-              <Text style={[styles.modeText, active && styles.modeTextActive]} numberOfLines={2}>
-                {text}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <FieldLabel text="Budget (₹, optional)" />
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., 10000"
-            placeholderTextColor="#94a3b8"
-            keyboardType="numeric"
-            value={budget}
-            onChangeText={setBudget}
-          />
-        </View>
-        <View style={styles.flex1}>
-          <FieldLabel text="Seats available" required />
-          <TextInput
-            style={[styles.input, submitted && (!seats.trim() || Number(seats) < 1) && styles.inputError]}
-            placeholder="e.g., 4"
-            placeholderTextColor="#94a3b8"
-            keyboardType="numeric"
-            value={seats}
-            onChangeText={setSeats}
-          />
-        </View>
-      </View>
-
-      <FieldLabel text="Describe the trip" required />
-      <TextInput
-        style={[styles.input, styles.multiline, submitted && !description.trim() && styles.inputError]}
-        placeholder="Share a short description about your trip, what you plan to do, and what kind of companions you're looking for..."
-        placeholderTextColor="#94a3b8"
-        multiline
-        maxLength={500}
-        value={description}
-        onChangeText={setDescription}
-      />
-      <Text style={styles.counter}>{description.length}/500</Text>
-
-      <FieldLabel text="Places to visit (comma-separated)" />
-      <TextInput
-        style={styles.input}
-        placeholder="e.g., Pangong Lake, Nubra Valley, Khardung La"
-        placeholderTextColor="#94a3b8"
-        value={placesToVisit}
-        onChangeText={setPlacesToVisit}
-      />
-
-      <FieldLabel text="Special requirements or notes (optional)" />
-      <TextInput
-        style={[styles.input, styles.multiline]}
-        placeholder="e.g., fitness level, equipment needed, language preference, etc."
-        placeholderTextColor="#94a3b8"
-        multiline
-        value={notes}
-        onChangeText={setNotes}
-      />
-
-      <FieldLabel text="Who can join?" required />
-      <View style={[styles.radioGroup, submitted && !joinType && styles.selectorError]}>
-        {JOIN_TYPES.map((jt) => (
-        <TouchableOpacity key={jt.value} style={styles.radioRow} onPress={() => setJoinType(jt.value)}>
-          <View style={[styles.radioOuter, joinType === jt.value && styles.radioOuterActive]}>
-            {joinType === jt.value && <View style={styles.radioInner} />}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ padding: 16, paddingBottom: 16 + insets.bottom, gap: 16 }}
+      >
+        <Card>
+          <Text style={styles.sectionHeading}>Trip Basics</Text>
+          <View>
+            <FieldLabel text="Trip title" required />
+            <IconInput
+              icon="format-title"
+              error={submitted && !title.trim()}
+              placeholder="e.g., Spiti Valley Road Trip"
+              maxLength={60}
+              value={title}
+              onChangeText={setTitle}
+            />
+            <Text style={styles.counter}>{title.length}/60</Text>
           </View>
-          <Text>{jt.label}</Text>
-        </TouchableOpacity>
-        ))}
-      </View>
 
-      {!isEditMode && (
-        <>
-          <Text style={styles.label}>Cover photo</Text>
-          {coverPhoto ? (
-            <TouchableOpacity onPress={pickCoverPhoto}>
-              <Image source={{ uri: coverPhoto.uri }} style={styles.coverPreview} />
-              <View style={styles.coverChangeBadge}>
-                <Text style={styles.coverChangeText}>Change</Text>
+          {!isEditMode && (
+            <View style={{ gap: 12 }}>
+              <View>
+                <Text style={styles.label}>Cover photo</Text>
+                {coverPhoto ? (
+                  <TouchableOpacity onPress={pickCoverPhoto}>
+                    <Image source={{ uri: coverPhoto.uri }} style={styles.coverPreview} />
+                    <View style={styles.coverChangeBadge}>
+                      <Text style={styles.coverChangeText}>Change</Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.coverPicker} onPress={pickCoverPhoto}>
+                    <Text style={{ fontSize: 28 }}>🖼️</Text>
+                    <Text style={styles.coverPickerText}>Add a cover photo</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.coverPicker} onPress={pickCoverPhoto}>
-              <Text style={{ fontSize: 28 }}>🖼️</Text>
-              <Text style={styles.coverPickerText}>Add a cover photo</Text>
-            </TouchableOpacity>
-          )}
 
-          <Text style={styles.label}>Additional photos</Text>
+              <View>
+                <Text style={styles.label}>Additional photos</Text>
+                <View style={styles.row}>
+                  {images.map((asset) => (
+                    <Image key={asset.uri} source={{ uri: asset.uri }} style={styles.thumb} />
+                  ))}
+                  <TouchableOpacity style={styles.addImage} onPress={pickImages}>
+                    <Text style={{ fontSize: 24 }}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+        </Card>
+
+        <Card>
+          <Text style={styles.sectionHeading}>Route</Text>
           <View style={styles.row}>
-            {images.map((asset) => (
-              <Image key={asset.uri} source={{ uri: asset.uri }} style={styles.thumb} />
-            ))}
-            <TouchableOpacity style={styles.addImage} onPress={pickImages}>
-              <Text style={{ fontSize: 24 }}>+</Text>
-            </TouchableOpacity>
+            <View style={styles.flex1}>
+              <FieldLabel text="Starting location" required />
+              <IconInput
+                icon="map-marker-outline"
+                error={submitted && !startLocation.trim()}
+                placeholder="e.g., Chennai, India"
+                value={startLocation}
+                onChangeText={(text) => {
+                  setStartLocation(text);
+                  if (startLocationCoords) setStartLocationCoords(null);
+                }}
+              />
+              <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("start")}>
+                <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={COLORS.primary} />
+                <Text style={styles.pickOnMapText}>Pick on map</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.flex1}>
+              <FieldLabel text="Destination" required />
+              <IconInput
+                icon="flag-checkered"
+                error={submitted && !destination.trim()}
+                placeholder="e.g., Ladakh, India"
+                value={destination}
+                onChangeText={(text) => {
+                  setDestination(text);
+                  if (destinationCoords) setDestinationCoords(null);
+                }}
+              />
+              <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("destination")}>
+                <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={COLORS.primary} />
+                <Text style={styles.pickOnMapText}>Pick on map</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </>
-      )}
+        </Card>
 
-      <TouchableOpacity onPress={onSubmit} disabled={isSubmitting} activeOpacity={0.85}>
-        <LinearGradient colors={["#2563eb", "#0f766e"]} style={styles.submitButton}>
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.submitText}>{isEditMode ? "Save Changes" : "Publish Trip"}</Text>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
-    </ScrollView>
+        <LocationPickerModal
+          visible={activePicker === "start"}
+          title="Starting Location"
+          initialValue={startLocationCoords ? { name: startLocation, ...startLocationCoords } : null}
+          onClose={() => setActivePicker(null)}
+          onSelect={(value: LocationValue) => {
+            setStartLocation(value.name);
+            setStartLocationCoords({ lat: value.lat, lng: value.lng });
+            setActivePicker(null);
+          }}
+        />
+        <LocationPickerModal
+          visible={activePicker === "destination"}
+          title="Destination"
+          initialValue={destinationCoords ? { name: destination, ...destinationCoords } : null}
+          onClose={() => setActivePicker(null)}
+          onSelect={(value: LocationValue) => {
+            setDestination(value.name);
+            setDestinationCoords({ lat: value.lat, lng: value.lng });
+            setActivePicker(null);
+          }}
+        />
+
+        <Card>
+          <Text style={styles.sectionHeading}>When</Text>
+          <View style={styles.row}>
+            <View style={styles.flex1}>
+              <FieldLabel text="Start date" required />
+            </View>
+            <View style={styles.flex1}>
+              <FieldLabel text="End date" required />
+            </View>
+          </View>
+          <TripDateFields
+            startDate={startDate}
+            endDate={endDate}
+            onChangeStart={handleStartDateChange}
+            onChangeEnd={setEndDate}
+            endError={submitted && !endDate}
+            inputStyle={styles.dateField}
+            errorStyle={styles.inputError}
+            placeholderStyle={styles.placeholderText}
+          />
+        </Card>
+
+        <Card>
+          <Text style={styles.sectionHeading}>Travel & Capacity</Text>
+          <View>
+            <FieldLabel text="Travel mode" required />
+            <Text style={styles.helperText}>Select how you are planning to travel</Text>
+            <View style={[styles.modeGrid, submitted && !travelMode && styles.selectorError]}>
+              {TRAVEL_MODES.map((mode) => (
+                <SelectableChip
+                  key={mode}
+                  icon={TRAVEL_MODE_ICONS[mode]}
+                  label={travelModeText(mode)}
+                  active={travelMode === mode}
+                  onPress={() => setTravelMode(mode)}
+                  style={styles.modeChip}
+                />
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.flex1}>
+              <FieldLabel text="Budget (₹, optional)" />
+              <IconInput
+                icon="currency-inr"
+                placeholder="e.g., 10000"
+                keyboardType="numeric"
+                value={budget}
+                onChangeText={setBudget}
+              />
+            </View>
+            <View style={styles.flex1}>
+              <FieldLabel text="Seats available" required />
+              <IconInput
+                icon="account-multiple"
+                error={submitted && (!seats.trim() || Number(seats) < 1)}
+                placeholder="e.g., 4"
+                keyboardType="numeric"
+                value={seats}
+                onChangeText={setSeats}
+              />
+            </View>
+          </View>
+        </Card>
+
+        <Card>
+          <Text style={styles.sectionHeading}>Details</Text>
+          <View>
+            <FieldLabel text="Describe the trip" required />
+            <IconInput
+              icon="text-box-outline"
+              error={submitted && !description.trim()}
+              placeholder="Share a short description about your trip, what you plan to do, and what kind of companions you're looking for..."
+              multiline
+              maxLength={500}
+              value={description}
+              onChangeText={setDescription}
+            />
+            <Text style={styles.counter}>{description.length}/500</Text>
+          </View>
+
+          <View>
+            <FieldLabel text="Places to visit (comma-separated)" />
+            <IconInput
+              icon="map-marker-multiple"
+              placeholder="e.g., Pangong Lake, Nubra Valley, Khardung La"
+              value={placesToVisit}
+              onChangeText={setPlacesToVisit}
+            />
+          </View>
+
+          <View>
+            <FieldLabel text="Special requirements or notes (optional)" />
+            <IconInput
+              icon="note-text-outline"
+              placeholder="e.g., fitness level, equipment needed, language preference, etc."
+              multiline
+              value={notes}
+              onChangeText={setNotes}
+            />
+          </View>
+
+          <View>
+            <FieldLabel text="Who can join?" required />
+            <View style={[styles.joinTypeList, submitted && !joinType && styles.selectorError]}>
+              {JOIN_TYPES.map((jt) => (
+                <SelectableChip
+                  key={jt.value}
+                  icon={JOIN_TYPE_ICONS[jt.value]}
+                  label={jt.label}
+                  active={joinType === jt.value}
+                  onPress={() => setJoinType(jt.value)}
+                  style={styles.joinTypeChip}
+                />
+              ))}
+            </View>
+          </View>
+        </Card>
+
+        <PrimaryButton
+          label={isEditMode ? "Save Changes" : "Publish Trip"}
+          onPress={onSubmit}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+          icon={isEditMode ? "check" : "arrow-right"}
+        />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
-    justifyContent: "center",
-  },
-  inputError: { borderColor: "#dc2626" },
-  placeholderText: { color: "#94a3b8" },
-  selectorError: { borderWidth: 1, borderColor: "#dc2626", borderRadius: 10, padding: 6 },
-  multiline: { minHeight: 80, textAlignVertical: "top" },
+  screen: { flex: 1, backgroundColor: COLORS.fieldBg },
+  hero: { paddingHorizontal: 20, paddingBottom: 24 },
+  heroTitle: { color: COLORS.white, fontSize: 22, fontWeight: "800" },
+  heroSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 4 },
+  scroll: { flex: 1 },
+  sectionHeading: { ...TYPE.heading, fontSize: 16 },
+  label: { ...TYPE.label, marginTop: 4 },
+  required: { color: COLORS.danger },
+  counter: { alignSelf: "flex-end", fontSize: 11, color: COLORS.mutedLight, marginTop: 2 },
+  helperText: { fontSize: 12, color: COLORS.muted, marginTop: -2, marginBottom: 8 },
   row: { flexDirection: "row", gap: 10 },
   flex1: { flex: 1 },
-  label: { fontWeight: "700", fontSize: 14, marginTop: 4 },
-  required: { color: "#dc2626" },
-  counter: { alignSelf: "flex-end", fontSize: 11, color: "#94a3b8", marginTop: -6 },
-  helperText: { fontSize: 12, color: "#64748b", marginTop: -2 },
-  sectionTitle: { fontSize: 20, fontWeight: "700", color: "#0f172a" },
-  sectionSubtitle: { fontSize: 13, color: "#64748b", marginBottom: 4 },
-  modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  modeCard: {
-    flexBasis: "31%",
-    flexGrow: 1,
+  inputError: { borderColor: COLORS.danger },
+  placeholderText: { color: COLORS.mutedLight },
+  selectorError: { borderWidth: 1, borderColor: COLORS.danger, borderRadius: RADIUS.field, padding: 6 },
+  dateField: {
+    backgroundColor: COLORS.fieldBg,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#f8fafc",
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.field,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
   },
-  modeCardActive: { borderColor: "#0f766e", backgroundColor: "#ecfdf5" },
-  modeIcon: { fontSize: 20 },
-  modeText: { fontSize: 11, color: "#334155", textAlign: "center" },
-  modeTextActive: { color: "#0f766e", fontWeight: "700" },
-  radioGroup: { gap: 2 },
-  radioRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#cbd5e1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  radioOuterActive: { borderColor: "#0f766e" },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#0f766e" },
+  modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  modeChip: { flexBasis: "31%", flexGrow: 1 },
+  joinTypeList: { gap: 8, marginTop: 8 },
+  joinTypeChip: { width: "100%", justifyContent: "flex-start", paddingHorizontal: 14 },
+  pickOnMapLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+  pickOnMapText: { color: COLORS.primary, fontSize: 12, fontWeight: "600" },
   coverPicker: {
     height: 150,
-    borderRadius: 14,
+    borderRadius: RADIUS.field,
     borderWidth: 1,
     borderColor: "#cbd5e1",
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.fieldBg,
     gap: 6,
   },
-  coverPickerText: { color: "#64748b", fontSize: 13, fontWeight: "600" },
-  coverPreview: { width: "100%", height: 150, borderRadius: 14 },
+  coverPickerText: { color: COLORS.muted, fontSize: 13, fontWeight: "600" },
+  coverPreview: { width: "100%", height: 150, borderRadius: RADIUS.field },
   coverChangeBadge: {
     position: "absolute",
     right: 10,
     bottom: 10,
     backgroundColor: "rgba(15,23,42,0.75)",
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  coverChangeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  coverChangeText: { color: COLORS.white, fontSize: 11, fontWeight: "700" },
   thumb: { width: 60, height: 60, borderRadius: 8 },
   addImage: {
     width: 60,
@@ -565,15 +578,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  submitButton: {
-    backgroundColor: "#0f766e",
-    borderRadius: 10,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 16,
-    marginBottom: 40,
-  },
-  submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  pickOnMapLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  pickOnMapText: { color: "#0f766e", fontSize: 12, fontWeight: "600" },
 });
