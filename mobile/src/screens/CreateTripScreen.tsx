@@ -258,7 +258,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
   return (
     <View style={styles.screen}>
       <GradientBackground style={styles.hero}>
-        <View style={{ paddingTop: insets.top + 20 }}>
+        <View style={{ paddingTop: 20 }}>
           <Text style={styles.heroTitle}>{isEditMode ? "Edit Trip" : "Create a Trip"}</Text>
           <Text style={styles.heroSubtitle}>
             {isEditMode ? "Update your trip details below" : "Share your travel plan and find like-minded companions"}
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  modeChip: { flexBasis: "31%", flexGrow: 1 },
+  modeChip: { flexBasis: "48%", flexGrow: 1 },
   joinTypeList: { gap: 8, marginTop: 8 },
   joinTypeChip: { width: "100%", justifyContent: "flex-start", paddingHorizontal: 14 },
   pickOnMapLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
