@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   buttonDisabled: { opacity: 0.6 },
-  text: { color: COLORS.white, fontSize: 16, fontWeight: "700" },
+  text: { color: COLORS.white, fontSize: 16, fontWeight: "700", flexShrink: 1 },
   textOutline: { color: COLORS.primary },
 });

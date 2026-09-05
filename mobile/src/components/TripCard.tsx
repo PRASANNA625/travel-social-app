@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Trip } from "../types";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
-import { COLORS } from "../theme/tokens";
+import { COLORS, RADIUS } from "../theme/tokens";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     right: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
   },
   statusText: { color: COLORS.white, fontSize: 10, fontWeight: "700" },
   deleteButton: {
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     top: 10,
     left: 10,
     backgroundColor: "rgba(15,23,42,0.6)",
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     width: 28,
     height: 28,
     alignItems: "center",

@@ -36,7 +36,7 @@ import { Alert } from "../utils/alert";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
-import { COLORS } from "../theme/tokens";
+import { COLORS, RADIUS } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AppStackParamList, "TripDetail">;
 
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     right: 14,
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
   },
   statusText: { color: COLORS.white, fontSize: 11, fontWeight: "700" },
   photoEditTrigger: {
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     backgroundColor: "rgba(15,23,42,0.55)",
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     backgroundColor: COLORS.fieldBg,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     backgroundColor: COLORS.warningBg,
-    borderRadius: 14,
+    borderRadius: RADIUS.field,
     paddingVertical: 14,
     paddingHorizontal: 12,
   },
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   stickyBarInnerWeb: { width: "100%", maxWidth: 480, alignSelf: "center" },
   emptyComments: { alignItems: "center", paddingVertical: 28, gap: 10 },
   emptyCommentsText: { fontSize: 13.5, color: COLORS.mutedLight, textAlign: "center" },
-  commentsList: { maxHeight: 320, borderWidth: 1, borderColor: "#f1f5f9", borderRadius: 14 },
+  commentsList: { maxHeight: 320, borderWidth: 1, borderColor: "#f1f5f9", borderRadius: RADIUS.field },
   commentsListContent: { padding: 10, gap: 10 },
   commentCard: { flexDirection: "row", gap: 10 },
   commentAvatar: { width: 34, height: 34, borderRadius: 17 },

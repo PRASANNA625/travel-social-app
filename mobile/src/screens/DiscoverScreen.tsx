@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   radiusOption: {
     paddingHorizontal: 16,
     paddingVertical: 9,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.fieldBg,
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     paddingVertical: 14,
     paddingHorizontal: 20,
-    shadowColor: "#0f172a",
+    shadowColor: COLORS.ink,
     shadowOpacity: 0.25,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
