@@ -15,6 +15,11 @@ export interface MessageReactionSummary {
   userIds: string[];
 }
 
+export interface MessageReadEntry {
+  userId: string;
+  readAt: string;
+}
+
 function groupReactionRows(
   rows: { messageId: string; userId: string; emoji: string }[]
 ): Map<string, MessageReactionSummary[]> {
@@ -48,6 +53,25 @@ export async function getReactionsForMessage(messageId: string): Promise<Message
   return groupReactionRows(rows).get(messageId) ?? [];
 }
 
+// Batch-fetches MessageRead rows for a set of messages and groups them by
+// messageId. Used both by listMessages (a whole page of messages at once)
+// and by socket.ts's message:read handler (the set of messages touched by
+// one incoming read-event, already grouped by sender before this is called) -
+// a single query either way, never one query per message.
+export async function getReadsForMessages(messageIds: string[]): Promise<Map<string, MessageReadEntry[]>> {
+  const rows = await prisma.messageRead.findMany({
+    where: { messageId: { in: messageIds } },
+    select: { messageId: true, userId: true, readAt: true },
+  });
+  const map = new Map<string, MessageReadEntry[]>();
+  for (const row of rows) {
+    const list = map.get(row.messageId) ?? [];
+    list.push({ userId: row.userId, readAt: row.readAt.toISOString() });
+    map.set(row.messageId, list);
+  }
+  return map;
+}
+
 export async function listMessages(groupId: string, userId: string, query: Record<string, unknown>) {
   await assertMember(groupId, userId);
   const pageParams = parsePageParams(query, 30, 100);
@@ -62,16 +86,21 @@ export async function listMessages(groupId: string, userId: string, query: Recor
     prisma.message.count({ where: { groupId } }),
   ]);
 
-  const reactionRows = await prisma.messageReaction.findMany({
-    where: { messageId: { in: items.map((m) => m.id) } },
-    select: { messageId: true, userId: true, emoji: true },
-  });
+  const messageIds = items.map((m) => m.id);
+  const [reactionRows, readsByMessageId] = await Promise.all([
+    prisma.messageReaction.findMany({
+      where: { messageId: { in: messageIds } },
+      select: { messageId: true, userId: true, emoji: true },
+    }),
+    getReadsForMessages(messageIds),
+  ]);
   const reactionsByMessage = groupReactionRows(reactionRows);
 
-  const itemsWithReactions = items.map((message) => ({
+  const itemsWithExtras = items.map((message) => ({
     ...message,
     reactions: reactionsByMessage.get(message.id) ?? [],
+    readBy: message.senderId === userId ? readsByMessageId.get(message.id) ?? [] : undefined,
   }));
 
-  return { items: itemsWithReactions.reverse(), total, ...pageParams };
+  return { items: itemsWithExtras.reverse(), total, ...pageParams };
 }
