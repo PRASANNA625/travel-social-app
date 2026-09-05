@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -23,7 +24,10 @@ import type { ChatMessage } from "../types";
 import { Alert } from "../utils/alert";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 import { Skeleton } from "../components/theme/Skeleton";
-import { COLORS, RADIUS } from "../theme/tokens";
+import { AttachmentSheet } from "../components/AttachmentSheet";
+import { GroupMembersModal } from "../components/GroupMembersModal";
+import { ReactionPickerModal } from "../components/ReactionPickerModal";
+import { COLORS } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AppStackParamList, "GroupChat">;
 
@@ -36,11 +40,19 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const me = useAuthStore((s) => s.user);
   const { data: group } = useGroup(groupId);
   const { data: history, isLoading } = useMessageHistory(groupId);
-  const { messages, sendMessage } = useLiveGroupChat(groupId, history?.items ?? []);
+  const memberIds = group?.members.map((m) => m.userId) ?? [];
+  const { messages, sendMessage, presence, toggleReaction } = useLiveGroupChat(
+    groupId,
+    history?.items ?? [],
+    memberIds
+  );
   const uploadImage = useUploadChatImage();
   const [text, setText] = useState("");
   const [pendingPhoto, setPendingPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [sendingPhoto, setSendingPhoto] = useState(false);
+  const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
+  const [membersModalVisible, setMembersModalVisible] = useState(false);
+  const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
 
@@ -59,6 +71,33 @@ export function GroupChatScreen({ route, navigation }: Props) {
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
     if (result.canceled) return;
     setPendingPhoto(result.assets[0]);
+  };
+
+  const onChooseFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Please allow photo library access to choose a photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+    if (result.canceled) return;
+    setPendingPhoto(result.assets[0]);
+  };
+
+  const onChooseFromFiles = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: "image/*", copyToCacheDirectory: true });
+    if (result.canceled || !result.assets || result.assets.length === 0) return;
+    const asset = result.assets[0];
+    // expo-document-picker's web build returns a real `file: File` blob
+    // (same shape ImagePicker's web build already returns) - carry it
+    // through when present so appendImageAsset's web branch works
+    // identically for files picked this way, matching how it already
+    // handles ImagePicker's web assets.
+    const webFile = (asset as unknown as { file?: File }).file;
+    setPendingPhoto({ uri: asset.uri, fileName: asset.name, file: webFile } as ImagePicker.ImagePickerAsset);
   };
 
   const onRetake = () => {
@@ -80,8 +119,18 @@ export function GroupChatScreen({ route, navigation }: Props) {
     }
   };
 
+  const reactionTargetMessage = messages.find((m) => m.id === reactionTargetId) ?? null;
+  const reactionTargetCurrentEmoji =
+    reactionTargetMessage?.reactions?.find((r) => r.userIds.includes(me?.id ?? ""))?.emoji ?? null;
+
+  const onSelectReaction = (emoji: string) => {
+    if (reactionTargetId) toggleReaction(reactionTargetId, emoji);
+    setReactionTargetId(null);
+  };
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isMine = item.senderId === me?.id;
+    const reactions = item.reactions ?? [];
     return (
       <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}>
         {!isMine &&
@@ -93,12 +142,14 @@ export function GroupChatScreen({ route, navigation }: Props) {
             </View>
           ))}
         <View style={[styles.bubbleCol, isMine && styles.bubbleColMine]}>
-          <View
+          <TouchableOpacity
             style={[
               styles.bubble,
               isMine ? styles.bubbleMine : styles.bubbleTheirs,
               item.type === "IMAGE" && styles.bubbleImageWrap,
             ]}
+            activeOpacity={0.85}
+            onLongPress={() => setReactionTargetId(item.id)}
           >
             {!isMine && <Text style={styles.senderName}>{item.sender.name}</Text>}
             {item.type === "IMAGE" && item.mediaUrl ? (
@@ -106,7 +157,21 @@ export function GroupChatScreen({ route, navigation }: Props) {
             ) : (
               <Text style={[styles.messageText, isMine && styles.messageTextMine]}>{item.content}</Text>
             )}
-          </View>
+          </TouchableOpacity>
+          {reactions.length > 0 && (
+            <View style={[styles.reactionsRow, isMine && styles.reactionsRowMine]}>
+              {reactions.map((r) => (
+                <TouchableOpacity
+                  key={r.emoji}
+                  style={[styles.reactionPill, r.userIds.includes(me?.id ?? "") && styles.reactionPillMine]}
+                  onPress={() => toggleReaction(item.id, r.emoji)}
+                >
+                  <Text style={styles.reactionEmoji}>{r.emoji}</Text>
+                  <Text style={styles.reactionCount}>{r.count}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
           <Text style={[styles.timeText, isMine && styles.timeTextMine]}>{formatTime(item.createdAt)}</Text>
         </View>
       </View>
@@ -133,7 +198,9 @@ export function GroupChatScreen({ route, navigation }: Props) {
             </View>
           )}
         </View>
-        <View style={styles.headerButton} />
+        <TouchableOpacity style={styles.headerButton} onPress={() => setMembersModalVisible(true)}>
+          <MaterialCommunityIcons name="account-group" size={18} color={COLORS.ink} />
+        </TouchableOpacity>
       </View>
 
       <View style={[styles.body, isWeb && styles.bodyWeb]}>
@@ -197,7 +264,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
           </View>
         ) : (
           <View style={[styles.inputRow, { paddingBottom: 10 + insets.bottom }]}>
-            <TouchableOpacity onPress={onOpenCamera} style={styles.attachButton}>
+            <TouchableOpacity onPress={() => setAttachmentSheetVisible(true)} style={styles.attachButton}>
               <MaterialCommunityIcons name="camera-outline" size={22} color={COLORS.primary} />
             </TouchableOpacity>
             <TextInput
@@ -215,6 +282,28 @@ export function GroupChatScreen({ route, navigation }: Props) {
           </View>
         )}
       </View>
+
+      <AttachmentSheet
+        visible={attachmentSheetVisible}
+        onClose={() => setAttachmentSheetVisible(false)}
+        onTakePhoto={onOpenCamera}
+        onChooseFromGallery={onChooseFromGallery}
+        onChooseFromFiles={onChooseFromFiles}
+      />
+
+      <GroupMembersModal
+        visible={membersModalVisible}
+        onClose={() => setMembersModalVisible(false)}
+        members={group?.members ?? []}
+        presence={presence}
+      />
+
+      <ReactionPickerModal
+        visible={!!reactionTargetId}
+        onClose={() => setReactionTargetId(null)}
+        onSelect={onSelectReaction}
+        currentReaction={reactionTargetCurrentEmoji}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -251,7 +340,7 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
   bubbleRowMine: { justifyContent: "flex-end" },
   skeletonAvatar: { width: 28, height: 28, borderRadius: 14 },
-  skeletonBubble: { width: "55%", height: 40, borderRadius: RADIUS.chip },
+  skeletonBubble: { width: "55%", height: 40, borderRadius: 16 },
   skeletonBubbleMine: { width: "40%" },
   avatar: { width: 28, height: 28, borderRadius: 14 },
   avatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
@@ -260,7 +349,7 @@ const styles = StyleSheet.create({
   bubbleColMine: { alignItems: "flex-end" },
   bubble: {
     backgroundColor: COLORS.white,
-    borderRadius: RADIUS.chip,
+    borderRadius: 16,
     borderBottomLeftRadius: 4,
     padding: 11,
     borderWidth: 1,
@@ -280,6 +369,22 @@ const styles = StyleSheet.create({
   messageImage: { width: 190, height: 190, borderRadius: 12 },
   timeText: { fontSize: 10.5, color: COLORS.mutedLight, marginTop: 3, marginLeft: 4 },
   timeTextMine: { marginLeft: 0, marginRight: 4 },
+  reactionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginTop: 4 },
+  reactionsRowMine: { justifyContent: "flex-end" },
+  reactionPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  reactionPillMine: { backgroundColor: COLORS.successBg, borderColor: COLORS.successBorderLight },
+  reactionEmoji: { fontSize: 13 },
+  reactionCount: { fontSize: 11, color: COLORS.muted, fontWeight: "700" },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -330,7 +435,7 @@ const styles = StyleSheet.create({
   previewIconButton: {
     width: 42,
     height: 42,
-    borderRadius: RADIUS.field,
+    borderRadius: 14,
     backgroundColor: COLORS.fieldBg,
     borderWidth: 1,
     borderColor: COLORS.border,
