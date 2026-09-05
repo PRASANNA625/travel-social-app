@@ -2,6 +2,52 @@ import { prisma } from "../../config/prisma";
 import { assertMember } from "../groups/groups.service";
 import { parsePageParams, toSkipTake } from "../../utils/pagination";
 
+// Copy this array verbatim wherever the allowed-reactions list is needed
+// elsewhere (e.g. the mobile ReactionPickerModal) - these six emoji include
+// invisible variation-selector codepoints, so retyping them risks a
+// byte-mismatch that silently breaks equality checks.
+export const ALLOWED_REACTIONS = ["❤️", "👍", "😂", "😍", "😮", "🙌"] as const;
+export type AllowedReaction = (typeof ALLOWED_REACTIONS)[number];
+
+export interface MessageReactionSummary {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
+function groupReactionRows(
+  rows: { messageId: string; userId: string; emoji: string }[]
+): Map<string, MessageReactionSummary[]> {
+  const byMessage = new Map<string, Map<string, MessageReactionSummary>>();
+  for (const row of rows) {
+    let byEmoji = byMessage.get(row.messageId);
+    if (!byEmoji) {
+      byEmoji = new Map();
+      byMessage.set(row.messageId, byEmoji);
+    }
+    const existing = byEmoji.get(row.emoji);
+    if (existing) {
+      existing.count += 1;
+      existing.userIds.push(row.userId);
+    } else {
+      byEmoji.set(row.emoji, { emoji: row.emoji, count: 1, userIds: [row.userId] });
+    }
+  }
+  const result = new Map<string, MessageReactionSummary[]>();
+  for (const [messageId, byEmoji] of byMessage) {
+    result.set(messageId, Array.from(byEmoji.values()));
+  }
+  return result;
+}
+
+export async function getReactionsForMessage(messageId: string): Promise<MessageReactionSummary[]> {
+  const rows = await prisma.messageReaction.findMany({
+    where: { messageId },
+    select: { messageId: true, userId: true, emoji: true },
+  });
+  return groupReactionRows(rows).get(messageId) ?? [];
+}
+
 export async function listMessages(groupId: string, userId: string, query: Record<string, unknown>) {
   await assertMember(groupId, userId);
   const pageParams = parsePageParams(query, 30, 100);
@@ -16,5 +62,16 @@ export async function listMessages(groupId: string, userId: string, query: Recor
     prisma.message.count({ where: { groupId } }),
   ]);
 
-  return { items: items.reverse(), total, ...pageParams };
+  const reactionRows = await prisma.messageReaction.findMany({
+    where: { messageId: { in: items.map((m) => m.id) } },
+    select: { messageId: true, userId: true, emoji: true },
+  });
+  const reactionsByMessage = groupReactionRows(reactionRows);
+
+  const itemsWithReactions = items.map((message) => ({
+    ...message,
+    reactions: reactionsByMessage.get(message.id) ?? [],
+  }));
+
+  return { items: itemsWithReactions.reverse(), total, ...pageParams };
 }
