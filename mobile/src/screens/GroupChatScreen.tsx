@@ -300,6 +300,10 @@ export function GroupChatScreen({ route, navigation }: Props) {
         onClose={() => setMembersModalVisible(false)}
         members={group?.members ?? []}
         presence={presence}
+        onSelectMember={(member) => {
+          setMembersModalVisible(false);
+          navigation.navigate("UserProfile", { userId: member.userId, groupRole: member.role });
+        }}
       />
 
       <ReactionPickerModal

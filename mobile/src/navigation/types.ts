@@ -13,7 +13,7 @@ export type AppStackParamList = {
   JoinRequestsInbox: { tripId: string };
   GroupChat: { groupId: string; tripTitle: string };
   EditProfile: undefined;
-  UserProfile: { userId: string };
+  UserProfile: { userId: string; groupRole?: "OWNER" | "MEMBER" };
 };
 
 export type AppTabParamList = {

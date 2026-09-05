@@ -7,7 +7,7 @@ import { travelModes } from "../trips/trips.types";
 import * as service from "./users.service";
 
 export async function me(req: AuthedRequest, res: Response) {
-  const user = await service.getUserById(req.userId!);
+  const user = await service.getMe(req.userId!);
   res.json(user);
 }
 

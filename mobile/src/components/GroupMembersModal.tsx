@@ -20,11 +20,13 @@ export function GroupMembersModal({
   onClose,
   members,
   presence,
+  onSelectMember,
 }: {
   visible: boolean;
   onClose: () => void;
   members: GroupMember[];
   presence: Record<string, PresenceInfo>;
+  onSelectMember?: (member: GroupMember) => void;
 }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -40,7 +42,12 @@ export function GroupMembersModal({
               const info = presence[member.userId];
               const online = info?.online ?? false;
               return (
-                <View key={member.userId} style={styles.row}>
+                <TouchableOpacity
+                  key={member.userId}
+                  style={styles.row}
+                  activeOpacity={0.7}
+                  onPress={() => onSelectMember?.(member)}
+                >
                   <View style={styles.avatarWrap}>
                     {member.user.photoUrl ? (
                       <Image source={{ uri: optimizedImageUrl(member.user.photoUrl, 84) }} style={styles.avatar} />
@@ -64,7 +71,7 @@ export function GroupMembersModal({
                     </View>
                     <Text style={styles.status}>{online ? "Online" : formatLastSeen(info?.lastSeenAt ?? null)}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </ScrollView>

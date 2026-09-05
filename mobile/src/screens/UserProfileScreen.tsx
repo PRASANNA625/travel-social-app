@@ -51,7 +51,7 @@ function UserProfileSkeleton() {
 }
 
 export function UserProfileScreen({ route }: Props) {
-  const { userId } = route.params;
+  const { userId, groupRole } = route.params;
   const { data: user, isLoading } = useUser(userId);
   const { data: completedTrips } = useCompletedTrips(userId);
   const isWeb = Platform.OS === "web";
@@ -89,7 +89,15 @@ export function UserProfileScreen({ route }: Props) {
               )}
             </View>
 
-            <Text style={styles.name}>{user.name}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{user.name}</Text>
+              {groupRole === "OWNER" && (
+                <View style={styles.ownerChip}>
+                  <MaterialCommunityIcons name="shield-crown-outline" size={12} color={COLORS.white} />
+                  <Text style={styles.ownerChipText}>Trip Owner</Text>
+                </View>
+              )}
+            </View>
             {(user.location || user.age != null) && (
               <View style={styles.metaRow}>
                 {user.location && (
@@ -190,7 +198,18 @@ const styles = StyleSheet.create({
   avatar: { width: 104, height: 104, borderRadius: 52, borderWidth: 4, borderColor: COLORS.white },
   avatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
   avatarInitial: { color: COLORS.white, fontSize: 34, fontWeight: "700" },
-  name: { ...TYPE.heading, fontSize: 21, marginTop: 10 },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
+  name: { ...TYPE.heading, fontSize: 21 },
+  ownerChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  ownerChipText: { fontSize: 11, fontWeight: "700", color: COLORS.white },
   metaRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 14, marginTop: 6 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { fontSize: 13, color: COLORS.muted },
