@@ -1,0 +1,26 @@
+name: Keep backend alive
+
+# Render's free web-service plan spins the backend down after ~15 minutes of
+# no traffic, then takes 30-60+ seconds to cold-start the next request. This
+# workflow pings the backend's /health endpoint often enough that it never
+# sits idle that long, so real users don't hit a cold start.
+#
+# Note: GitHub automatically disables scheduled workflows after 60 days with
+# no commits to the repository - if pings stop happening, push any commit
+# (or re-enable the workflow from the Actions tab) to resume it. This does
+# not affect Render's free Postgres database's own separate expiry policy -
+# check that on the Render dashboard.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: |
+          curl --fail --silent --show-error --max-time 90 --retry 1 --retry-delay 5 \
+            "https://travel-social-backend-t0xg.onrender.com/health"
