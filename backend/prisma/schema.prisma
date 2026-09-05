@@ -73,6 +73,7 @@ model User {
   bio            String?
   interests      String[] @default([])
   preferredModes TravelMode[] @default([])
+  lastSeenAt     DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -84,6 +85,7 @@ model User {
   groupMemberships GroupMember[]
   messages        Message[]
   notifications   Notification[]
+  reactions       MessageReaction[]
 }
 
 model Trip {
@@ -203,7 +205,22 @@ model Message {
   mediaUrl  String?
   createdAt DateTime    @default(now())
 
+  reactions MessageReaction[]
+
   @@index([groupId, createdAt])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([messageId])
 }
 
 model Notification {
