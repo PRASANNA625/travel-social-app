@@ -35,6 +35,8 @@ import { useGroupByTrip } from "../api/groups";
 import { Alert } from "../utils/alert";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
+import { PrimaryButton } from "../components/theme/PrimaryButton";
+import { COLORS } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AppStackParamList, "TripDetail">;
 
@@ -142,47 +144,43 @@ export function TripDetailScreen({ route, navigation }: Props) {
   if (isOwner) {
     actionSlot = (
       <View style={styles.ownerActions}>
-        <TouchableOpacity
-          style={styles.primaryButton}
+        <PrimaryButton
+          label="Edit Trip"
+          icon="pencil-outline"
           onPress={() => navigation.navigate("CreateTrip", { tripId })}
-        >
-          <MaterialCommunityIcons name="pencil-outline" size={16} color="#fff" />
-          <Text style={styles.primaryButtonText}>Edit Trip</Text>
-        </TouchableOpacity>
+        />
         <View style={styles.stickyRow}>
-          <TouchableOpacity
-            style={[styles.secondaryButton, styles.stickyFlex]}
+          <PrimaryButton
+            variant="outline"
+            style={styles.stickyFlex}
+            label={`Requests (${trip._count.joinRequests})`}
+            icon="account-group-outline"
             onPress={() => navigation.navigate("JoinRequestsInbox", { tripId })}
-          >
-            <MaterialCommunityIcons name="account-group-outline" size={16} color="#0f766e" />
-            <Text style={styles.secondaryButtonText}>Requests ({trip._count.joinRequests})</Text>
-          </TouchableOpacity>
+          />
           {group && (
-            <TouchableOpacity
-              style={[styles.secondaryButton, styles.stickyFlex]}
+            <PrimaryButton
+              variant="outline"
+              style={styles.stickyFlex}
+              label="Group Chat"
+              icon="chat-processing-outline"
               onPress={() => navigation.navigate("GroupChat", { groupId: group.id, tripTitle: trip.title })}
-            >
-              <MaterialCommunityIcons name="chat-processing-outline" size={16} color="#0f766e" />
-              <Text style={styles.secondaryButtonText}>Group Chat</Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
       </View>
     );
   } else if (isMember && group) {
     actionSlot = (
-      <TouchableOpacity
-        style={styles.primaryButton}
+      <PrimaryButton
+        label="Open Group Chat"
+        icon="chat-processing-outline"
         onPress={() => navigation.navigate("GroupChat", { groupId: group.id, tripTitle: trip.title })}
-      >
-        <MaterialCommunityIcons name="chat-processing-outline" size={16} color="#fff" />
-        <Text style={styles.primaryButtonText}>Open Group Chat</Text>
-      </TouchableOpacity>
+      />
     );
   } else if (myRequest?.status === "PENDING") {
     actionSlot = (
       <View style={styles.pendingBadge}>
-        <MaterialCommunityIcons name="clock-outline" size={16} color="#854d0e" />
+        <MaterialCommunityIcons name="clock-outline" size={16} color={COLORS.warningText} />
         <Text style={styles.pendingText}>Your request is pending approval</Text>
       </View>
     );
@@ -195,7 +193,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   } else if (trip.joinType === "INVITE_ONLY") {
     actionSlot = (
       <View style={styles.pendingBadge}>
-        <MaterialCommunityIcons name="lock-outline" size={16} color="#854d0e" />
+        <MaterialCommunityIcons name="lock-outline" size={16} color={COLORS.warningText} />
         <Text style={styles.pendingText}>Invite-only — ask the organizer to add you</Text>
       </View>
     );
@@ -213,16 +211,12 @@ export function TripDetailScreen({ route, navigation }: Props) {
     );
   } else {
     actionSlot = (
-      <TouchableOpacity style={styles.primaryButton} onPress={onExpressInterest} disabled={expressInterest.isPending}>
-        {expressInterest.isPending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <>
-            <MaterialCommunityIcons name="hand-front-right" size={16} color="#fff" />
-            <Text style={styles.primaryButtonText}>I'm Interested</Text>
-          </>
-        )}
-      </TouchableOpacity>
+      <PrimaryButton
+        label="I'm Interested"
+        icon="hand-front-right"
+        onPress={onExpressInterest}
+        loading={expressInterest.isPending}
+      />
     );
   }
 
@@ -230,7 +224,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color="#0f172a" />
+          <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           Trip Details
@@ -240,7 +234,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
             style={styles.headerButton}
             onPress={() => navigation.navigate("CreateTrip", { tripId })}
           >
-            <MaterialCommunityIcons name="pencil" size={18} color="#0f172a" />
+            <MaterialCommunityIcons name="pencil" size={18} color={COLORS.ink} />
           </TouchableOpacity>
         ) : (
           <View style={styles.headerSpacer} />
@@ -260,7 +254,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
                     style={styles.photoRemoveBadge}
                     onPress={() => setEditImages((prev) => prev.filter((i) => i !== uri))}
                   >
-                    <MaterialCommunityIcons name="close" size={13} color="#fff" />
+                    <MaterialCommunityIcons name="close" size={13} color={COLORS.white} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -271,33 +265,29 @@ export function TripDetailScreen({ route, navigation }: Props) {
                     style={styles.photoRemoveBadge}
                     onPress={() => setNewPhotoAssets((prev) => prev.filter((a) => a.uri !== asset.uri))}
                   >
-                    <MaterialCommunityIcons name="close" size={13} color="#fff" />
+                    <MaterialCommunityIcons name="close" size={13} color={COLORS.white} />
                   </TouchableOpacity>
                 </View>
               ))}
               <TouchableOpacity style={styles.photoAddTile} onPress={pickNewPhotos}>
-                <MaterialCommunityIcons name="plus" size={24} color="#64748b" />
+                <MaterialCommunityIcons name="plus" size={24} color={COLORS.muted} />
               </TouchableOpacity>
             </View>
             <View style={styles.photoEditActions}>
-              <TouchableOpacity
-                style={[styles.secondaryButton, styles.stickyFlex]}
+              <PrimaryButton
+                variant="outline"
+                style={styles.stickyFlex}
+                label="Cancel"
                 onPress={() => setEditingPhotos(false)}
                 disabled={isSavingPhotos}
-              >
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.primaryButton, styles.stickyFlex]}
+              />
+              <PrimaryButton
+                style={styles.stickyFlex}
+                label="Save photos"
                 onPress={savePhotos}
                 disabled={isSavingPhotos}
-              >
-                {isSavingPhotos ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Save photos</Text>
-                )}
-              </TouchableOpacity>
+                loading={isSavingPhotos}
+              />
             </View>
           </View>
         ) : (
@@ -349,7 +339,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
             {isOwner && (
               <TouchableOpacity style={styles.photoEditTrigger} onPress={startEditingPhotos}>
-                <MaterialCommunityIcons name="camera-outline" size={14} color="#fff" />
+                <MaterialCommunityIcons name="camera-outline" size={14} color={COLORS.white} />
                 <Text style={styles.photoEditTriggerText}>Edit photos</Text>
               </TouchableOpacity>
             )}
@@ -359,7 +349,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
                 {trip.title}
               </Text>
               <View style={styles.heroMetaRow}>
-                <MaterialCommunityIcons name="map-marker" size={14} color="#e2e8f0" />
+                <MaterialCommunityIcons name="map-marker" size={14} color={COLORS.border} />
                 <Text style={styles.heroSubtitle} numberOfLines={1}>
                   {trip.destination}
                 </Text>
@@ -370,35 +360,35 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.section}>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="routes" size={18} color="#0f766e" />
+            <MaterialCommunityIcons name="routes" size={18} color={COLORS.primary} />
             <Text style={styles.infoText}>
               {trip.startLocation} → {trip.destination}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="calendar-range" size={18} color="#0f766e" />
+            <MaterialCommunityIcons name="calendar-range" size={18} color={COLORS.primary} />
             <Text style={styles.infoText}>
               {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={18} color="#0f766e" />
+            <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={18} color={COLORS.primary} />
             <Text style={styles.infoText}>{travelModeText(trip.travelMode)}</Text>
           </View>
           {trip.budget != null && (
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="cash" size={18} color="#0f766e" />
+              <MaterialCommunityIcons name="cash" size={18} color={COLORS.primary} />
               <Text style={styles.infoText}>Approx. budget ₹{trip.budget}</Text>
             </View>
           )}
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="account-multiple" size={18} color="#0f766e" />
+            <MaterialCommunityIcons name="account-multiple" size={18} color={COLORS.primary} />
             <Text style={styles.infoText}>
               {trip.seatsFilled}/{trip.seats} seats filled
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="account-circle" size={18} color="#0f766e" />
+            <MaterialCommunityIcons name="account-circle" size={18} color={COLORS.primary} />
             <Text style={styles.infoText}>Organized by {trip.owner.name}</Text>
           </View>
 
@@ -410,9 +400,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
               <MaterialCommunityIcons
                 name={trip.isLiked ? "heart" : "heart-outline"}
                 size={16}
-                color={trip.isLiked ? "#dc2626" : "#334155"}
+                color={trip.isLiked ? COLORS.danger : "#334155"}
               />
-              <Text style={[styles.iconActionText, trip.isLiked && { color: "#dc2626" }]}>{trip._count.likes}</Text>
+              <Text style={[styles.iconActionText, trip.isLiked && { color: COLORS.danger }]}>{trip._count.likes}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => bookmarkTrip.mutate({ tripId, input: !trip.isBookmarked })}
@@ -421,9 +411,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
               <MaterialCommunityIcons
                 name={trip.isBookmarked ? "bookmark" : "bookmark-outline"}
                 size={16}
-                color={trip.isBookmarked ? "#0f766e" : "#334155"}
+                color={trip.isBookmarked ? COLORS.primary : "#334155"}
               />
-              <Text style={[styles.iconActionText, trip.isBookmarked && { color: "#0f766e" }]}>
+              <Text style={[styles.iconActionText, trip.isBookmarked && { color: COLORS.primary }]}>
                 {trip.isBookmarked ? "Saved" : "Save"}
               </Text>
             </TouchableOpacity>
@@ -434,7 +424,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
           {trip.placesToVisit.length > 0 && (
             <View style={styles.block}>
               <View style={styles.blockHeaderRow}>
-                <MaterialCommunityIcons name="map-marker-distance" size={16} color="#0f172a" />
+                <MaterialCommunityIcons name="map-marker-distance" size={16} color={COLORS.ink} />
                 <Text style={styles.blockTitle}>Places to visit</Text>
               </View>
               {trip.placesToVisit.map((place) => (
@@ -449,7 +439,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
           {trip.notes && (
             <View style={styles.block}>
               <View style={styles.blockHeaderRow}>
-                <MaterialCommunityIcons name="note-text-outline" size={16} color="#0f172a" />
+                <MaterialCommunityIcons name="note-text-outline" size={16} color={COLORS.ink} />
                 <Text style={styles.blockTitle}>Special notes</Text>
               </View>
               <Text style={styles.notesText}>{trip.notes}</Text>
@@ -459,7 +449,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.section}>
           <View style={styles.blockHeaderRow}>
-            <MaterialCommunityIcons name="comment-text-outline" size={16} color="#0f172a" />
+            <MaterialCommunityIcons name="comment-text-outline" size={16} color={COLORS.ink} />
             <Text style={styles.blockTitle}>Comments ({comments?.length ?? 0})</Text>
           </View>
 
@@ -499,7 +489,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
             <TextInput
               style={styles.commentInput}
               placeholder="Add a comment..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={COLORS.mutedLight}
               value={commentText}
               onChangeText={setCommentText}
               multiline
@@ -510,9 +500,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
               disabled={!commentText.trim() || addComment.isPending}
             >
               {addComment.isPending ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={COLORS.white} />
               ) : (
-                <MaterialCommunityIcons name="send" size={18} color="#fff" />
+                <MaterialCommunityIcons name="send" size={18} color={COLORS.white} />
               )}
             </TouchableOpacity>
           </View>
@@ -528,8 +518,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flexScreen: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, backgroundColor: "#fff" },
+  flexScreen: { flex: 1, backgroundColor: COLORS.white },
+  container: { flex: 1, backgroundColor: COLORS.white },
   scrollContent: { paddingBottom: 24 },
   header: {
     flexDirection: "row",
@@ -537,7 +527,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingBottom: 10,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: "#f1f5f9",
   },
@@ -547,9 +537,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.fieldBg,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: "#0f172a" },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: COLORS.ink },
   headerSpacer: { width: 40, height: 40 },
   pageInnerWeb: { width: "100%", maxWidth: 760, alignSelf: "center" },
   hero: { width: "100%", borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
@@ -564,7 +554,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 999,
   },
-  statusText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  statusText: { color: COLORS.white, fontSize: 11, fontWeight: "700" },
   photoEditTrigger: {
     position: "absolute",
     top: 14,
@@ -577,7 +567,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  photoEditTriggerText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  photoEditTriggerText: { color: COLORS.white, fontSize: 11, fontWeight: "700" },
   heroScrim: {
     position: "absolute",
     left: 0,
@@ -588,7 +578,7 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
   },
   heroMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  heroSubtitle: { fontSize: 13, color: "#e2e8f0", flexShrink: 1 },
+  heroSubtitle: { fontSize: 13, color: COLORS.border, flexShrink: 1 },
   dotsRow: {
     position: "absolute",
     top: 14,
@@ -599,7 +589,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.5)" },
-  dotActive: { backgroundColor: "#fff" },
+  dotActive: { backgroundColor: COLORS.white },
   photoEditPanel: { padding: 16, borderBottomWidth: 8, borderBottomColor: "#f1f5f9" },
   photoEditRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
   photoEditThumbWrap: { width: 76, height: 76 },
@@ -611,7 +601,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#dc2626",
+    backgroundColor: COLORS.danger,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -627,7 +617,7 @@ const styles = StyleSheet.create({
   },
   photoEditActions: { flexDirection: "row", gap: 10, marginTop: 16 },
   section: { paddingHorizontal: 16, paddingVertical: 20, borderBottomWidth: 8, borderBottomColor: "#f1f5f9" },
-  title: { fontSize: 21, fontWeight: "700", color: "#fff" },
+  title: { fontSize: 21, fontWeight: "700", color: COLORS.white },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
   infoText: { fontSize: 14, color: "#334155", flexShrink: 1 },
   actionsRow: { flexDirection: "row", gap: 10, marginTop: 12, marginBottom: 4 },
@@ -637,51 +627,29 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.fieldBg,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
   },
-  iconActionLikeActive: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
-  iconActionSaveActive: { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" },
+  iconActionLikeActive: { backgroundColor: COLORS.dangerBg, borderColor: COLORS.dangerBorderLight },
+  iconActionSaveActive: { backgroundColor: COLORS.successBg, borderColor: COLORS.successBorderLight },
   iconActionText: { fontSize: 13, fontWeight: "600", color: "#334155" },
   description: { fontSize: 14, color: "#1e293b", marginTop: 16, lineHeight: 21 },
   block: { marginTop: 20 },
   blockHeaderRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  blockTitle: { fontSize: 15, fontWeight: "700", color: "#0f172a" },
+  blockTitle: { fontSize: 15, fontWeight: "700", color: COLORS.ink },
   listItemRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 6 },
-  listDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: "#0f766e", marginTop: 7 },
+  listDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: COLORS.primary, marginTop: 7 },
   listItem: { fontSize: 13.5, color: "#334155", flexShrink: 1, lineHeight: 19 },
   notesText: {
     fontSize: 13.5,
     color: "#475569",
     lineHeight: 20,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.fieldBg,
     borderRadius: 12,
     padding: 12,
   },
-  primaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#0f766e",
-    borderRadius: 14,
-    paddingVertical: 14,
-  },
-  primaryButtonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  secondaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    paddingVertical: 14,
-    borderWidth: 1.5,
-    borderColor: "#0f766e",
-  },
-  secondaryButtonText: { color: "#0f766e", fontWeight: "700", fontSize: 15 },
   ownerActions: { gap: 10 },
   stickyRow: { flexDirection: "row", gap: 10 },
   stickyFlex: { flex: 1 },
@@ -690,51 +658,51 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#fef9c3",
+    backgroundColor: COLORS.warningBg,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 12,
   },
-  pendingText: { color: "#854d0e", textAlign: "center", fontSize: 13.5, flexShrink: 1 },
+  pendingText: { color: COLORS.warningText, textAlign: "center", fontSize: 13.5, flexShrink: 1 },
   stickyBar: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: "#f1f5f9",
   },
   stickyBarInnerWeb: { width: "100%", maxWidth: 480, alignSelf: "center" },
   emptyComments: { alignItems: "center", paddingVertical: 28, gap: 10 },
-  emptyCommentsText: { fontSize: 13.5, color: "#94a3b8", textAlign: "center" },
+  emptyCommentsText: { fontSize: 13.5, color: COLORS.mutedLight, textAlign: "center" },
   commentsList: { maxHeight: 320, borderWidth: 1, borderColor: "#f1f5f9", borderRadius: 14 },
   commentsListContent: { padding: 10, gap: 10 },
   commentCard: { flexDirection: "row", gap: 10 },
   commentAvatar: { width: 34, height: 34, borderRadius: 17 },
-  commentAvatarPlaceholder: { backgroundColor: "#0f766e", alignItems: "center", justifyContent: "center" },
-  commentAvatarInitial: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  commentAvatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
+  commentAvatarInitial: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
   commentBody: { flex: 1 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  commentAuthor: { fontWeight: "700", fontSize: 13, color: "#0f172a" },
-  commentTime: { fontSize: 11, color: "#94a3b8" },
+  commentAuthor: { fontWeight: "700", fontSize: 13, color: COLORS.ink },
+  commentTime: { fontSize: 11, color: COLORS.mutedLight },
   commentText: { fontSize: 13.5, color: "#334155", marginTop: 2, lineHeight: 19 },
   commentInputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 14 },
   commentInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#0f172a",
+    color: COLORS.ink,
     maxHeight: 100,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.fieldBg,
   },
   sendButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#0f766e",
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
