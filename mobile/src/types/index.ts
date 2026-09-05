@@ -130,6 +130,17 @@ export interface Group {
   members: GroupMember[];
 }
 
+export interface MessageReactionSummary {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
+export interface PresenceInfo {
+  online: boolean;
+  lastSeenAt: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   groupId: string;
@@ -139,6 +150,7 @@ export interface ChatMessage {
   mediaUrl?: string | null;
   createdAt: string;
   sender: TripOwnerSummary;
+  reactions?: MessageReactionSummary[];
 }
 
 export interface AppNotification {
