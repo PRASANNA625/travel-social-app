@@ -18,6 +18,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useLanguage } from "../i18n/LanguageContext";
 import { LanguageSelector } from "../components/LanguageSelector";
+import { COLORS, RADIUS } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Onboarding">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -29,6 +30,9 @@ interface Slide {
   colors: [string, string];
 }
 
+// Deliberately varied per slide (all four colors are the same brand
+// palette used elsewhere), not the shared GRADIENT_PRIMARY - a carousel
+// variety choice, not a bug. Left as local literals per the design spec.
 const SLIDES: Slide[] = [
   { icon: "image-filter-hdr", titleKey: "onboarding.slide1Title", descriptionKey: "onboarding.slide1Desc", colors: ["#0c4a6e", "#0f766e"] },
   { icon: "account-group", titleKey: "onboarding.slide2Title", descriptionKey: "onboarding.slide2Desc", colors: ["#1d4ed8", "#0f766e"] },
@@ -76,7 +80,7 @@ export function OnboardingScreen({ navigation }: Props) {
           <LinearGradient colors={item.colors} style={[styles.slide, { width: slideWidth }]}>
             <View style={[styles.slideContent, isWeb && styles.slideContentWeb]}>
               <View style={styles.iconBadge}>
-                <MaterialCommunityIcons name={item.icon} size={64} color="#fff" />
+                <MaterialCommunityIcons name={item.icon} size={64} color={COLORS.white} />
               </View>
               <Text style={styles.title}>{t(item.titleKey)}</Text>
               <Text style={styles.description}>{t(item.descriptionKey)}</Text>
@@ -100,7 +104,7 @@ export function OnboardingScreen({ navigation }: Props) {
 
         <TouchableOpacity style={styles.nextButton} activeOpacity={0.9} onPress={goNext}>
           <Text style={styles.nextButtonText}>{isLast ? t("onboarding.getStarted") : t("onboarding.next")}</Text>
-          <MaterialCommunityIcons name={isLast ? "rocket-launch-outline" : "arrow-right"} size={18} color="#0f766e" />
+          <MaterialCommunityIcons name={isLast ? "rocket-launch-outline" : "arrow-right"} size={18} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -123,7 +127,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 8,
   },
-  title: { color: "#fff", fontSize: 26, fontWeight: "800", textAlign: "center", lineHeight: 32 },
+  title: { color: COLORS.white, fontSize: 26, fontWeight: "800", textAlign: "center", lineHeight: 32 },
   description: { color: "rgba(255,255,255,0.85)", fontSize: 15, lineHeight: 22, textAlign: "center", maxWidth: 300 },
   skipButton: { position: "absolute", right: 20, paddingHorizontal: 14, paddingVertical: 8 },
   skipText: { color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: "600" },
@@ -131,24 +135,24 @@ const styles = StyleSheet.create({
   bottomBarWeb: { paddingHorizontal: 32 },
   dotsRow: { flexDirection: "row", gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.35)" },
-  dotActive: { width: 22, backgroundColor: "#fff" },
+  dotActive: { width: 22, backgroundColor: COLORS.white },
   nextButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#fff",
-    borderRadius: 999,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.pill,
     paddingVertical: 15,
     paddingHorizontal: 36,
     width: "100%",
     maxWidth: 340,
-    shadowColor: "#0f172a",
+    shadowColor: COLORS.ink,
     shadowOpacity: 0.22,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 5,
   },
-  nextButtonText: { color: "#0f766e", fontSize: 16, fontWeight: "700" },
+  nextButtonText: { color: COLORS.primary, fontSize: 16, fontWeight: "700" },
   languageSelector: { position: "absolute", left: 20 },
 });
