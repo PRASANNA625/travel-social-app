@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDDMMYYYY, startOfToday } from "../utils/date";
+import { COLORS } from "../theme/tokens";
 
 export function TripDateFields({
   startDate,
@@ -27,13 +29,15 @@ export function TripDateFields({
 
   return (
     <View style={styles.row}>
-      <TouchableOpacity style={[inputStyle, styles.flex1]} onPress={() => setShowStartPicker(true)}>
+      <TouchableOpacity style={[inputStyle, styles.flex1, styles.fieldRow]} onPress={() => setShowStartPicker(true)}>
+        <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={COLORS.muted} />
         <Text>Start: {formatDDMMYYYY(startDate)}</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[inputStyle, styles.flex1, endError && errorStyle]}
+        style={[inputStyle, styles.flex1, styles.fieldRow, endError && errorStyle]}
         onPress={() => setShowEndPicker(true)}
       >
+        <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={COLORS.muted} />
         <Text style={!endDate && placeholderStyle}>
           {endDate ? `End: ${formatDDMMYYYY(endDate)}` : "End date"}
         </Text>
@@ -68,4 +72,5 @@ export function TripDateFields({
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 10 },
   flex1: { flex: 1 },
+  fieldRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 });

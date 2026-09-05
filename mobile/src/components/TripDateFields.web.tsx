@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, TextInput, View, type StyleProp, type TextStyle } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDDMMYYYY, isBeforeToday } from "../utils/date";
+import { COLORS } from "../theme/tokens";
 
 function parseDateInput(text: string): Date | null {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
@@ -36,21 +38,24 @@ function DateTextField({
   }, [value]);
 
   return (
-    <TextInput
-      style={[style, invalid && errorStyle]}
-      placeholder={placeholder}
-      value={text}
-      onChangeText={(next) => {
-        setText(next);
-        const parsed = parseDateInput(next);
-        if (parsed && !isBeforeToday(parsed)) {
-          setInvalid(false);
-          onChangeValidDate(parsed);
-        } else {
-          setInvalid(next.length > 0);
-        }
-      }}
-    />
+    <View style={[style, styles.fieldRow, invalid && errorStyle]}>
+      <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={COLORS.muted} />
+      <TextInput
+        style={styles.textInput}
+        placeholder={placeholder}
+        value={text}
+        onChangeText={(next) => {
+          setText(next);
+          const parsed = parseDateInput(next);
+          if (parsed && !isBeforeToday(parsed)) {
+            setInvalid(false);
+            onChangeValidDate(parsed);
+          } else {
+            setInvalid(next.length > 0);
+          }
+        }}
+      />
+    </View>
   );
 }
 
@@ -95,4 +100,6 @@ export function TripDateFields({
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 10 },
   flex1: { flex: 1 },
+  fieldRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  textInput: { flex: 1, fontSize: 15, color: COLORS.ink },
 });
