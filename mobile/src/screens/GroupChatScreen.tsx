@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -57,8 +58,16 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
   const [seenByTargetId, setSeenByTargetId] = useState<string | null>(null);
   const markedReadIds = useRef<Set<string>>(new Set());
+  const listRef = useRef<FlatList<ChatMessage>>(null);
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
+
+  const scrollToBottom = (animated: boolean) => listRef.current?.scrollToEnd({ animated });
+
+  useEffect(() => {
+    const sub = Keyboard.addListener("keyboardDidShow", () => scrollToBottom(true));
+    return () => sub.remove();
+  }, []);
 
   const onSend = () => {
     if (!text.trim()) return;
@@ -214,7 +223,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.ink} />
@@ -266,11 +275,14 @@ export function GroupChatScreen({ route, navigation }: Props) {
             </View>
           ) : (
             <FlatList
+              ref={listRef}
               style={styles.list}
               data={messages}
               keyExtractor={(item) => item.id}
               renderItem={renderMessage}
               contentContainerStyle={styles.listContent}
+              onContentSizeChange={() => scrollToBottom(false)}
+              keyboardShouldPersistTaps="handled"
             />
           )}
         </View>

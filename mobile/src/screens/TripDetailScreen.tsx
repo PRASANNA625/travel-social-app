@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -76,6 +77,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const isWeb = Platform.OS === "web";
   const [heroWidth, setHeroWidth] = useState(width);
   const heroHeight = isWeb ? Math.min(Math.round(heroWidth / 2.4), 380) : 260;
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const likeTrip = useLikeTrip();
   const bookmarkTrip = useBookmarkTrip();
@@ -83,6 +85,13 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const addComment = useAddComment(tripId);
   const uploadImages = useUploadTripImages();
   const updateTripImages = useUpdateTripImages();
+
+  useEffect(() => {
+    const sub = Keyboard.addListener("keyboardDidShow", () => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => sub.remove();
+  }, []);
 
   if (isLoading || !trip) {
     return (
@@ -232,7 +241,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.ink} />
@@ -252,7 +261,12 @@ export function TripDetailScreen({ route, navigation }: Props) {
         )}
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={isWeb ? styles.pageInnerWeb : undefined}>
         {editingPhotos ? (
           <View style={styles.photoEditPanel}>
