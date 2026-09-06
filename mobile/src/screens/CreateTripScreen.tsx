@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -23,7 +23,9 @@ import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
 import { SelectableChip } from "../components/theme/SelectableChip";
-import { COLORS, RADIUS, TYPE } from "../theme/tokens";
+import { RADIUS, TYPE } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 import { Alert } from "../utils/alert";
 import { isAfterDate, isBeforeToday } from "../utils/date";
 
@@ -36,10 +38,11 @@ const JOIN_TYPES: { value: JoinType; label: string; icon: IconName }[] = [
 ];
 
 function FieldLabel({ text, required }: { text: string; required?: boolean }) {
+  const { colors } = useTheme();
   return (
-    <Text style={styles.label}>
+    <Text style={[TYPE.label, { color: colors.ink, marginTop: 4 }]}>
       {text}
-      {required && <Text style={styles.required}> *</Text>}
+      {required && <Text style={{ color: colors.danger }}> *</Text>}
     </Text>
   );
 }
@@ -73,6 +76,8 @@ export function CreateTripScreen({ navigation, route }: Props) {
   const updateTrip = useUpdateTrip();
   const uploadImages = useUploadTripImages();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     if (!isEditMode || !existingTrip || prefilled) return;
@@ -328,7 +333,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
                 }}
               />
               <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("start")}>
-                <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={COLORS.primary} />
+                <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={colors.primary} />
                 <Text style={styles.pickOnMapText}>Pick on map</Text>
               </TouchableOpacity>
             </View>
@@ -345,7 +350,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
                 }}
               />
               <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("destination")}>
-                <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={COLORS.primary} />
+                <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={colors.primary} />
                 <Text style={styles.pickOnMapText}>Pick on map</Text>
               </TouchableOpacity>
             </View>
@@ -507,68 +512,70 @@ export function CreateTripScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.fieldBg },
-  hero: { paddingHorizontal: 20, paddingBottom: 24 },
-  heroTitle: { color: COLORS.white, fontSize: 22, fontWeight: "800" },
-  heroSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 4 },
-  scroll: { flex: 1 },
-  sectionHeading: { ...TYPE.heading, fontSize: 16 },
-  label: { ...TYPE.label, marginTop: 4 },
-  required: { color: COLORS.danger },
-  counter: { alignSelf: "flex-end", fontSize: 11, color: COLORS.mutedLight, marginTop: 2 },
-  helperText: { fontSize: 12, color: COLORS.muted, marginTop: -2, marginBottom: 8 },
-  row: { flexDirection: "row", gap: 10 },
-  flex1: { flex: 1 },
-  inputError: { borderColor: COLORS.danger },
-  placeholderText: { color: COLORS.mutedLight },
-  selectorError: { borderWidth: 1, borderColor: COLORS.danger, borderRadius: RADIUS.field, padding: 6 },
-  dateField: {
-    backgroundColor: COLORS.fieldBg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.field,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-  },
-  modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8, width: "100%" },
-  modeChip: { flexBasis: "48%", flexGrow: 1, flexShrink: 1, minWidth: 0 },
-  joinTypeList: { gap: 8, marginTop: 8 },
-  joinTypeChip: { width: "100%", justifyContent: "flex-start", paddingHorizontal: 14 },
-  pickOnMapLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  pickOnMapText: { color: COLORS.primary, fontSize: 12, fontWeight: "600" },
-  coverPicker: {
-    height: 150,
-    borderRadius: RADIUS.field,
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.fieldBg,
-    gap: 6,
-  },
-  coverPickerText: { color: COLORS.muted, fontSize: 13, fontWeight: "600" },
-  coverPreview: { width: "100%", height: 150, borderRadius: RADIUS.field },
-  coverChangeBadge: {
-    position: "absolute",
-    right: 10,
-    bottom: 10,
-    backgroundColor: "rgba(15,23,42,0.75)",
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  coverChangeText: { color: COLORS.white, fontSize: 11, fontWeight: "700" },
-  thumb: { width: 60, height: 60, borderRadius: 8 },
-  addImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.surface },
+    hero: { paddingHorizontal: 20, paddingBottom: 24 },
+    heroTitle: { color: colors.white, fontSize: 22, fontWeight: "800" },
+    heroSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 4 },
+    scroll: { flex: 1 },
+    sectionHeading: { ...TYPE.heading, fontSize: 16, color: colors.ink },
+    label: { ...TYPE.label, marginTop: 4, color: colors.ink },
+    required: { color: colors.danger },
+    counter: { alignSelf: "flex-end", fontSize: 11, color: colors.mutedLight, marginTop: 2 },
+    helperText: { fontSize: 12, color: colors.muted, marginTop: -2, marginBottom: 8 },
+    row: { flexDirection: "row", gap: 10 },
+    flex1: { flex: 1 },
+    inputError: { borderColor: colors.danger },
+    placeholderText: { color: colors.mutedLight },
+    selectorError: { borderWidth: 1, borderColor: colors.danger, borderRadius: RADIUS.field, padding: 6 },
+    dateField: {
+      backgroundColor: colors.fieldBg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: RADIUS.field,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+    },
+    modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8, width: "100%" },
+    modeChip: { flexBasis: "48%", flexGrow: 1, flexShrink: 1, minWidth: 0 },
+    joinTypeList: { gap: 8, marginTop: 8 },
+    joinTypeChip: { width: "100%", justifyContent: "flex-start", paddingHorizontal: 14 },
+    pickOnMapLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+    pickOnMapText: { color: colors.primary, fontSize: 12, fontWeight: "600" },
+    coverPicker: {
+      height: 150,
+      borderRadius: RADIUS.field,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderStyle: "dashed",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.fieldBg,
+      gap: 6,
+    },
+    coverPickerText: { color: colors.muted, fontSize: 13, fontWeight: "600" },
+    coverPreview: { width: "100%", height: 150, borderRadius: RADIUS.field },
+    coverChangeBadge: {
+      position: "absolute",
+      right: 10,
+      bottom: 10,
+      backgroundColor: "rgba(15,23,42,0.75)",
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    coverChangeText: { color: colors.white, fontSize: 11, fontWeight: "700" },
+    thumb: { width: 60, height: 60, borderRadius: 8 },
+    addImage: {
+      width: 60,
+      height: 60,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderStyle: "dashed",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  });
+}

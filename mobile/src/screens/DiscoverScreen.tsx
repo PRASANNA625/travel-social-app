@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -27,7 +27,9 @@ import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { DiscoverHeroCarousel } from "../components/DiscoverHeroCarousel";
 import { ProfileMenu, type ProfileMenuAnchor } from "../components/ProfileMenu";
-import { COLORS, RADIUS } from "../theme/tokens";
+import { RADIUS } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 
 type Props = CompositeScreenProps<
@@ -50,6 +52,8 @@ export function DiscoverScreen({ navigation }: Props) {
   const [profileMenuVisible, setProfileMenuVisible] = useState(false);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState<ProfileMenuAnchor | null>(null);
   const avatarWrapRef = useRef<View>(null);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { data: me } = useMe();
 
@@ -134,11 +138,11 @@ export function DiscoverScreen({ navigation }: Props) {
       <DiscoverHeroCarousel />
 
       <View style={styles.searchWrap}>
-        <MaterialCommunityIcons name="magnify" size={18} color={COLORS.mutedLight} />
+        <MaterialCommunityIcons name="magnify" size={18} color={colors.mutedLight} />
         <TextInput
           style={styles.search}
           placeholder="Search trips, destinations..."
-          placeholderTextColor={COLORS.mutedLight}
+          placeholderTextColor={colors.mutedLight}
           value={search}
           onChangeText={setSearch}
         />
@@ -163,7 +167,7 @@ export function DiscoverScreen({ navigation }: Props) {
                 <MaterialCommunityIcons
                   name={sortOrder === "asc" ? "sort-calendar-ascending" : "sort-calendar-descending"}
                   size={15}
-                  color="#334155"
+                  color={colors.ink}
                 />
                 <Text style={styles.chipText}>{sortOrder === "asc" ? "Soonest first" : "Latest first"}</Text>
               </TouchableOpacity>
@@ -177,16 +181,16 @@ export function DiscoverScreen({ navigation }: Props) {
                 disabled={locating}
               >
                 {locating ? (
-                  <ActivityIndicator size="small" color={nearMe ? COLORS.white : COLORS.primary} />
+                  <ActivityIndicator size="small" color={nearMe ? colors.white : colors.primary} />
                 ) : (
-                  <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? COLORS.white : "#334155"} />
+                  <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? colors.white : colors.ink} />
                 )}
                 <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>
                   {nearMe ? `Near me · ${radiusKm} km` : "Near me"}
                 </Text>
                 {nearMe && (
                   <>
-                    <MaterialCommunityIcons name="chevron-down" size={14} color={COLORS.white} />
+                    <MaterialCommunityIcons name="chevron-down" size={14} color={colors.white} />
                     <TouchableOpacity
                       style={styles.chipRemoveButton}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -202,7 +206,7 @@ export function DiscoverScreen({ navigation }: Props) {
           if (item === "CLEAR_ALL") {
             return (
               <TouchableOpacity style={styles.clearAllChip} onPress={clearAllFilters}>
-                <MaterialCommunityIcons name="close" size={14} color={COLORS.danger} />
+                <MaterialCommunityIcons name="close" size={14} color={colors.danger} />
                 <Text style={styles.clearAllChipText}>Clear all</Text>
               </TouchableOpacity>
             );
@@ -213,7 +217,7 @@ export function DiscoverScreen({ navigation }: Props) {
               <MaterialCommunityIcons
                 name={TRAVEL_MODE_ICONS[item]}
                 size={15}
-                color={active ? COLORS.white : "#334155"}
+                color={active ? colors.white : colors.ink}
               />
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{travelModeText(item)}</Text>
               {active && <MaterialCommunityIcons name="close-circle" size={14} color="rgba(255,255,255,0.85)" />}
@@ -239,7 +243,7 @@ export function DiscoverScreen({ navigation }: Props) {
               <MaterialCommunityIcons
                 name={nearMe ? "map-marker-radius-outline" : "compass-outline"}
                 size={40}
-                color="#cbd5e1"
+                color={colors.mutedLight}
               />
               <Text style={styles.empty}>
                 {nearMe
@@ -260,7 +264,7 @@ export function DiscoverScreen({ navigation }: Props) {
       )}
 
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("CreateTrip")} activeOpacity={0.9}>
-        <MaterialCommunityIcons name="plus" size={18} color={COLORS.white} />
+        <MaterialCommunityIcons name="plus" size={18} color={colors.white} />
         <Text style={styles.fabText}>Create Trip</Text>
       </TouchableOpacity>
 
@@ -291,7 +295,7 @@ export function DiscoverScreen({ navigation }: Props) {
               ))}
             </View>
             <TouchableOpacity style={styles.clearFilterButton} onPress={clearNearMe}>
-              <MaterialCommunityIcons name="close-circle-outline" size={16} color={COLORS.danger} />
+              <MaterialCommunityIcons name="close-circle-outline" size={16} color={colors.danger} />
               <Text style={styles.clearFilterText}>Clear filter</Text>
             </TouchableOpacity>
           </Pressable>
@@ -307,7 +311,7 @@ export function DiscoverScreen({ navigation }: Props) {
         <Pressable style={styles.backdrop} onPress={() => setLocationDeniedVisible(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.permissionIconWrap}>
-              <MaterialCommunityIcons name="map-marker-off-outline" size={26} color={COLORS.danger} />
+              <MaterialCommunityIcons name="map-marker-off-outline" size={26} color={colors.danger} />
             </View>
             <Text style={styles.sheetTitle}>Location access needed</Text>
             <Text style={styles.sheetSubtitle}>
@@ -345,158 +349,160 @@ export function DiscoverScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.fieldBg },
-  header: { paddingBottom: 20 },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  greeting: { fontSize: 21, fontWeight: "700", color: COLORS.white },
-  greetingSub: { fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 2 },
-  avatar: { width: 42, height: 42, borderRadius: 21 },
-  avatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
-  avatarInitial: { color: COLORS.white, fontWeight: "700", fontSize: 16 },
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 14,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 14,
-  },
-  search: { flex: 1, paddingVertical: 12, fontSize: 14, color: COLORS.ink },
-  filterRow: { minHeight: 46, marginTop: 12, flexGrow: 0 },
-  filterRowContent: { paddingHorizontal: 16, paddingRight: 24, paddingVertical: 4, alignItems: "center", gap: 8 },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    justifyContent: "center",
-    minHeight: 38,
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { fontSize: 12.5, color: "#334155", fontWeight: "500", includeFontPadding: false },
-  chipTextActive: { color: COLORS.white, fontWeight: "700" },
-  chipRemoveButton: { marginLeft: -2 },
-  clearAllChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    minHeight: 38,
-    backgroundColor: COLORS.dangerBg,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderColor: COLORS.dangerBorderLight,
-  },
-  clearAllChipText: { fontSize: 12.5, color: COLORS.danger, fontWeight: "700", includeFontPadding: false },
-  list: { padding: 16, paddingBottom: 110 },
-  emptyWrap: { alignItems: "center", marginTop: 48, gap: 10 },
-  empty: { textAlign: "center", color: COLORS.mutedLight, fontSize: 13, paddingHorizontal: 32 },
-  emptyClearLink: { color: COLORS.primary, fontSize: 13, fontWeight: "700", marginTop: 2 },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(15,23,42,0.4)",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  sheet: {
-    width: "100%",
-    maxWidth: 340,
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: COLORS.ink,
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
-  },
-  sheetTitle: { fontSize: 16, fontWeight: "700", color: COLORS.ink, textAlign: "center" },
-  sheetSubtitle: { fontSize: 13, color: COLORS.muted, textAlign: "center", marginTop: 6, lineHeight: 18 },
-  radiusOptionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16, justifyContent: "center" },
-  radiusOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: RADIUS.pill,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.fieldBg,
-  },
-  radiusOptionActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  radiusOptionText: { fontSize: 13, fontWeight: "600", color: "#334155" },
-  radiusOptionTextActive: { color: COLORS.white },
-  clearFilterButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 18,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: COLORS.dangerBg,
-  },
-  clearFilterText: { color: COLORS.danger, fontWeight: "700", fontSize: 13 },
-  permissionIconWrap: {
-    alignSelf: "center",
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.dangerBg,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  permissionButtonRow: { flexDirection: "row", gap: 10, marginTop: 18 },
-  permissionCancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: "#f1f5f9",
-  },
-  permissionCancelText: { color: "#334155", fontWeight: "700", fontSize: 13 },
-  permissionRetryButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: COLORS.primary,
-  },
-  permissionRetryText: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
-  fab: {
-    position: "absolute",
-    right: 16,
-    bottom: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    shadowColor: COLORS.ink,
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  fabText: { color: COLORS.white, fontWeight: "700", fontSize: 14 },
-});
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.surface },
+    header: { paddingBottom: 20 },
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingTop: 16,
+    },
+    greeting: { fontSize: 21, fontWeight: "700", color: colors.white },
+    greetingSub: { fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 2 },
+    avatar: { width: 42, height: 42, borderRadius: 21 },
+    avatarPlaceholder: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+    avatarInitial: { color: colors.white, fontWeight: "700", fontSize: 16 },
+    searchWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: 16,
+      marginTop: 14,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+    },
+    search: { flex: 1, paddingVertical: 12, fontSize: 14, color: colors.ink },
+    filterRow: { minHeight: 46, marginTop: 12, flexGrow: 0 },
+    filterRowContent: { paddingHorizontal: 16, paddingRight: 24, paddingVertical: 4, alignItems: "center", gap: 8 },
+    chip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      justifyContent: "center",
+      minHeight: 38,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    chipText: { fontSize: 12.5, color: colors.ink, fontWeight: "500", includeFontPadding: false },
+    chipTextActive: { color: colors.white, fontWeight: "700" },
+    chipRemoveButton: { marginLeft: -2 },
+    clearAllChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      minHeight: 38,
+      backgroundColor: colors.dangerBg,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderWidth: 1,
+      borderColor: colors.dangerBorderLight,
+    },
+    clearAllChipText: { fontSize: 12.5, color: colors.danger, fontWeight: "700", includeFontPadding: false },
+    list: { padding: 16, paddingBottom: 110 },
+    emptyWrap: { alignItems: "center", marginTop: 48, gap: 10 },
+    empty: { textAlign: "center", color: colors.mutedLight, fontSize: 13, paddingHorizontal: 32 },
+    emptyClearLink: { color: colors.primary, fontSize: 13, fontWeight: "700", marginTop: 2 },
+    backdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 24,
+    },
+    sheet: {
+      width: "100%",
+      maxWidth: 340,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 20,
+      padding: 20,
+      shadowColor: colors.ink,
+      shadowOpacity: 0.2,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 10,
+    },
+    sheetTitle: { fontSize: 16, fontWeight: "700", color: colors.ink, textAlign: "center" },
+    sheetSubtitle: { fontSize: 13, color: colors.muted, textAlign: "center", marginTop: 6, lineHeight: 18 },
+    radiusOptionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16, justifyContent: "center" },
+    radiusOption: {
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.fieldBg,
+    },
+    radiusOptionActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    radiusOptionText: { fontSize: 13, fontWeight: "600", color: colors.ink },
+    radiusOptionTextActive: { color: colors.white },
+    clearFilterButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: 18,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: colors.dangerBg,
+    },
+    clearFilterText: { color: colors.danger, fontWeight: "700", fontSize: 13 },
+    permissionIconWrap: {
+      alignSelf: "center",
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.dangerBg,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 10,
+    },
+    permissionButtonRow: { flexDirection: "row", gap: 10, marginTop: 18 },
+    permissionCancelButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: "center",
+      backgroundColor: colors.fieldBg,
+    },
+    permissionCancelText: { color: colors.ink, fontWeight: "700", fontSize: 13 },
+    permissionRetryButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: "center",
+      backgroundColor: colors.primary,
+    },
+    permissionRetryText: { color: colors.white, fontWeight: "700", fontSize: 13 },
+    fab: {
+      position: "absolute",
+      right: 16,
+      bottom: 20,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: colors.primary,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      shadowColor: colors.ink,
+      shadowOpacity: 0.25,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 5,
+    },
+    fabText: { color: colors.white, fontWeight: "700", fontSize: 14 },
+  });
+}

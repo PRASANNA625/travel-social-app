@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
@@ -9,7 +9,8 @@ import { TripCard } from "../components/TripCard";
 import { TripCardSkeleton } from "../components/TripCardSkeleton";
 import type { Trip } from "../types";
 import { Alert } from "../utils/alert";
-import { COLORS } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "MyTrips">,
@@ -21,6 +22,8 @@ export function MyTripsScreen({ navigation }: Props) {
   const myTrips = useMyTrips();
   const savedTrips = useBookmarkedTrips();
   const deleteTrip = useDeleteTrip();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const data = tab === "mine" ? myTrips.data : savedTrips.data;
   const isLoading = tab === "mine" ? myTrips.isLoading : savedTrips.isLoading;
@@ -79,21 +82,23 @@ export function MyTripsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.fieldBg },
-  tabRow: { flexDirection: "row", padding: 12, gap: 8 },
-  tab: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: COLORS.white,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  tabActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  tabText: { color: "#334155", fontWeight: "600" },
-  tabTextActive: { color: COLORS.white },
-  list: { padding: 12 },
-  empty: { textAlign: "center", color: COLORS.mutedLight, marginTop: 40 },
-});
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.surface },
+    tabRow: { flexDirection: "row", padding: 12, gap: 8 },
+    tab: {
+      flex: 1,
+      padding: 10,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceElevated,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    tabText: { color: colors.ink, fontWeight: "600" },
+    tabTextActive: { color: colors.white },
+    list: { padding: 12 },
+    empty: { textAlign: "center", color: colors.mutedLight, marginTop: 40 },
+  });
+}

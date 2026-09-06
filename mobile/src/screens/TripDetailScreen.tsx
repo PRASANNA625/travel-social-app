@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -38,7 +38,9 @@ import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
 import { Skeleton } from "../components/theme/Skeleton";
-import { COLORS, RADIUS } from "../theme/tokens";
+import { RADIUS } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 
 type Props = NativeStackScreenProps<AppStackParamList, "TripDetail">;
@@ -78,6 +80,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const isWeb = Platform.OS === "web";
   const [heroWidth, setHeroWidth] = useState(width);
   const heroHeight = isWeb ? Math.min(Math.round(heroWidth / 2.4), 380) : 260;
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const scrollViewRef = useRef<ScrollView>(null);
   const heroListRef = useRef<FlatList<string>>(null);
   const activeImageIndexRef = useRef(0);
@@ -263,7 +267,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   } else if (myRequest?.status === "PENDING") {
     actionSlot = (
       <View style={styles.pendingBadge}>
-        <MaterialCommunityIcons name="clock-outline" size={16} color={COLORS.warningText} />
+        <MaterialCommunityIcons name="clock-outline" size={16} color={colors.warningText} />
         <Text style={styles.pendingText}>Your request is pending approval</Text>
       </View>
     );
@@ -276,7 +280,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   } else if (trip.joinType === "INVITE_ONLY") {
     actionSlot = (
       <View style={styles.pendingBadge}>
-        <MaterialCommunityIcons name="lock-outline" size={16} color={COLORS.warningText} />
+        <MaterialCommunityIcons name="lock-outline" size={16} color={colors.warningText} />
         <Text style={styles.pendingText}>Invite-only — ask the organizer to add you</Text>
       </View>
     );
@@ -307,7 +311,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.ink} />
+          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           Trip Details
@@ -334,7 +338,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
                     style={styles.photoRemoveBadge}
                     onPress={() => setEditImages((prev) => prev.filter((i) => i !== uri))}
                   >
-                    <MaterialCommunityIcons name="close" size={13} color={COLORS.white} />
+                    <MaterialCommunityIcons name="close" size={13} color={colors.white} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -345,12 +349,12 @@ export function TripDetailScreen({ route, navigation }: Props) {
                     style={styles.photoRemoveBadge}
                     onPress={() => setNewPhotoAssets((prev) => prev.filter((a) => a.uri !== asset.uri))}
                   >
-                    <MaterialCommunityIcons name="close" size={13} color={COLORS.white} />
+                    <MaterialCommunityIcons name="close" size={13} color={colors.white} />
                   </TouchableOpacity>
                 </View>
               ))}
               <TouchableOpacity style={styles.photoAddTile} onPress={pickNewPhotos}>
-                <MaterialCommunityIcons name="plus" size={24} color={COLORS.muted} />
+                <MaterialCommunityIcons name="plus" size={24} color={colors.muted} />
               </TouchableOpacity>
             </View>
             <View style={styles.photoEditActions}>
@@ -420,7 +424,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
             {isOwner && (
               <TouchableOpacity style={styles.photoEditTrigger} onPress={startEditingPhotos}>
-                <MaterialCommunityIcons name="camera-outline" size={14} color={COLORS.white} />
+                <MaterialCommunityIcons name="camera-outline" size={14} color={colors.white} />
                 <Text style={styles.photoEditTriggerText}>Edit photos</Text>
               </TouchableOpacity>
             )}
@@ -430,7 +434,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
                 {trip.title}
               </Text>
               <View style={styles.heroMetaRow}>
-                <MaterialCommunityIcons name="map-marker" size={14} color={COLORS.border} />
+                <MaterialCommunityIcons name="map-marker" size={14} color={colors.border} />
                 <Text style={styles.heroSubtitle} numberOfLines={1}>
                   {trip.destination}
                 </Text>
@@ -441,35 +445,35 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.section}>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="routes" size={18} color={COLORS.primary} />
+            <MaterialCommunityIcons name="routes" size={18} color={colors.primary} />
             <Text style={styles.infoText}>
               {trip.startLocation} → {trip.destination}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="calendar-range" size={18} color={COLORS.primary} />
+            <MaterialCommunityIcons name="calendar-range" size={18} color={colors.primary} />
             <Text style={styles.infoText}>
               {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={18} color={COLORS.primary} />
+            <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={18} color={colors.primary} />
             <Text style={styles.infoText}>{travelModeText(trip.travelMode)}</Text>
           </View>
           {trip.budget != null && (
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="cash" size={18} color={COLORS.primary} />
+              <MaterialCommunityIcons name="cash" size={18} color={colors.primary} />
               <Text style={styles.infoText}>Approx. budget ₹{trip.budget}</Text>
             </View>
           )}
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="account-multiple" size={18} color={COLORS.primary} />
+            <MaterialCommunityIcons name="account-multiple" size={18} color={colors.primary} />
             <Text style={styles.infoText}>
               {trip.seatsFilled}/{trip.seats} seats filled
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="account-circle" size={18} color={COLORS.primary} />
+            <MaterialCommunityIcons name="account-circle" size={18} color={colors.primary} />
             <Text style={styles.infoText}>Organized by {trip.owner.name}</Text>
           </View>
 
@@ -483,9 +487,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
               <MaterialCommunityIcons
                 name={trip.isLiked ? "heart" : "heart-outline"}
                 size={16}
-                color={trip.isLiked ? COLORS.danger : "#334155"}
+                color={trip.isLiked ? colors.danger : colors.ink}
               />
-              <Text style={[styles.iconActionText, trip.isLiked && { color: COLORS.danger }]}>{trip._count.likes}</Text>
+              <Text style={[styles.iconActionText, trip.isLiked && { color: colors.danger }]}>{trip._count.likes}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => bookmarkTrip.mutate({ tripId, input: !trip.isBookmarked })}
@@ -496,9 +500,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
               <MaterialCommunityIcons
                 name={trip.isBookmarked ? "bookmark" : "bookmark-outline"}
                 size={16}
-                color={trip.isBookmarked ? COLORS.primary : "#334155"}
+                color={trip.isBookmarked ? colors.primary : colors.ink}
               />
-              <Text style={[styles.iconActionText, trip.isBookmarked && { color: COLORS.primary }]}>
+              <Text style={[styles.iconActionText, trip.isBookmarked && { color: colors.primary }]}>
                 {trip.isBookmarked ? "Saved" : "Save"}
               </Text>
             </TouchableOpacity>
@@ -509,7 +513,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
           {trip.placesToVisit.length > 0 && (
             <View style={styles.block}>
               <View style={styles.blockHeaderRow}>
-                <MaterialCommunityIcons name="map-marker-distance" size={16} color={COLORS.ink} />
+                <MaterialCommunityIcons name="map-marker-distance" size={16} color={colors.ink} />
                 <Text style={styles.blockTitle}>Places to visit</Text>
               </View>
               {trip.placesToVisit.map((place) => (
@@ -524,7 +528,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
           {trip.notes && (
             <View style={styles.block}>
               <View style={styles.blockHeaderRow}>
-                <MaterialCommunityIcons name="note-text-outline" size={16} color={COLORS.ink} />
+                <MaterialCommunityIcons name="note-text-outline" size={16} color={colors.ink} />
                 <Text style={styles.blockTitle}>Special notes</Text>
               </View>
               <Text style={styles.notesText}>{trip.notes}</Text>
@@ -534,7 +538,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.section} onLayout={(e) => (commentsSectionY.current = e.nativeEvent.layout.y)}>
           <View style={styles.blockHeaderRow}>
-            <MaterialCommunityIcons name="comment-text-outline" size={16} color={COLORS.ink} />
+            <MaterialCommunityIcons name="comment-text-outline" size={16} color={colors.ink} />
             <Text style={styles.blockTitle}>Comments ({comments?.length ?? 0})</Text>
           </View>
 
@@ -577,7 +581,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
           {isClosed && (
             <View style={styles.closedCommentsBanner}>
-              <MaterialCommunityIcons name="lock-outline" size={13} color={COLORS.mutedLight} />
+              <MaterialCommunityIcons name="lock-outline" size={13} color={colors.mutedLight} />
               <Text style={styles.closedCommentsBannerText}>This trip is closed. Comments are read-only.</Text>
             </View>
           )}
@@ -585,7 +589,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
             <TextInput
               style={[styles.commentInput, isClosed && styles.commentInputDisabled]}
               placeholder={isClosed ? "Comments are closed for this trip" : "Add a comment..."}
-              placeholderTextColor={COLORS.mutedLight}
+              placeholderTextColor={colors.mutedLight}
               value={commentText}
               onChangeText={setCommentText}
               editable={!isClosed}
@@ -599,9 +603,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
               accessibilityLabel="Send comment"
             >
               {addComment.isPending ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
+                <ActivityIndicator size="small" color={colors.white} />
               ) : (
-                <MaterialCommunityIcons name="send" size={18} color={COLORS.white} />
+                <MaterialCommunityIcons name="send" size={18} color={colors.white} />
               )}
             </TouchableOpacity>
           </View>
@@ -616,13 +620,14 @@ export function TripDetailScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  flexScreen: { flex: 1, backgroundColor: COLORS.white },
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+  flexScreen: { flex: 1, backgroundColor: colors.surfaceElevated },
   skeletonHero: { width: "100%", height: 260, borderRadius: 0 },
   skeletonSection: { padding: 16, gap: 12 },
   skeletonLine: { height: 14, width: "80%" },
   skeletonLineShort: { height: 14, width: "50%" },
-  container: { flex: 1, backgroundColor: COLORS.white },
+  container: { flex: 1, backgroundColor: colors.surfaceElevated },
   scrollContent: { paddingBottom: 24 },
   header: {
     flexDirection: "row",
@@ -630,9 +635,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingBottom: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: colors.divider,
   },
   headerButton: {
     width: 40,
@@ -640,9 +645,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: COLORS.ink },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.ink },
   headerSpacer: { width: 40, height: 40 },
   pageInnerWeb: { width: "100%", maxWidth: 760, alignSelf: "center" },
   hero: { width: "100%", borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
@@ -657,7 +662,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: RADIUS.pill,
   },
-  statusText: { color: COLORS.white, fontSize: 11, fontWeight: "700" },
+  statusText: { color: colors.white, fontSize: 11, fontWeight: "700" },
   photoEditTrigger: {
     position: "absolute",
     top: 14,
@@ -670,7 +675,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  photoEditTriggerText: { color: COLORS.white, fontSize: 11, fontWeight: "700" },
+  photoEditTriggerText: { color: colors.white, fontSize: 11, fontWeight: "700" },
   heroScrim: {
     position: "absolute",
     left: 0,
@@ -681,7 +686,7 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
   },
   heroMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  heroSubtitle: { fontSize: 13, color: COLORS.border, flexShrink: 1 },
+  heroSubtitle: { fontSize: 13, color: colors.border, flexShrink: 1 },
   dotsRow: {
     position: "absolute",
     top: 14,
@@ -692,8 +697,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.5)" },
-  dotActive: { backgroundColor: COLORS.white },
-  photoEditPanel: { padding: 16, borderBottomWidth: 8, borderBottomColor: "#f1f5f9" },
+  dotActive: { backgroundColor: colors.white },
+  photoEditPanel: { padding: 16, borderBottomWidth: 8, borderBottomColor: colors.divider },
   photoEditRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
   photoEditThumbWrap: { width: 76, height: 76 },
   photoEditThumb: { width: 76, height: 76, borderRadius: 10 },
@@ -704,7 +709,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: COLORS.danger,
+    backgroundColor: colors.danger,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -713,16 +718,16 @@ const styles = StyleSheet.create({
     height: 76,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: colors.border,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
   },
   photoEditActions: { flexDirection: "row", gap: 10, marginTop: 16 },
-  section: { paddingHorizontal: 16, paddingVertical: 20, borderBottomWidth: 8, borderBottomColor: "#f1f5f9" },
-  title: { fontSize: 21, fontWeight: "700", color: COLORS.white },
+  section: { paddingHorizontal: 16, paddingVertical: 20, borderBottomWidth: 8, borderBottomColor: colors.divider },
+  title: { fontSize: 21, fontWeight: "700", color: colors.white },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
-  infoText: { fontSize: 14, color: "#334155", flexShrink: 1 },
+  infoText: { fontSize: 14, color: colors.ink, flexShrink: 1 },
   actionsRow: { flexDirection: "row", gap: 10, marginTop: 12, marginBottom: 4 },
   iconAction: {
     flexDirection: "row",
@@ -730,26 +735,26 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  iconActionLikeActive: { backgroundColor: COLORS.dangerBg, borderColor: COLORS.dangerBorderLight },
-  iconActionSaveActive: { backgroundColor: COLORS.successBg, borderColor: COLORS.successBorderLight },
-  iconActionText: { fontSize: 13, fontWeight: "600", color: "#334155" },
-  description: { fontSize: 14, color: "#1e293b", marginTop: 16, lineHeight: 21 },
+  iconActionLikeActive: { backgroundColor: colors.dangerBg, borderColor: colors.dangerBorderLight },
+  iconActionSaveActive: { backgroundColor: colors.successBg, borderColor: colors.successBorderLight },
+  iconActionText: { fontSize: 13, fontWeight: "600", color: colors.ink },
+  description: { fontSize: 14, color: colors.ink, marginTop: 16, lineHeight: 21 },
   block: { marginTop: 20 },
   blockHeaderRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  blockTitle: { fontSize: 15, fontWeight: "700", color: COLORS.ink },
+  blockTitle: { fontSize: 15, fontWeight: "700", color: colors.ink },
   listItemRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 6 },
-  listDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: COLORS.primary, marginTop: 7 },
-  listItem: { fontSize: 13.5, color: "#334155", flexShrink: 1, lineHeight: 19 },
+  listDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.primary, marginTop: 7 },
+  listItem: { fontSize: 13.5, color: colors.ink, flexShrink: 1, lineHeight: 19 },
   notesText: {
     fontSize: 13.5,
-    color: "#475569",
+    color: colors.ink,
     lineHeight: 20,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
     borderRadius: 12,
     padding: 12,
   },
@@ -761,27 +766,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: COLORS.warningBg,
+    backgroundColor: colors.warningBg,
     borderRadius: RADIUS.field,
     paddingVertical: 14,
     paddingHorizontal: 12,
   },
-  pendingText: { color: COLORS.warningText, textAlign: "center", fontSize: 13.5, flexShrink: 1 },
+  pendingText: { color: colors.warningText, textAlign: "center", fontSize: 13.5, flexShrink: 1 },
   stickyBar: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: colors.divider,
   },
   stickyBarInnerWeb: { width: "100%", maxWidth: 480, alignSelf: "center" },
   emptyComments: { alignItems: "center", paddingVertical: 28, gap: 10 },
-  emptyCommentsText: { fontSize: 13.5, color: COLORS.mutedLight, textAlign: "center" },
-  commentsList: { maxHeight: 320, borderWidth: 1, borderColor: "#f1f5f9", borderRadius: RADIUS.field },
+  emptyCommentsText: { fontSize: 13.5, color: colors.mutedLight, textAlign: "center" },
+  commentsList: { maxHeight: 320, borderWidth: 1, borderColor: colors.divider, borderRadius: RADIUS.field },
   commentsListContent: { padding: 10, gap: 10 },
   commentCard: { flexDirection: "row", gap: 10 },
   commentCardHighlighted: {
-    backgroundColor: COLORS.warningBg,
+    backgroundColor: colors.warningBg,
     borderRadius: RADIUS.field,
     marginHorizontal: -6,
     marginVertical: -4,
@@ -789,13 +794,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   commentAvatar: { width: 34, height: 34, borderRadius: 17 },
-  commentAvatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
-  commentAvatarInitial: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
+  commentAvatarPlaceholder: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+  commentAvatarInitial: { color: colors.white, fontWeight: "700", fontSize: 13 },
   commentBody: { flex: 1 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  commentAuthor: { fontWeight: "700", fontSize: 13, color: COLORS.ink },
-  commentTime: { fontSize: 11, color: COLORS.mutedLight },
-  commentText: { fontSize: 13.5, color: "#334155", marginTop: 2, lineHeight: 19 },
+  commentAuthor: { fontWeight: "700", fontSize: 13, color: colors.ink },
+  commentTime: { fontSize: 11, color: colors.mutedLight },
+  commentText: { fontSize: 13.5, color: colors.ink, marginTop: 2, lineHeight: 19 },
   closedCommentsBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -804,29 +809,30 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingVertical: 8,
     borderRadius: RADIUS.field,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
   },
-  closedCommentsBannerText: { fontSize: 12, color: COLORS.mutedLight, fontWeight: "600" },
+  closedCommentsBannerText: { fontSize: 12, color: colors.mutedLight, fontWeight: "600" },
   commentInputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 14 },
   commentInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 14,
-    color: COLORS.ink,
+    color: colors.ink,
     maxHeight: 100,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
   },
-  commentInputDisabled: { color: COLORS.mutedLight },
+  commentInputDisabled: { color: colors.mutedLight },
   sendButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-});
+  });
+}
