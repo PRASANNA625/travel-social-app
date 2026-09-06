@@ -21,6 +21,7 @@ import type { AppStackParamList } from "../navigation/types";
 import { useAuthStore } from "../store/authStore";
 import { useGroup } from "../api/groups";
 import { useLiveGroupChat, useMessageHistory, useUploadChatImage } from "../api/messages";
+import { useMarkGroupNotificationsRead } from "../api/notifications";
 import type { ChatMessage } from "../types";
 import { Alert } from "../utils/alert";
 import { optimizedImageUrl } from "../utils/optimizedImage";
@@ -62,6 +63,12 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const isClosed = group?.trip.status === "COMPLETED";
+  const markGroupNotificationsRead = useMarkGroupNotificationsRead();
+
+  useEffect(() => {
+    markGroupNotificationsRead.mutate(groupId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
 
   const scrollToBottom = (animated: boolean) => listRef.current?.scrollToEnd({ animated });
 

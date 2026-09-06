@@ -28,3 +28,10 @@ export async function markAllNotificationsRead(userId: string) {
     data: { read: true },
   });
 }
+
+export async function markGroupNotificationsRead(userId: string, groupId: string) {
+  return prisma.notification.updateMany({
+    where: { userId, type: "GROUP_MESSAGE", read: false, payload: { path: ["groupId"], equals: groupId } },
+    data: { read: true },
+  });
+}

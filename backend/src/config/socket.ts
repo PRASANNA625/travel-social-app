@@ -10,6 +10,7 @@ import {
   getReadsForMessages,
   type AllowedReaction,
 } from "../modules/messages/messages.service";
+import { notifyGroupMessage } from "../modules/notifications/notify";
 
 interface AuthedSocket extends Socket {
   userId?: string;
@@ -100,7 +101,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     socket.on("message:send", async (data: { groupId: string; type?: "TEXT" | "IMAGE"; content?: string; mediaUrl?: string }) => {
       const membership = await prisma.groupMember.findUnique({
         where: { groupId_userId: { groupId: data.groupId, userId } },
-        include: { group: { select: { trip: { select: { status: true } } } } },
+        include: { group: { select: { trip: { select: { id: true, title: true, status: true } } } } },
       });
       if (!membership) return;
       if (membership.group.trip.status === "COMPLETED") return;
@@ -117,6 +118,29 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       });
 
       io!.to(`group:${data.groupId}`).emit("message:new", message);
+
+      try {
+        const recipients = await prisma.groupMember.findMany({
+          where: { groupId: data.groupId, userId: { not: userId } },
+          select: { userId: true },
+        });
+        const { trip } = membership.group;
+        await Promise.all(
+          recipients.map((r) =>
+            notifyGroupMessage(r.userId, {
+              groupId: data.groupId,
+              tripId: trip.id,
+              tripTitle: trip.title,
+              senderId: userId,
+              senderName: message.sender.name,
+              messageType: message.type,
+              content: message.content ?? null,
+            })
+          )
+        );
+      } catch (err) {
+        console.error("[socket] message:send notification fan-out failed", err);
+      }
     });
 
     socket.on("presence:get", async (data: { userIds: string[] }) => {

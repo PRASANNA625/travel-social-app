@@ -37,3 +37,11 @@ export function useMarkAllNotificationsRead() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }
+
+export function useMarkGroupNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (groupId: string) => apiClient.post(`/notifications/groups/${groupId}/read`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}

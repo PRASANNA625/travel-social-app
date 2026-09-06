@@ -6,6 +6,7 @@ import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { MyTripsScreen } from "../screens/MyTripsScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { useNotifications } from "../api/notifications";
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
@@ -19,6 +20,9 @@ const ICONS: Record<keyof AppTabParamList, { active: IconName; inactive: IconNam
 };
 
 export function AppTabs() {
+  const { data } = useNotifications();
+  const unreadCount = data?.unreadCount ?? 0;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -37,7 +41,11 @@ export function AppTabs() {
       <Tab.Screen
         name="Notifications"
         component={NotificationsScreen}
-        options={{ title: "Notifications", headerShown: false }}
+        options={{
+          title: "Notifications",
+          headerShown: false,
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+        }}
       />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: "Profile", headerShown: false }} />
     </Tab.Navigator>

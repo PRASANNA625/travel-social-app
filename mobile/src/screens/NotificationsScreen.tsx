@@ -2,18 +2,34 @@ import type { ComponentProps } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { CompositeScreenProps } from "@react-navigation/native";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "../api/notifications";
 import type { AppNotification } from "../types";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { Skeleton } from "../components/theme/Skeleton";
 import { COLORS, RADIUS, TYPE } from "../theme/tokens";
 
+type Props = CompositeScreenProps<
+  BottomTabScreenProps<AppTabParamList, "Notifications">,
+  NativeStackScreenProps<AppStackParamList>
+>;
+
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+function messagePreview(payload: Record<string, unknown>): string {
+  if (payload.messageType === "IMAGE") return "📷 Photo";
+  const content = typeof payload.content === "string" ? payload.content : "";
+  return content.length > 60 ? `${content.slice(0, 60)}…` : content;
+}
 
 const NOTIFICATION_COPY: Record<string, (payload: Record<string, unknown>) => string> = {
   NEW_JOIN_REQUEST: (p) => `Someone wants to join "${p.tripTitle}"`,
   JOIN_REQUEST_APPROVED: (p) => `You're in! Your request for "${p.tripTitle}" was approved`,
   JOIN_REQUEST_REJECTED: (p) => `Your request for "${p.tripTitle}" wasn't approved`,
+  GROUP_MESSAGE: (p) => `${p.senderName} in "${p.tripTitle}": ${messagePreview(p)}`,
 };
 
 function describe(notification: AppNotification): string {
@@ -21,13 +37,13 @@ function describe(notification: AppNotification): string {
   return formatter ? formatter(notification.payload) : notification.type;
 }
 
-// Per-type icon + tint. Any notification type not listed here (e.g. a future
-// chat/group-activity event - no such type exists in the backend yet) falls
-// back to DEFAULT_ICON's chat-bubble glyph instead of rendering blank.
+// Per-type icon + tint. Any notification type not listed here falls back to
+// DEFAULT_ICON's chat-bubble glyph instead of rendering blank.
 const NOTIFICATION_ICON: Record<string, { icon: IconName; bg: string; color: string }> = {
   NEW_JOIN_REQUEST: { icon: "account-multiple-plus", bg: COLORS.fieldBg, color: COLORS.primary },
   JOIN_REQUEST_APPROVED: { icon: "check-circle", bg: COLORS.successBg, color: COLORS.primary },
   JOIN_REQUEST_REJECTED: { icon: "close-circle-outline", bg: COLORS.dangerBg, color: COLORS.danger },
+  GROUP_MESSAGE: { icon: "chat-processing-outline", bg: COLORS.successBg, color: COLORS.primary },
 };
 const DEFAULT_ICON: { icon: IconName; bg: string; color: string } = {
   icon: "message-text-outline",
@@ -51,13 +67,23 @@ function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export function NotificationsScreen() {
+export function NotificationsScreen({ navigation }: Props) {
   const { data, isLoading } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const insets = useSafeAreaInsets();
 
   const unreadCount = data?.unreadCount ?? 0;
+
+  const onPressNotification = (item: AppNotification) => {
+    if (!item.read) markRead.mutate(item.id);
+    if (item.type === "GROUP_MESSAGE") {
+      const { groupId, tripTitle } = item.payload;
+      if (typeof groupId === "string" && typeof tripTitle === "string") {
+        navigation.navigate("GroupChat", { groupId, tripTitle });
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -126,7 +152,7 @@ export function NotificationsScreen() {
             return (
               <TouchableOpacity
                 style={[styles.item, !item.read && styles.itemUnread]}
-                onPress={() => !item.read && markRead.mutate(item.id)}
+                onPress={() => onPressNotification(item)}
                 activeOpacity={0.85}
               >
                 <View style={[styles.iconBadge, { backgroundColor: meta.bg }]}>

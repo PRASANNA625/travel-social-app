@@ -16,3 +16,8 @@ export async function markAllRead(req: AuthedRequest, res: Response) {
   await service.markAllNotificationsRead(req.userId!);
   res.json({ ok: true });
 }
+
+export async function markGroupRead(req: AuthedRequest, res: Response) {
+  await service.markGroupNotificationsRead(req.userId!, req.params.groupId);
+  res.json({ ok: true });
+}
