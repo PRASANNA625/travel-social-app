@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { ComponentProps } from "react";
 import {
   ActivityIndicator,
@@ -26,10 +27,12 @@ import { GradientBackground } from "../components/theme/GradientBackground";
 import { Card } from "../components/theme/Card";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
 import { Skeleton } from "../components/theme/Skeleton";
-import { COLORS, RADIUS, TYPE } from "../theme/tokens";
+import { RADIUS, TYPE } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 
-function ProfileSkeleton() {
+function ProfileSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return (
     <View style={styles.container}>
       <Skeleton style={styles.skeletonCover} />
@@ -57,19 +60,19 @@ type Props = CompositeScreenProps<
 >;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-function StaticChip({ icon, label }: { icon?: IconName; label: string }) {
+function StaticChip({ icon, label, styles, colors }: { icon?: IconName; label: string; styles: ReturnType<typeof createStyles>; colors: Palette }) {
   return (
     <View style={styles.chip}>
-      {icon && <MaterialCommunityIcons name={icon} size={14} color={COLORS.white} />}
+      {icon && <MaterialCommunityIcons name={icon} size={14} color={colors.white} />}
       <Text style={styles.chipText}>{label}</Text>
     </View>
   );
 }
 
-function SectionHeader({ icon, title }: { icon: IconName; title: string }) {
+function SectionHeader({ icon, title, styles, colors }: { icon: IconName; title: string; styles: ReturnType<typeof createStyles>; colors: Palette }) {
   return (
     <View style={styles.blockHeaderRow}>
-      <MaterialCommunityIcons name={icon} size={16} color={COLORS.ink} />
+      <MaterialCommunityIcons name={icon} size={16} color={colors.ink} />
       <Text style={styles.blockTitle}>{title}</Text>
     </View>
   );
@@ -85,6 +88,8 @@ export function ProfileScreen({ navigation }: Props) {
   const isWeb = Platform.OS === "web";
   const { width: windowWidth } = useWindowDimensions();
   const coverHeight = Math.min(Math.max(windowWidth / 2.2, 200), 280);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const onChangePhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -106,7 +111,7 @@ export function ProfileScreen({ navigation }: Props) {
     });
   };
 
-  if (isLoading || !user) return <ProfileSkeleton />;
+  if (isLoading || !user) return <ProfileSkeleton styles={styles} />;
 
   const stats: { icon: IconName; label: string; value: number }[] = [
     { icon: "compass-outline", label: "Travel modes", value: user.preferredModes.length },
@@ -131,10 +136,10 @@ export function ProfileScreen({ navigation }: Props) {
           disabled={uploadCover.isPending}
         >
           {uploadCover.isPending ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
+            <ActivityIndicator size="small" color={colors.white} />
           ) : (
             <>
-              <MaterialCommunityIcons name="camera-outline" size={13} color={COLORS.white} />
+              <MaterialCommunityIcons name="camera-outline" size={13} color={colors.white} />
               <Text style={styles.coverEditText}>Change cover</Text>
             </>
           )}
@@ -154,9 +159,9 @@ export function ProfileScreen({ navigation }: Props) {
               )}
               <View style={styles.avatarEditBadge}>
                 {uploadPhoto.isPending ? (
-                  <ActivityIndicator size={10} color={COLORS.white} />
+                  <ActivityIndicator size={10} color={colors.white} />
                 ) : (
-                  <MaterialCommunityIcons name="camera-outline" size={11} color={COLORS.white} />
+                  <MaterialCommunityIcons name="camera-outline" size={11} color={colors.white} />
                 )}
               </View>
             </TouchableOpacity>
@@ -166,13 +171,13 @@ export function ProfileScreen({ navigation }: Props) {
               <View style={styles.metaRow}>
                 {user.location && (
                   <View style={styles.metaItem}>
-                    <MaterialCommunityIcons name="map-marker-outline" size={13} color={COLORS.muted} />
+                    <MaterialCommunityIcons name="map-marker-outline" size={13} color={colors.muted} />
                     <Text style={styles.metaText}>{user.location}</Text>
                   </View>
                 )}
                 {user.age != null && (
                   <View style={styles.metaItem}>
-                    <MaterialCommunityIcons name="cake-variant-outline" size={13} color={COLORS.muted} />
+                    <MaterialCommunityIcons name="cake-variant-outline" size={13} color={colors.muted} />
                     <Text style={styles.metaText}>{user.age} yrs</Text>
                   </View>
                 )}
@@ -185,7 +190,7 @@ export function ProfileScreen({ navigation }: Props) {
             {stats.map((s) => (
               <View key={s.label} style={styles.statCard}>
                 <View style={styles.statIconBadge}>
-                  <MaterialCommunityIcons name={s.icon} size={16} color={COLORS.primary} />
+                  <MaterialCommunityIcons name={s.icon} size={16} color={colors.primary} />
                 </View>
                 <Text style={styles.statValue}>{s.value}</Text>
                 <Text style={styles.statLabel}>{s.label}</Text>
@@ -195,10 +200,10 @@ export function ProfileScreen({ navigation }: Props) {
 
           {user.interests.length > 0 && (
           <Card style={styles.section}>
-            <SectionHeader icon="tag-multiple-outline" title="Travel interests" />
+            <SectionHeader icon="tag-multiple-outline" title="Travel interests" styles={styles} colors={colors} />
             <View style={styles.chipRow}>
               {user.interests.map((i) => (
-                <StaticChip key={i} icon="tag-outline" label={i} />
+                <StaticChip key={i} icon="tag-outline" label={i} styles={styles} colors={colors} />
               ))}
             </View>
           </Card>
@@ -206,17 +211,17 @@ export function ProfileScreen({ navigation }: Props) {
 
         {user.preferredModes.length > 0 && (
           <Card style={styles.section}>
-            <SectionHeader icon="compass-outline" title="Preferred travel modes" />
+            <SectionHeader icon="compass-outline" title="Preferred travel modes" styles={styles} colors={colors} />
             <View style={styles.chipRow}>
               {user.preferredModes.map((m) => (
-                <StaticChip key={m} icon={TRAVEL_MODE_ICONS[m]} label={travelModeText(m)} />
+                <StaticChip key={m} icon={TRAVEL_MODE_ICONS[m]} label={travelModeText(m)} styles={styles} colors={colors} />
               ))}
             </View>
           </Card>
         )}
 
         <Card style={styles.section}>
-          <SectionHeader icon="map-check-outline" title={`Previous trips (${completedTrips?.length ?? 0})`} />
+          <SectionHeader icon="map-check-outline" title={`Previous trips (${completedTrips?.length ?? 0})`} styles={styles} colors={colors} />
           {completedTrips && completedTrips.length > 0 ? (
             completedTrips.map((t) => (
               <TouchableOpacity
@@ -233,12 +238,12 @@ export function ProfileScreen({ navigation }: Props) {
                     {t.destination}
                   </Text>
                 </View>
-                <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.mutedLight} />
+                <MaterialCommunityIcons name="chevron-right" size={18} color={colors.mutedLight} />
               </TouchableOpacity>
             ))
           ) : (
             <View style={styles.emptyWrap}>
-              <MaterialCommunityIcons name="compass-off-outline" size={32} color={COLORS.mutedLight} />
+              <MaterialCommunityIcons name="compass-off-outline" size={32} color={colors.mutedLight} />
               <Text style={styles.emptyText}>No completed trips yet — your travel history will show up here.</Text>
             </View>
           )}
@@ -260,7 +265,7 @@ export function ProfileScreen({ navigation }: Props) {
         />
 
           <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-            <MaterialCommunityIcons name="logout" size={15} color={COLORS.danger} />
+            <MaterialCommunityIcons name="logout" size={15} color={colors.danger} />
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </View>
@@ -269,8 +274,9 @@ export function ProfileScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.fieldBg },
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.fieldBg },
   scrollContent: { paddingBottom: 40 },
   coverWrap: { width: "100%" },
   cover: { width: "100%", height: "100%" },
@@ -288,13 +294,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
   },
-  coverEditText: { color: COLORS.white, fontSize: 11.5, fontWeight: "700" },
+  coverEditText: { color: colors.white, fontSize: 11.5, fontWeight: "700" },
   // Rounded "sheet" that rises up over the cover's bottom edge so the photo
   // and the profile content read as one connected piece instead of a hard
   // cut between two separate blocks.
   sheet: {
     marginTop: -26,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     borderTopWidth: 1,
@@ -307,15 +313,15 @@ const styles = StyleSheet.create({
   avatarWrap: {
     marginTop: -58,
     borderRadius: 56,
-    shadowColor: COLORS.ink,
+    shadowColor: colors.ink,
     shadowOpacity: 0.18,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
-  avatar: { width: 104, height: 104, borderRadius: 52, borderWidth: 4, borderColor: COLORS.white },
-  avatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
-  avatarInitial: { color: COLORS.white, fontSize: 34, fontWeight: "700" },
+  avatar: { width: 104, height: 104, borderRadius: 52, borderWidth: 4, borderColor: colors.surfaceElevated },
+  avatarPlaceholder: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+  avatarInitial: { color: colors.white, fontSize: 34, fontWeight: "700" },
   avatarEditBadge: {
     position: "absolute",
     bottom: 2,
@@ -323,28 +329,28 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: COLORS.white,
+    borderColor: colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
   name: { ...TYPE.heading, fontSize: 21, marginTop: 10 },
   metaRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 14, marginTop: 6 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  metaText: { fontSize: 13, color: COLORS.muted },
-  bio: { ...TYPE.body, fontSize: 13.5, color: COLORS.muted, textAlign: "center", marginTop: 10, lineHeight: 20, maxWidth: 340 },
+  metaText: { fontSize: 13, color: colors.muted },
+  bio: { ...TYPE.body, fontSize: 13.5, color: colors.muted, textAlign: "center", marginTop: 10, lineHeight: 20, maxWidth: 340 },
   statsRow: { flexDirection: "row", gap: 10, marginTop: 20 },
   statCard: {
     flex: 1,
     alignItems: "center",
     gap: 5,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: RADIUS.chip,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     paddingVertical: 14,
-    shadowColor: COLORS.ink,
+    shadowColor: colors.ink,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
@@ -358,47 +364,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  statValue: { fontSize: 19, fontWeight: "700", color: COLORS.ink },
-  statLabel: { fontSize: 11, color: COLORS.muted, fontWeight: "600" },
+  statValue: { fontSize: 19, fontWeight: "700", color: colors.ink },
+  statLabel: { fontSize: 11, color: colors.muted, fontWeight: "600" },
   section: { marginTop: 22, padding: 16, gap: 10 },
   blockHeaderRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  blockTitle: { fontWeight: "700", fontSize: 14.5, color: COLORS.ink },
+  blockTitle: { fontWeight: "700", fontSize: 14.5, color: colors.ink },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: RADIUS.chip,
     paddingHorizontal: 13,
     paddingVertical: 8,
   },
-  chipText: { fontSize: 12.5, color: COLORS.white, fontWeight: "600" },
+  chipText: { fontSize: 12.5, color: colors.white, fontWeight: "600" },
   tripRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: RADIUS.field,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  tripDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: COLORS.primary },
+  tripDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.primary },
   tripTextWrap: { flex: 1 },
-  tripTitle: { fontSize: 14, fontWeight: "600", color: COLORS.ink },
-  tripMeta: { fontSize: 12, color: COLORS.muted, marginTop: 1 },
+  tripTitle: { fontSize: 14, fontWeight: "600", color: colors.ink },
+  tripMeta: { fontSize: 12, color: colors.muted, marginTop: 1 },
   emptyWrap: {
     alignItems: "center",
     gap: 8,
     paddingVertical: 26,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: RADIUS.field,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  emptyText: { fontSize: 12.5, color: COLORS.mutedLight, textAlign: "center", paddingHorizontal: 32 },
+  emptyText: { fontSize: 12.5, color: colors.mutedLight, textAlign: "center", paddingHorizontal: 32 },
   editButton: { marginTop: 28 },
   logoutButton: {
     flexDirection: "row",
@@ -408,10 +414,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginTop: 4,
   },
-  logoutText: { color: COLORS.danger, fontWeight: "600", fontSize: 14 },
+  logoutText: { color: colors.danger, fontWeight: "600", fontSize: 14 },
   skeletonCover: { width: "100%", height: 220, borderRadius: 0 },
   skeletonAvatar: { width: 104, height: 104, borderRadius: 52, marginTop: -58 },
   skeletonName: { width: 140, height: 18, marginTop: 14 },
   skeletonMeta: { width: 100, height: 12, marginTop: 8 },
   skeletonStat: { flex: 1, height: 74, borderRadius: RADIUS.chip },
-});
+  });
+}

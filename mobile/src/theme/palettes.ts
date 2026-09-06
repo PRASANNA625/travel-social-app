@@ -16,6 +16,7 @@ export interface Palette {
   dangerBorderLight: string;
   successBg: string;
   successBorderLight: string;
+  successText: string;
   warningBg: string;
   warningText: string;
   white: string;
@@ -43,6 +44,7 @@ export const lightPalette: Palette = {
   dangerBorderLight: "#fecaca",
   successBg: "#ecfdf5",
   successBorderLight: "#a7f3d0",
+  successText: "#166534",
   warningBg: "#fef9c3",
   warningText: "#854d0e",
   white: "#ffffff",
@@ -70,6 +72,7 @@ export const darkPalette: Palette = {
   dangerBorderLight: "rgba(248,113,113,0.3)",
   successBg: "rgba(16,185,129,0.14)",
   successBorderLight: "rgba(16,185,129,0.35)",
+  successText: "#4ade80",
   warningBg: "rgba(250,204,21,0.14)",
   warningText: "#facc15",
   white: "#ffffff",

@@ -344,6 +344,7 @@ export function DiscoverScreen({ navigation }: Props) {
         anchor={profileMenuAnchor}
         onClose={() => setProfileMenuVisible(false)}
         onViewProfile={() => navigation.navigate("Profile")}
+        onOpenSettings={() => navigation.navigate("Settings")}
       />
     </View>
   );

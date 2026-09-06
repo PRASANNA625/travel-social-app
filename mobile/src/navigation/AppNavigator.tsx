@@ -8,6 +8,7 @@ import { GroupChatScreen } from "../screens/GroupChatScreen";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { UserProfileScreen } from "../screens/UserProfileScreen";
 import { AssistantScreen } from "../screens/AssistantScreen";
+import { SettingsScreen } from "../screens/SettingsScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -30,6 +31,7 @@ export function AppNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
       <Stack.Screen name="Assistant" component={AssistantScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

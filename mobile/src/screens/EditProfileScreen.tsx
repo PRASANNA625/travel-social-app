@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ComponentProps } from "react";
 import {
   ActivityIndicator,
@@ -26,7 +26,9 @@ import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
 import { SelectableChip } from "../components/theme/SelectableChip";
-import { COLORS, RADIUS } from "../theme/tokens";
+import { RADIUS } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 
 type Props = NativeStackScreenProps<AppStackParamList, "EditProfile">;
@@ -54,6 +56,8 @@ export function EditProfileScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const { width: windowWidth } = useWindowDimensions();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [name, setName] = useState(user?.name ?? "");
   const [age, setAge] = useState(user?.age?.toString() ?? "");
@@ -130,7 +134,7 @@ export function EditProfileScreen({ navigation }: Props) {
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.ink} />
+          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           Edit Profile
@@ -147,10 +151,10 @@ export function EditProfileScreen({ navigation }: Props) {
           )}
           <TouchableOpacity style={styles.coverEditButton} onPress={onChangeCover} disabled={uploadCover.isPending}>
             {uploadCover.isPending ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <>
-                <MaterialCommunityIcons name="image-multiple-outline" size={14} color={COLORS.white} />
+                <MaterialCommunityIcons name="image-multiple-outline" size={14} color={colors.white} />
                 <Text style={styles.coverEditText}>Change Cover Photo</Text>
               </>
             )}
@@ -169,16 +173,16 @@ export function EditProfileScreen({ navigation }: Props) {
               )}
               <View style={styles.avatarEditBadge}>
                 {uploadPhoto.isPending ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
+                  <ActivityIndicator size="small" color={colors.white} />
                 ) : (
-                  <MaterialCommunityIcons name="camera-outline" size={13} color={COLORS.white} />
+                  <MaterialCommunityIcons name="camera-outline" size={13} color={colors.white} />
                 )}
               </View>
             </TouchableOpacity>
             <Text style={styles.changePhotoText}>Change Photo</Text>
 
             <View style={styles.completionBadge}>
-              <MaterialCommunityIcons name="progress-check" size={14} color={COLORS.primary} />
+              <MaterialCommunityIcons name="progress-check" size={14} color={colors.primary} />
               <Text style={styles.completionText}>Profile {completionPercent}% complete</Text>
             </View>
             <View style={styles.completionTrack}>
@@ -188,7 +192,7 @@ export function EditProfileScreen({ navigation }: Props) {
 
           <Card style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <MaterialCommunityIcons name="account-outline" size={18} color={COLORS.primary} />
+              <MaterialCommunityIcons name="account-outline" size={18} color={colors.primary} />
               <Text style={styles.cardTitle}>Basic Information</Text>
             </View>
 
@@ -222,7 +226,7 @@ export function EditProfileScreen({ navigation }: Props) {
 
           <Card style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <MaterialCommunityIcons name="note-text-outline" size={18} color={COLORS.primary} />
+              <MaterialCommunityIcons name="note-text-outline" size={18} color={colors.primary} />
               <Text style={styles.cardTitle}>About You</Text>
             </View>
 
@@ -244,7 +248,7 @@ export function EditProfileScreen({ navigation }: Props) {
 
           <Card style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <MaterialCommunityIcons name="compass-outline" size={18} color={COLORS.primary} />
+              <MaterialCommunityIcons name="compass-outline" size={18} color={colors.primary} />
               <Text style={styles.cardTitle}>Travel Preferences</Text>
             </View>
 
@@ -280,7 +284,7 @@ export function EditProfileScreen({ navigation }: Props) {
       <View style={[styles.stickyBar, { paddingBottom: insets.bottom + 12 }]}>
         {saved && (
           <View style={styles.successBanner}>
-            <MaterialCommunityIcons name="check-circle-outline" size={16} color="#166534" />
+            <MaterialCommunityIcons name="check-circle-outline" size={16} color={colors.successText} />
             <Text style={styles.successText}>Profile updated successfully</Text>
           </View>
         )}
@@ -296,8 +300,9 @@ export function EditProfileScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  flexScreen: { flex: 1, backgroundColor: COLORS.fieldBg },
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+  flexScreen: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
   header: {
@@ -306,9 +311,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingBottom: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: colors.divider,
   },
   headerButton: {
     width: 40,
@@ -316,9 +321,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: COLORS.ink },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.ink },
   coverWrap: { width: "100%", height: 150 },
   coverWrapWeb: { height: 200 },
   cover: { width: "100%", height: "100%" },
@@ -334,14 +339,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  coverEditText: { color: COLORS.white, fontSize: 12, fontWeight: "700" },
+  coverEditText: { color: colors.white, fontSize: 12, fontWeight: "700" },
   page: { paddingHorizontal: 20, gap: 16 },
   pageWeb: { width: "100%", maxWidth: 640, alignSelf: "center" },
   avatarBlock: { alignItems: "center" },
   avatarWrap: { marginTop: -48 },
-  avatar: { width: 92, height: 92, borderRadius: 46, borderWidth: 4, borderColor: COLORS.fieldBg },
-  avatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
-  avatarInitial: { color: COLORS.white, fontSize: 30, fontWeight: "700" },
+  avatar: { width: 92, height: 92, borderRadius: 46, borderWidth: 4, borderColor: colors.fieldBg },
+  avatarPlaceholder: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+  avatarInitial: { color: colors.white, fontSize: 30, fontWeight: "700" },
   avatarEditBadge: {
     position: "absolute",
     bottom: 2,
@@ -349,51 +354,52 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: COLORS.fieldBg,
+    borderColor: colors.fieldBg,
     alignItems: "center",
     justifyContent: "center",
   },
-  changePhotoText: { color: COLORS.primary, fontSize: 12.5, fontWeight: "700", marginTop: 6 },
+  changePhotoText: { color: colors.primary, fontSize: 12.5, fontWeight: "700", marginTop: 6 },
   completionBadge: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 12 },
-  completionText: { fontSize: 12.5, color: "#334155", fontWeight: "600" },
+  completionText: { fontSize: 12.5, color: colors.muted, fontWeight: "600" },
   completionTrack: {
     width: "100%",
     maxWidth: 260,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.border,
+    backgroundColor: colors.border,
     marginTop: 8,
     overflow: "hidden",
   },
-  completionFill: { height: "100%", backgroundColor: COLORS.primary, borderRadius: 3 },
+  completionFill: { height: "100%", backgroundColor: colors.primary, borderRadius: 3 },
   card: { padding: 16, gap: 12 },
   cardHeaderRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
-  cardTitle: { fontSize: 15, fontWeight: "700", color: COLORS.ink },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: colors.ink },
   fieldRow: { flexDirection: "row", gap: 12 },
   fieldHalf: { flex: 1 },
   fieldGroup: { gap: 6 },
-  fieldLabel: { fontSize: 12.5, fontWeight: "700", color: "#334155" },
+  fieldLabel: { fontSize: 12.5, fontWeight: "700", color: colors.muted },
   fieldLabelSpaced: { marginTop: 4 },
-  charCounter: { alignSelf: "flex-end", fontSize: 11, color: COLORS.mutedLight },
+  charCounter: { alignSelf: "flex-end", fontSize: 11, color: colors.mutedLight },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   stickyBar: {
     paddingHorizontal: 20,
     paddingTop: 12,
     gap: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: colors.divider,
   },
   successBanner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "#dcfce7",
+    backgroundColor: colors.successBg,
     borderRadius: 10,
     paddingVertical: 8,
   },
-  successText: { color: "#166534", fontSize: 12.5, fontWeight: "700" },
-});
+  successText: { color: colors.successText, fontSize: 12.5, fontWeight: "700" },
+  });
+}
