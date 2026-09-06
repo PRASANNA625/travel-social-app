@@ -10,7 +10,7 @@ import {
   getReadsForMessages,
   type AllowedReaction,
 } from "../modules/messages/messages.service";
-import { notifyGroupMessage } from "../modules/notifications/notify";
+import { notifyGroupMessage, notifyMessageReaction, retractMessageReactionNotification } from "../modules/notifications/notify";
 
 interface AuthedSocket extends Socket {
   userId?: string;
@@ -175,7 +175,16 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       try {
         if (!isAllowedReaction(data.emoji)) return;
 
-        const message = await prisma.message.findUnique({ where: { id: data.messageId }, select: { groupId: true } });
+        const message = await prisma.message.findUnique({
+          where: { id: data.messageId },
+          select: {
+            groupId: true,
+            senderId: true,
+            type: true,
+            content: true,
+            group: { select: { trip: { select: { id: true, title: true } } } },
+          },
+        });
         if (!message) return;
         try {
           await assertMember(message.groupId, userId);
@@ -187,10 +196,12 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
           where: { messageId_userId: { messageId: data.messageId, userId } },
         });
 
+        let removed = false;
         if (existing && existing.emoji === data.emoji) {
           await prisma.messageReaction.delete({
             where: { messageId_userId: { messageId: data.messageId, userId } },
           });
+          removed = true;
         } else if (existing) {
           await prisma.messageReaction.update({
             where: { messageId_userId: { messageId: data.messageId, userId } },
@@ -204,6 +215,35 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
 
         const reactions = await getReactionsForMessage(data.messageId);
         emitToGroup(message.groupId, "reaction:updated", { messageId: data.messageId, reactions });
+
+        if (message.senderId !== userId) {
+          try {
+            if (removed) {
+              await retractMessageReactionNotification(message.senderId, data.messageId, userId);
+            } else {
+              const reactor = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { name: true, photoUrl: true },
+              });
+              if (reactor) {
+                await notifyMessageReaction(message.senderId, {
+                  groupId: message.groupId,
+                  tripId: message.group.trip.id,
+                  tripTitle: message.group.trip.title,
+                  messageId: data.messageId,
+                  messageType: message.type,
+                  content: message.content ?? null,
+                  reactorId: userId,
+                  reactorName: reactor.name,
+                  reactorPhotoUrl: reactor.photoUrl,
+                  emoji: data.emoji,
+                });
+              }
+            }
+          } catch (err) {
+            console.error("[socket] reaction notification failed", err);
+          }
+        }
       } catch (err) {
         console.error("[socket] reaction:toggle handler failed", err);
       }

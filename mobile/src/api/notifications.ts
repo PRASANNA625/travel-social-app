@@ -9,10 +9,12 @@ export function useNotifications() {
 
   useEffect(() => {
     const socket = getSocket();
-    const onNew = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    socket.on("notification:new", onNew);
+    const onChange = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    socket.on("notification:new", onChange);
+    socket.on("notification:removed", onChange);
     return () => {
-      socket.off("notification:new", onNew);
+      socket.off("notification:new", onChange);
+      socket.off("notification:removed", onChange);
     };
   }, [queryClient]);
 

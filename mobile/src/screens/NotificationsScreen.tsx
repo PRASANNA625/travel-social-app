@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CompositeScreenProps } from "@react-navigation/native";
@@ -10,6 +10,7 @@ import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications 
 import type { AppNotification } from "../types";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { Skeleton } from "../components/theme/Skeleton";
+import { optimizedImageUrl } from "../utils/optimizedImage";
 import { COLORS, RADIUS, TYPE } from "../theme/tokens";
 
 type Props = CompositeScreenProps<
@@ -30,6 +31,7 @@ const NOTIFICATION_COPY: Record<string, (payload: Record<string, unknown>) => st
   JOIN_REQUEST_APPROVED: (p) => `You're in! Your request for "${p.tripTitle}" was approved`,
   JOIN_REQUEST_REJECTED: (p) => `Your request for "${p.tripTitle}" wasn't approved`,
   GROUP_MESSAGE: (p) => `${p.senderName} in "${p.tripTitle}": ${messagePreview(p)}`,
+  MESSAGE_REACTION: (p) => `${p.reactorName} reacted ${p.emoji} to your message in "${p.tripTitle}": ${messagePreview(p)}`,
 };
 
 function describe(notification: AppNotification): string {
@@ -44,6 +46,7 @@ const NOTIFICATION_ICON: Record<string, { icon: IconName; bg: string; color: str
   JOIN_REQUEST_APPROVED: { icon: "check-circle", bg: COLORS.successBg, color: COLORS.primary },
   JOIN_REQUEST_REJECTED: { icon: "close-circle-outline", bg: COLORS.dangerBg, color: COLORS.danger },
   GROUP_MESSAGE: { icon: "chat-processing-outline", bg: COLORS.successBg, color: COLORS.primary },
+  MESSAGE_REACTION: { icon: "heart-outline", bg: COLORS.successBg, color: COLORS.primary },
 };
 const DEFAULT_ICON: { icon: IconName; bg: string; color: string } = {
   icon: "message-text-outline",
@@ -77,7 +80,7 @@ export function NotificationsScreen({ navigation }: Props) {
 
   const onPressNotification = (item: AppNotification) => {
     if (!item.read) markRead.mutate(item.id);
-    if (item.type === "GROUP_MESSAGE") {
+    if (item.type === "GROUP_MESSAGE" || item.type === "MESSAGE_REACTION") {
       const { groupId, tripTitle } = item.payload;
       if (typeof groupId === "string" && typeof tripTitle === "string") {
         navigation.navigate("GroupChat", { groupId, tripTitle });
@@ -149,15 +152,23 @@ export function NotificationsScreen({ navigation }: Props) {
           }
           renderItem={({ item }) => {
             const meta = iconFor(item.type);
+            const reactorPhotoUrl =
+              item.type === "MESSAGE_REACTION" && typeof item.payload.reactorPhotoUrl === "string"
+                ? item.payload.reactorPhotoUrl
+                : null;
             return (
               <TouchableOpacity
                 style={[styles.item, !item.read && styles.itemUnread]}
                 onPress={() => onPressNotification(item)}
                 activeOpacity={0.85}
               >
-                <View style={[styles.iconBadge, { backgroundColor: meta.bg }]}>
-                  <MaterialCommunityIcons name={meta.icon} size={18} color={meta.color} />
-                </View>
+                {reactorPhotoUrl ? (
+                  <Image source={{ uri: optimizedImageUrl(reactorPhotoUrl, 40) }} style={styles.avatarBadge} />
+                ) : (
+                  <View style={[styles.iconBadge, { backgroundColor: meta.bg }]}>
+                    <MaterialCommunityIcons name={meta.icon} size={18} color={meta.color} />
+                  </View>
+                )}
                 <View style={styles.itemBody}>
                   <Text style={[styles.itemText, !item.read && styles.itemTextUnread]}>{describe(item)}</Text>
                   <Text style={styles.itemTime}>{formatRelativeTime(item.createdAt)}</Text>
@@ -215,6 +226,7 @@ const styles = StyleSheet.create({
     borderLeftColor: COLORS.primary,
   },
   iconBadge: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  avatarBadge: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.fieldBg },
   itemBody: { flex: 1 },
   itemText: { ...TYPE.body, lineHeight: 20 },
   itemTextUnread: { fontWeight: "700" },

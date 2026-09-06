@@ -46,3 +46,68 @@ export async function notifyGroupMessage(userId: string, payload: GroupMessagePa
   emitToUser(userId, "notification:new", notification);
   return notification;
 }
+
+export interface MessageReactionPayload {
+  groupId: string;
+  tripId: string;
+  tripTitle: string;
+  messageId: string;
+  messageType: "TEXT" | "IMAGE";
+  content: string | null;
+  reactorId: string;
+  reactorName: string;
+  reactorPhotoUrl: string | null;
+  emoji: string;
+}
+
+// Collapses repeated reactions to the same message into one unread
+// notification (latest reactor/emoji wins), mirroring notifyGroupMessage's
+// per-group collapse above. Keyed by messageId, so reactions on different
+// messages the recipient owns each still get their own notification.
+export async function notifyMessageReaction(userId: string, payload: MessageReactionPayload) {
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      type: "MESSAGE_REACTION",
+      read: false,
+      payload: { path: ["messageId"], equals: payload.messageId },
+    },
+  });
+
+  const notification = existing
+    ? await prisma.notification.update({
+        where: { id: existing.id },
+        data: { payload: payload as unknown as Prisma.InputJsonValue, createdAt: new Date() },
+      })
+    : await prisma.notification.create({
+        data: { userId, type: "MESSAGE_REACTION", payload: payload as unknown as Prisma.InputJsonValue },
+      });
+
+  emitToUser(userId, "notification:new", notification);
+  return notification;
+}
+
+// Undoing a reaction retracts the still-unread notification announcing it,
+// but only when it's still about the same reactor - if someone else reacted
+// after (collapsing the notification onto them) or the recipient already
+// read it, the undo leaves it alone.
+export async function retractMessageReactionNotification(
+  userId: string,
+  messageId: string,
+  reactorId: string
+) {
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      type: "MESSAGE_REACTION",
+      read: false,
+      payload: { path: ["messageId"], equals: messageId },
+    },
+  });
+  if (!existing) return;
+  const existingReactorId = (existing.payload as Record<string, unknown> | null)?.reactorId;
+  if (existingReactorId !== reactorId) return;
+
+  await prisma.notification.delete({ where: { id: existing.id } });
+  emitToUser(userId, "notification:removed", { id: existing.id });
+}
