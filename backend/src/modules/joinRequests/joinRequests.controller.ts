@@ -38,3 +38,8 @@ export async function mine(req: AuthedRequest, res: Response) {
   const requests = await service.myJoinRequests(req.userId!);
   res.json(requests);
 }
+
+export async function mineForTrip(req: AuthedRequest, res: Response) {
+  const request = await service.myJoinRequestForTrip(req.params.tripId, req.userId!);
+  res.json(request);
+}

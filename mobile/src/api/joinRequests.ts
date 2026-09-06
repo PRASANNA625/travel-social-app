@@ -17,6 +17,14 @@ export function useMyJoinRequests() {
   });
 }
 
+export function useMyJoinRequestForTrip(tripId?: string) {
+  return useQuery({
+    queryKey: ["join-requests", "trip", tripId, "mine"],
+    queryFn: async () => (await apiClient.get<JoinRequest | null>(`/join-requests/trips/${tripId}/mine`)).data,
+    enabled: !!tripId,
+  });
+}
+
 export function useExpressInterest(tripId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -25,6 +33,7 @@ export function useExpressInterest(tripId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trips", tripId] });
       queryClient.invalidateQueries({ queryKey: ["join-requests", "mine"] });
+      queryClient.invalidateQueries({ queryKey: ["join-requests", "trip", tripId, "mine"] });
     },
   });
 }

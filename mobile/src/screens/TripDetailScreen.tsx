@@ -31,8 +31,7 @@ import {
   useUpdateTripImages,
   useUploadTripImages,
 } from "../api/trips";
-import { useExpressInterest } from "../api/joinRequests";
-import { useMyJoinRequests } from "../api/joinRequests";
+import { useExpressInterest, useMyJoinRequestForTrip } from "../api/joinRequests";
 import { useGroupByTrip } from "../api/groups";
 import { Alert } from "../utils/alert";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
@@ -65,7 +64,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const me = useAuthStore((s) => s.user);
   const { data: trip, isLoading, isFetching, refetch: refetchTrip } = useTrip(tripId);
   const { data: comments, refetch: refetchComments } = useTripComments(tripId);
-  const { data: myRequests, refetch: refetchMyRequests } = useMyJoinRequests();
+  const { data: myRequest, refetch: refetchMyRequest } = useMyJoinRequestForTrip(tripId);
   const { data: group, refetch: refetchGroup } = useGroupByTrip(tripId);
   const [commentText, setCommentText] = useState("");
   const [editingPhotos, setEditingPhotos] = useState(false);
@@ -108,7 +107,6 @@ export function TripDetailScreen({ route, navigation }: Props) {
   }
 
   const isOwner = trip.ownerId === me?.id;
-  const myRequest = myRequests?.find((r) => r.tripId === tripId);
   const isMember = !!group?.members.some((m) => m.userId === me?.id);
 
   const startEditingPhotos = () => {
@@ -164,7 +162,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const onRefresh = () => {
     refetchTrip();
     refetchComments();
-    refetchMyRequests();
+    refetchMyRequest();
     refetchGroup();
   };
 
@@ -421,6 +419,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
             <TouchableOpacity
               onPress={() => likeTrip.mutate({ tripId, input: !trip.isLiked })}
               style={[styles.iconAction, trip.isLiked && styles.iconActionLikeActive]}
+              accessibilityRole="button"
+              accessibilityLabel={trip.isLiked ? "Unlike this trip" : "Like this trip"}
             >
               <MaterialCommunityIcons
                 name={trip.isLiked ? "heart" : "heart-outline"}
@@ -432,6 +432,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
             <TouchableOpacity
               onPress={() => bookmarkTrip.mutate({ tripId, input: !trip.isBookmarked })}
               style={[styles.iconAction, trip.isBookmarked && styles.iconActionSaveActive]}
+              accessibilityRole="button"
+              accessibilityLabel={trip.isBookmarked ? "Remove from saved trips" : "Save this trip"}
             >
               <MaterialCommunityIcons
                 name={trip.isBookmarked ? "bookmark" : "bookmark-outline"}
@@ -523,6 +525,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
               style={styles.sendButton}
               onPress={onSendComment}
               disabled={!commentText.trim() || addComment.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Send comment"
             >
               {addComment.isPending ? (
                 <ActivityIndicator size="small" color={COLORS.white} />

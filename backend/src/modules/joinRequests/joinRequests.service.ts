@@ -110,3 +110,9 @@ export async function myJoinRequests(userId: string) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+export async function myJoinRequestForTrip(tripId: string, userId: string) {
+  return prisma.joinRequest.findUnique({
+    where: { tripId_userId: { tripId, userId } },
+  });
+}
