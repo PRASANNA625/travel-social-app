@@ -4,7 +4,7 @@ import type { ImagePickerAsset } from "expo-image-picker";
 import { apiClient } from "./client";
 import { getSocket } from "./socket";
 import { appendImageAsset } from "../utils/formDataImage";
-import type { ChatMessage, MessageReactionSummary, Paginated, PresenceInfo } from "../types";
+import type { ChatMessage, MessageReactionSummary, MessageReadEntry, Paginated, PresenceInfo } from "../types";
 
 export function useMessageHistory(groupId?: string) {
   return useQuery({
@@ -70,15 +70,26 @@ export function useLiveGroupChat(
       }));
     };
 
+    const onReadUpdated = (payload: { updates: { messageId: string; readBy: MessageReadEntry[] }[] }) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          const update = payload.updates.find((u) => u.messageId === m.id);
+          return update ? { ...m, readBy: update.readBy } : m;
+        })
+      );
+    };
+
     socket.on("message:new", onNewMessage);
     socket.on("reaction:updated", onReactionUpdated);
     socket.on("presence:snapshot", onPresenceSnapshot);
     socket.on("presence:update", onPresenceUpdate);
+    socket.on("message:read:updated", onReadUpdated);
     return () => {
       socket.off("message:new", onNewMessage);
       socket.off("reaction:updated", onReactionUpdated);
       socket.off("presence:snapshot", onPresenceSnapshot);
       socket.off("presence:update", onPresenceUpdate);
+      socket.off("message:read:updated", onReadUpdated);
       socket.emit("group:leave", groupId);
     };
   }, [groupId, memberIdsKey]);
@@ -92,5 +103,10 @@ export function useLiveGroupChat(
     getSocket().emit("reaction:toggle", { messageId, emoji });
   };
 
-  return { messages, sendMessage, presence, toggleReaction };
+  const markRead = (messageIds: string[]) => {
+    if (!groupId || messageIds.length === 0) return;
+    getSocket().emit("message:read", { groupId, messageIds });
+  };
+
+  return { messages, sendMessage, presence, toggleReaction, markRead };
 }
