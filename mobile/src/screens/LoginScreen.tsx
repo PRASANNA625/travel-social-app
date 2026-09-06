@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -16,63 +16,18 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import Constants from "expo-constants";
-import { ResponseType } from "expo-auth-session";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
 import type { AuthStackParamList } from "../navigation/types";
-import { useGoogleLogin, useLogin } from "../api/auth";
+import { useLogin } from "../api/auth";
 import { Alert } from "../utils/alert";
 import { useLanguage } from "../i18n/LanguageContext";
 import { LanguageSelector } from "../components/LanguageSelector";
-
-WebBrowser.maybeCompleteAuthSession();
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
+import { GOOGLE_CLIENT_ID } from "../utils/googleAuth";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId as string | undefined;
 const APP_VERSION = Constants.expoConfig?.version;
-
-function GoogleSignInButton() {
-  const { t } = useLanguage();
-  const googleLogin = useGoogleLogin();
-  const [, googleResponse, promptGoogleLogin] = Google.useAuthRequest({
-    webClientId: GOOGLE_CLIENT_ID,
-    responseType: ResponseType.IdToken,
-    scopes: ["openid", "profile", "email"],
-  });
-
-  useEffect(() => {
-    if (googleResponse?.type === "success") {
-      const idToken = googleResponse.params.id_token;
-      if (idToken) {
-        googleLogin.mutate(idToken, {
-          onError: (err: any) =>
-            Alert.alert("Google sign-in failed", err?.response?.data?.error ?? "Please try again"),
-        });
-      }
-    } else if (googleResponse?.type === "error") {
-      Alert.alert("Google sign-in failed", googleResponse.error?.message ?? "Please try again");
-    }
-  }, [googleResponse]);
-
-  return (
-    <TouchableOpacity
-      style={styles.googleButton}
-      onPress={() => promptGoogleLogin()}
-      disabled={googleLogin.isPending}
-    >
-      {googleLogin.isPending ? (
-        <ActivityIndicator color="#0f766e" />
-      ) : (
-        <>
-          <MaterialCommunityIcons name="google" size={18} color="#334155" />
-          <Text style={styles.googleButtonText}>{t("login.continueWithGoogle")}</Text>
-        </>
-      )}
-    </TouchableOpacity>
-  );
-}
 
 export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
@@ -174,12 +129,11 @@ export function LoginScreen({ navigation }: Props) {
                 )}
               </TouchableOpacity>
 
-              {isWeb &&
-                (GOOGLE_CLIENT_ID ? (
-                  <GoogleSignInButton />
-                ) : (
-                  <Text style={styles.note}>{t("login.googleNotConfigured")}</Text>
-                ))}
+              {GOOGLE_CLIENT_ID ? (
+                <GoogleSignInButton />
+              ) : (
+                <Text style={styles.note}>{t("login.googleNotConfigured")}</Text>
+              )}
 
               <View style={styles.secondaryActions}>
                 <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("Register")}>
