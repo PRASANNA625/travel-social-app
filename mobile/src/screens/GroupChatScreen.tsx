@@ -132,7 +132,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
     for (const id of unread) alreadyMarked.add(id);
     markRead(unread);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages.length, me?.id]);
+  }, [messages, me?.id]);
 
   const reactionTargetMessage = messages.find((m) => m.id === reactionTargetId) ?? null;
   const reactionTargetCurrentEmoji =
@@ -192,7 +192,11 @@ export function GroupChatScreen({ route, navigation }: Props) {
           )}
           <Text style={[styles.timeText, isMine && styles.timeTextMine]}>{formatTime(item.createdAt)}</Text>
           {isMine && (
-            <TouchableOpacity style={styles.seenByRow} onPress={() => setSeenByTargetId(item.id)}>
+            <TouchableOpacity
+              style={styles.seenByRow}
+              hitSlop={{ top: 6, bottom: 6, left: 10, right: 10 }}
+              onPress={() => setSeenByTargetId(item.id)}
+            >
               <MaterialCommunityIcons
                 name={(item.readBy?.length ?? 0) > 0 ? "check-all" : "check"}
                 size={13}
