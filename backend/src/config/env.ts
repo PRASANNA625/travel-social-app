@@ -14,6 +14,7 @@ export const env = {
   jwtSecret: required("JWT_SECRET"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "30d",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
   uploadsDir: process.env.UPLOADS_DIR ?? "uploads",
   publicBaseUrl:
     process.env.PUBLIC_BASE_URL ??

@@ -10,6 +10,7 @@ import { joinRequestsRouter } from "./modules/joinRequests/joinRequests.routes";
 import { groupsRouter } from "./modules/groups/groups.routes";
 import { messagesRouter } from "./modules/messages/messages.routes";
 import { notificationsRouter } from "./modules/notifications/notifications.routes";
+import { assistantRouter } from "./modules/assistant/assistant.routes";
 
 export const app = express();
 
@@ -26,6 +27,7 @@ app.use("/join-requests", joinRequestsRouter);
 app.use("/groups", groupsRouter);
 app.use("/messages", messagesRouter);
 app.use("/notifications", notificationsRouter);
+app.use("/assistant", assistantRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

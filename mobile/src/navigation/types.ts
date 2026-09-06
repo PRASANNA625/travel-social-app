@@ -14,6 +14,7 @@ export type AppStackParamList = {
   GroupChat: { groupId: string; tripTitle: string; highlightMessageId?: string };
   EditProfile: undefined;
   UserProfile: { userId: string; groupRole?: "OWNER" | "MEMBER" };
+  Assistant: undefined;
 };
 
 export type AppTabParamList = {

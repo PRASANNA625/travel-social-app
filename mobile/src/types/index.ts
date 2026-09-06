@@ -168,6 +168,11 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface Paginated<T> {
   items: T[];
   total: number;

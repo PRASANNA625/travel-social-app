@@ -245,6 +245,14 @@ export function ProfileScreen({ navigation }: Props) {
         </Card>
 
         <PrimaryButton
+          label="AI Trip Assistant"
+          icon="robot-outline"
+          variant="outline"
+          onPress={() => navigation.navigate("Assistant")}
+          style={styles.editButton}
+        />
+
+        <PrimaryButton
           label="Edit Profile"
           icon="pencil-outline"
           onPress={() => navigation.navigate("EditProfile")}
