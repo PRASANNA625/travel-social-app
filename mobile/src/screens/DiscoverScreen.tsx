@@ -25,7 +25,7 @@ import { TripCardSkeleton } from "../components/TripCardSkeleton";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 import { GradientBackground } from "../components/theme/GradientBackground";
-import { DiscoverHeroBanner } from "../components/DiscoverHeroBanner";
+import { DiscoverHeroCarousel } from "../components/DiscoverHeroCarousel";
 import { COLORS, RADIUS } from "../theme/tokens";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 
@@ -118,7 +118,7 @@ export function DiscoverScreen({ navigation }: Props) {
         </View>
       </GradientBackground>
 
-      <DiscoverHeroBanner />
+      <DiscoverHeroCarousel />
 
       <View style={styles.searchWrap}>
         <MaterialCommunityIcons name="magnify" size={18} color={COLORS.mutedLight} />
