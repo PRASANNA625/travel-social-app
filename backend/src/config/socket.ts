@@ -4,7 +4,12 @@ import jwt from "jsonwebtoken";
 import { env } from "./env";
 import { prisma } from "./prisma";
 import { assertMember } from "../modules/groups/groups.service";
-import { ALLOWED_REACTIONS, getReactionsForMessage, type AllowedReaction } from "../modules/messages/messages.service";
+import {
+  ALLOWED_REACTIONS,
+  getReactionsForMessage,
+  getReadsForMessages,
+  type AllowedReaction,
+} from "../modules/messages/messages.service";
 
 interface AuthedSocket extends Socket {
   userId?: string;
@@ -175,6 +180,45 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         emitToGroup(message.groupId, "reaction:updated", { messageId: data.messageId, reactions });
       } catch (err) {
         console.error("[socket] reaction:toggle handler failed", err);
+      }
+    });
+
+    socket.on("message:read", async (data: { groupId: string; messageIds: string[] }) => {
+      try {
+        if (!Array.isArray(data?.messageIds) || data.messageIds.length === 0) return;
+        if (typeof data.groupId !== "string") return;
+        await assertMember(data.groupId, userId);
+        const messageIds = data.messageIds.slice(0, 200);
+
+        const messages = await prisma.message.findMany({
+          where: { id: { in: messageIds }, groupId: data.groupId },
+          select: { id: true, senderId: true },
+        });
+        const readable = messages.filter((m) => m.senderId !== userId);
+        if (readable.length === 0) return;
+
+        await prisma.messageRead.createMany({
+          data: readable.map((m) => ({ messageId: m.id, userId })),
+          skipDuplicates: true,
+        });
+
+        const bySender = new Map<string, string[]>();
+        for (const m of readable) {
+          const list = bySender.get(m.senderId) ?? [];
+          list.push(m.id);
+          bySender.set(m.senderId, list);
+        }
+
+        for (const [senderId, ids] of bySender) {
+          const readsByMessageId = await getReadsForMessages(ids);
+          const updates = ids.map((messageId) => ({
+            messageId,
+            readBy: readsByMessageId.get(messageId) ?? [],
+          }));
+          emitToUser(senderId, "message:read:updated", { updates });
+        }
+      } catch (err) {
+        console.error("[socket] message:read handler failed", err);
       }
     });
 
