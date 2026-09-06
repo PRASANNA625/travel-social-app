@@ -100,8 +100,10 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     socket.on("message:send", async (data: { groupId: string; type?: "TEXT" | "IMAGE"; content?: string; mediaUrl?: string }) => {
       const membership = await prisma.groupMember.findUnique({
         where: { groupId_userId: { groupId: data.groupId, userId } },
+        include: { group: { select: { trip: { select: { status: true } } } } },
       });
       if (!membership) return;
+      if (membership.group.trip.status === "COMPLETED") return;
 
       const message = await prisma.message.create({
         data: {

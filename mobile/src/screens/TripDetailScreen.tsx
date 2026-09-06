@@ -108,6 +108,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
   const isOwner = trip.ownerId === me?.id;
   const isMember = !!group?.members.some((m) => m.userId === me?.id);
+  const isClosed = trip.status === "COMPLETED";
 
   const startEditingPhotos = () => {
     setEditImages(trip.images);
@@ -155,7 +156,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   };
 
   const onSendComment = () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || isClosed) return;
     addComment.mutate(commentText.trim(), { onSuccess: () => setCommentText("") });
   };
 
@@ -170,11 +171,13 @@ export function TripDetailScreen({ route, navigation }: Props) {
   if (isOwner) {
     actionSlot = (
       <View style={styles.ownerActions}>
-        <PrimaryButton
-          label="Edit Trip"
-          icon="pencil-outline"
-          onPress={() => navigation.navigate("CreateTrip", { tripId })}
-        />
+        {!isClosed && (
+          <PrimaryButton
+            label="Edit Trip"
+            icon="pencil-outline"
+            onPress={() => navigation.navigate("CreateTrip", { tripId })}
+          />
+        )}
         <View style={styles.stickyRow}>
           <PrimaryButton
             variant="outline"
@@ -512,19 +515,26 @@ export function TripDetailScreen({ route, navigation }: Props) {
             </ScrollView>
           )}
 
+          {isClosed && (
+            <View style={styles.closedCommentsBanner}>
+              <MaterialCommunityIcons name="lock-outline" size={13} color={COLORS.mutedLight} />
+              <Text style={styles.closedCommentsBannerText}>This trip is closed. Comments are read-only.</Text>
+            </View>
+          )}
           <View style={styles.commentInputRow}>
             <TextInput
-              style={styles.commentInput}
-              placeholder="Add a comment..."
+              style={[styles.commentInput, isClosed && styles.commentInputDisabled]}
+              placeholder={isClosed ? "Comments are closed for this trip" : "Add a comment..."}
               placeholderTextColor={COLORS.mutedLight}
               value={commentText}
               onChangeText={setCommentText}
+              editable={!isClosed}
               multiline
             />
             <TouchableOpacity
               style={styles.sendButton}
               onPress={onSendComment}
-              disabled={!commentText.trim() || addComment.isPending}
+              disabled={!commentText.trim() || addComment.isPending || isClosed}
               accessibilityRole="button"
               accessibilityLabel="Send comment"
             >
@@ -718,6 +728,17 @@ const styles = StyleSheet.create({
   commentAuthor: { fontWeight: "700", fontSize: 13, color: COLORS.ink },
   commentTime: { fontSize: 11, color: COLORS.mutedLight },
   commentText: { fontSize: 13.5, color: "#334155", marginTop: 2, lineHeight: 19 },
+  closedCommentsBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 14,
+    paddingVertical: 8,
+    borderRadius: RADIUS.field,
+    backgroundColor: COLORS.fieldBg,
+  },
+  closedCommentsBannerText: { fontSize: 12, color: COLORS.mutedLight, fontWeight: "600" },
   commentInputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 14 },
   commentInput: {
     flex: 1,
@@ -731,6 +752,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     backgroundColor: COLORS.fieldBg,
   },
+  commentInputDisabled: { color: COLORS.mutedLight },
   sendButton: {
     width: 42,
     height: 42,

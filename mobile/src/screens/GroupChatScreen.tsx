@@ -61,6 +61,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
+  const isClosed = group?.trip.status === "COMPLETED";
 
   const scrollToBottom = (animated: boolean) => listRef.current?.scrollToEnd({ animated });
 
@@ -70,7 +71,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
   }, []);
 
   const onSend = () => {
-    if (!text.trim()) return;
+    if (!text.trim() || isClosed) return;
     sendMessage({ type: "TEXT", content: text.trim() });
     setText("");
   };
@@ -317,23 +318,36 @@ export function GroupChatScreen({ route, navigation }: Props) {
             </View>
           </View>
         ) : (
-          <View style={[styles.inputRow, { paddingBottom: 10 + insets.bottom }]}>
-            <TouchableOpacity onPress={() => setAttachmentSheetVisible(true)} style={styles.attachButton}>
-              <MaterialCommunityIcons name="paperclip" size={22} color={COLORS.primary} />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.input}
-              placeholder="Message the group..."
-              placeholderTextColor={COLORS.mutedLight}
-              value={text}
-              onChangeText={setText}
-              onSubmitEditing={onSend}
-              multiline
-            />
-            <TouchableOpacity onPress={onSend} style={styles.sendButton} disabled={!text.trim()}>
-              <MaterialCommunityIcons name="send" size={18} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
+          <>
+            {isClosed && (
+              <View style={styles.closedBanner}>
+                <MaterialCommunityIcons name="lock-outline" size={14} color={COLORS.mutedLight} />
+                <Text style={styles.closedBannerText}>This trip is closed. Chat is read-only.</Text>
+              </View>
+            )}
+            <View style={[styles.inputRow, { paddingBottom: 10 + insets.bottom }]}>
+              <TouchableOpacity
+                onPress={() => setAttachmentSheetVisible(true)}
+                style={[styles.attachButton, isClosed && styles.attachButtonDisabled]}
+                disabled={isClosed}
+              >
+                <MaterialCommunityIcons name="paperclip" size={22} color={isClosed ? COLORS.mutedLight : COLORS.primary} />
+              </TouchableOpacity>
+              <TextInput
+                style={[styles.input, isClosed && styles.inputDisabled]}
+                placeholder={isClosed ? "Chat is read-only" : "Message the group..."}
+                placeholderTextColor={COLORS.mutedLight}
+                value={text}
+                onChangeText={setText}
+                onSubmitEditing={onSend}
+                editable={!isClosed}
+                multiline
+              />
+              <TouchableOpacity onPress={onSend} style={styles.sendButton} disabled={!text.trim() || isClosed}>
+                <MaterialCommunityIcons name="send" size={18} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
+          </>
         )}
       </View>
 
@@ -457,6 +471,17 @@ const styles = StyleSheet.create({
   seenByRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3, alignSelf: "flex-end" },
   seenByText: { fontSize: 10.5, color: COLORS.mutedLight },
   seenByTextSeen: { fontSize: 10.5, color: COLORS.primary, fontWeight: "600" },
+  closedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    backgroundColor: COLORS.fieldBg,
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+  },
+  closedBannerText: { fontSize: 12, color: COLORS.mutedLight, fontWeight: "600" },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -474,6 +499,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  attachButtonDisabled: { backgroundColor: COLORS.fieldBg },
   input: {
     flex: 1,
     borderWidth: 1,
@@ -486,6 +512,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     backgroundColor: COLORS.fieldBg,
   },
+  inputDisabled: { color: COLORS.mutedLight },
   sendButton: {
     width: 40,
     height: 40,

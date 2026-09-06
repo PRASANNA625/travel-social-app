@@ -173,6 +173,9 @@ async function assertOwner(tripId: string, ownerId: string) {
 
 export async function updateTrip(tripId: string, ownerId: string, input: UpdateTripInput) {
   const existing = await assertOwner(tripId, ownerId);
+  if (existing.status === "COMPLETED") {
+    throw new HttpError(403, "This trip is closed and can no longer be edited");
+  }
   const effectiveStart = input.startDate ?? existing.startDate;
   const effectiveEnd = input.endDate ?? existing.endDate;
 
@@ -237,6 +240,9 @@ export async function getBookmarkedTrips(userId: string) {
 export async function addComment(tripId: string, userId: string, text: string) {
   const trip = await prisma.trip.findUnique({ where: { id: tripId } });
   if (!trip) throw new HttpError(404, "Trip not found");
+  if (trip.status === "COMPLETED") {
+    throw new HttpError(403, "This trip is closed. New comments are disabled");
+  }
   return prisma.tripComment.create({
     data: { tripId, userId, text },
     include: { user: { select: { id: true, name: true, photoUrl: true } } },
