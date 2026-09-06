@@ -135,7 +135,7 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
     prisma.trip.findMany({
       where,
       include: cardInclude,
-      orderBy: { startDate: "asc" },
+      orderBy: { startDate: filters.sortOrder },
       skip: (pageParams.page - 1) * pageParams.pageSize,
       take: pageParams.pageSize,
     }),

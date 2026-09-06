@@ -71,6 +71,9 @@ export const tripFiltersSchema = z.object({
   lat: z.coerce.number().optional(),
   lng: z.coerce.number().optional(),
   radiusKm: z.coerce.number().optional(),
+  // Sorts by trip start date. Ignored when Near Me is active, since that
+  // mode sorts by distance instead.
+  sortOrder: z.enum(["asc", "desc"]).default("asc"),
   page: z.coerce.number().optional(),
   pageSize: z.coerce.number().optional(),
 });

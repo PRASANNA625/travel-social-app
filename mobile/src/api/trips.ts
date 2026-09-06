@@ -15,6 +15,7 @@ export interface TripFilters {
   lat?: number;
   lng?: number;
   radiusKm?: number;
+  sortOrder?: "asc" | "desc";
   page?: number;
 }
 

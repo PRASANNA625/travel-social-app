@@ -45,6 +45,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const [locating, setLocating] = useState(false);
   const [radiusSheetVisible, setRadiusSheetVisible] = useState(false);
   const [locationDeniedVisible, setLocationDeniedVisible] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const { data: me } = useMe();
 
@@ -54,6 +55,7 @@ export function DiscoverScreen({ navigation }: Props) {
     lat: nearMe?.lat,
     lng: nearMe?.lng,
     radiusKm: nearMe ? radiusKm : undefined,
+    sortOrder,
   });
 
   const activeFilterCount = travelModes.length + (nearMe ? 1 : 0);
@@ -90,6 +92,10 @@ export function DiscoverScreen({ navigation }: Props) {
   const clearAllFilters = () => {
     setTravelModes([]);
     clearNearMe();
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
   return (
@@ -130,9 +136,26 @@ export function DiscoverScreen({ navigation }: Props) {
         showsHorizontalScrollIndicator={false}
         style={styles.filterRow}
         contentContainerStyle={styles.filterRowContent}
-        data={["NEAR_ME" as const, ...TRAVEL_MODES, ...(activeFilterCount > 1 ? (["CLEAR_ALL"] as const) : [])]}
+        data={[
+          "NEAR_ME" as const,
+          "SORT" as const,
+          ...TRAVEL_MODES,
+          ...(activeFilterCount > 1 ? (["CLEAR_ALL"] as const) : []),
+        ]}
         keyExtractor={(item) => item}
         renderItem={({ item }) => {
+          if (item === "SORT") {
+            return (
+              <TouchableOpacity style={styles.chip} onPress={toggleSortOrder}>
+                <MaterialCommunityIcons
+                  name={sortOrder === "asc" ? "sort-calendar-ascending" : "sort-calendar-descending"}
+                  size={15}
+                  color="#334155"
+                />
+                <Text style={styles.chipText}>{sortOrder === "asc" ? "Soonest first" : "Latest first"}</Text>
+              </TouchableOpacity>
+            );
+          }
           if (item === "NEAR_ME") {
             return (
               <TouchableOpacity
