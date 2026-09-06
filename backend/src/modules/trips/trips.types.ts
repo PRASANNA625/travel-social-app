@@ -46,10 +46,24 @@ export const updateTripSchema = createTripSchema.partial().extend({
   status: z.enum(["PLANNING", "OPEN", "ALMOST_FULL", "FULL", "STARTED", "COMPLETED", "CANCELLED"]).optional(),
 });
 
+const travelModeSet = new Set<string>(travelModes);
+
 export const tripFiltersSchema = z.object({
   search: z.string().optional(),
   destination: z.string().optional(),
-  travelMode: z.enum(travelModes).optional(),
+  // Accepts a single mode ("BIKE") or a comma-separated list ("BIKE,TREK")
+  // for multi-select filtering; unknown values are silently dropped.
+  travelMode: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const modes = val
+        .split(",")
+        .map((m) => m.trim())
+        .filter((m): m is (typeof travelModes)[number] => travelModeSet.has(m));
+      return modes.length > 0 ? modes : undefined;
+    }),
   dateFrom: z.coerce.date().optional(),
   dateTo: z.coerce.date().optional(),
   budgetMin: z.coerce.number().optional(),

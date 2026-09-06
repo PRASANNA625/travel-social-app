@@ -38,7 +38,7 @@ const DEFAULT_RADIUS_KM = 50;
 
 export function DiscoverScreen({ navigation }: Props) {
   const [search, setSearch] = useState("");
-  const [travelMode, setTravelMode] = useState<TravelMode | undefined>();
+  const [travelModes, setTravelModes] = useState<TravelMode[]>([]);
   const [nearMe, setNearMe] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
   const [locating, setLocating] = useState(false);
@@ -49,11 +49,17 @@ export function DiscoverScreen({ navigation }: Props) {
 
   const { data, isLoading, isFetching, refetch } = useTrips({
     search: search || undefined,
-    travelMode,
+    travelMode: travelModes,
     lat: nearMe?.lat,
     lng: nearMe?.lng,
     radiusKm: nearMe ? radiusKm : undefined,
   });
+
+  const activeFilterCount = travelModes.length + (nearMe ? 1 : 0);
+
+  const toggleTravelMode = (mode: TravelMode) => {
+    setTravelModes((prev) => (prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode]));
+  };
 
   const activateNearMe = async () => {
     setLocating(true);
@@ -78,6 +84,11 @@ export function DiscoverScreen({ navigation }: Props) {
     } else {
       activateNearMe();
     }
+  };
+
+  const clearAllFilters = () => {
+    setTravelModes([]);
+    clearNearMe();
   };
 
   return (
@@ -116,7 +127,7 @@ export function DiscoverScreen({ navigation }: Props) {
         showsHorizontalScrollIndicator={false}
         style={styles.filterRow}
         contentContainerStyle={styles.filterRowContent}
-        data={["NEAR_ME" as const, ...TRAVEL_MODES]}
+        data={["NEAR_ME" as const, ...TRAVEL_MODES, ...(activeFilterCount > 1 ? (["CLEAR_ALL"] as const) : [])]}
         keyExtractor={(item) => item}
         renderItem={({ item }) => {
           if (item === "NEAR_ME") {
@@ -134,22 +145,39 @@ export function DiscoverScreen({ navigation }: Props) {
                 <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>
                   {nearMe ? `Near me · ${radiusKm} km` : "Near me"}
                 </Text>
-                {nearMe && <MaterialCommunityIcons name="chevron-down" size={14} color={COLORS.white} />}
+                {nearMe && (
+                  <>
+                    <MaterialCommunityIcons name="chevron-down" size={14} color={COLORS.white} />
+                    <TouchableOpacity
+                      style={styles.chipRemoveButton}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      onPress={clearNearMe}
+                    >
+                      <MaterialCommunityIcons name="close-circle" size={14} color="rgba(255,255,255,0.85)" />
+                    </TouchableOpacity>
+                  </>
+                )}
               </TouchableOpacity>
             );
           }
-          const active = travelMode === item;
+          if (item === "CLEAR_ALL") {
+            return (
+              <TouchableOpacity style={styles.clearAllChip} onPress={clearAllFilters}>
+                <MaterialCommunityIcons name="close" size={14} color={COLORS.danger} />
+                <Text style={styles.clearAllChipText}>Clear all</Text>
+              </TouchableOpacity>
+            );
+          }
+          const active = travelModes.includes(item);
           return (
-            <TouchableOpacity
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => setTravelMode(active ? undefined : item)}
-            >
+            <TouchableOpacity style={[styles.chip, active && styles.chipActive]} onPress={() => toggleTravelMode(item)}>
               <MaterialCommunityIcons
                 name={TRAVEL_MODE_ICONS[item]}
                 size={15}
                 color={active ? COLORS.white : "#334155"}
               />
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{travelModeText(item)}</Text>
+              {active && <MaterialCommunityIcons name="close-circle" size={14} color="rgba(255,255,255,0.85)" />}
             </TouchableOpacity>
           );
         }}
@@ -299,13 +327,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   search: { flex: 1, paddingVertical: 12, fontSize: 14, color: COLORS.ink },
-  filterRow: { height: 46, marginTop: 12, flexGrow: 0 },
-  filterRowContent: { paddingHorizontal: 16, paddingRight: 24, alignItems: "center", gap: 8 },
+  filterRow: { minHeight: 46, marginTop: 12, flexGrow: 0 },
+  filterRowContent: { paddingHorizontal: 16, paddingRight: 24, paddingVertical: 4, alignItems: "center", gap: 8 },
   chip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     justifyContent: "center",
+    minHeight: 38,
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.pill,
     paddingHorizontal: 14,
@@ -314,8 +343,23 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { fontSize: 12.5, color: "#334155", fontWeight: "500" },
+  chipText: { fontSize: 12.5, color: "#334155", fontWeight: "500", includeFontPadding: false },
   chipTextActive: { color: COLORS.white, fontWeight: "700" },
+  chipRemoveButton: { marginLeft: -2 },
+  clearAllChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    minHeight: 38,
+    backgroundColor: COLORS.dangerBg,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: COLORS.dangerBorderLight,
+  },
+  clearAllChipText: { fontSize: 12.5, color: COLORS.danger, fontWeight: "700", includeFontPadding: false },
   list: { padding: 16, paddingBottom: 110 },
   emptyWrap: { alignItems: "center", marginTop: 48, gap: 10 },
   empty: { textAlign: "center", color: COLORS.mutedLight, fontSize: 13, paddingHorizontal: 32 },

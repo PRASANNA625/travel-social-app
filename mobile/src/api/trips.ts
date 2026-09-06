@@ -7,7 +7,7 @@ import type { JoinType, Paginated, Trip, TripComment, TravelMode } from "../type
 export interface TripFilters {
   search?: string;
   destination?: string;
-  travelMode?: TravelMode;
+  travelMode?: TravelMode[];
   dateFrom?: string;
   dateTo?: string;
   budgetMin?: number;
@@ -21,7 +21,10 @@ export interface TripFilters {
 export function useTrips(filters: TripFilters) {
   return useQuery({
     queryKey: ["trips", filters],
-    queryFn: async () => (await apiClient.get<Paginated<Trip>>("/trips", { params: filters })).data,
+    queryFn: async () => {
+      const params = { ...filters, travelMode: filters.travelMode?.length ? filters.travelMode.join(",") : undefined };
+      return (await apiClient.get<Paginated<Trip>>("/trips", { params })).data;
+    },
   });
 }
 

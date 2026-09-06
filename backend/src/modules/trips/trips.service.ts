@@ -86,7 +86,7 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
     ];
   }
   if (filters.destination) where.destination = { contains: filters.destination, mode: "insensitive" };
-  if (filters.travelMode) where.travelMode = filters.travelMode;
+  if (filters.travelMode && filters.travelMode.length > 0) where.travelMode = { in: filters.travelMode };
   if (filters.dateFrom || filters.dateTo) {
     where.startDate = {
       ...(filters.dateFrom ? { gte: filters.dateFrom } : {}),
