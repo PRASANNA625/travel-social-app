@@ -5,7 +5,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Trip } from "../types";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
-import { COLORS, RADIUS } from "../theme/tokens";
+import { RADIUS } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 
 function formatDate(iso: string) {
@@ -22,9 +23,14 @@ export function TripCard({
   onDelete?: () => void;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const { colors } = useTheme();
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+    <TouchableOpacity
+      style={[styles.card, { backgroundColor: colors.surfaceElevated, shadowColor: colors.ink }]}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
       <View style={styles.imageWrap}>
         {trip.images[0] && !imageFailed ? (
           <Image
@@ -49,7 +55,7 @@ export function TripCard({
 
         {onDelete && (
           <TouchableOpacity style={styles.deleteButton} onPress={onDelete} hitSlop={8}>
-            <MaterialCommunityIcons name="trash-can-outline" size={15} color={COLORS.white} />
+            <MaterialCommunityIcons name="trash-can-outline" size={15} color={colors.white} />
           </TouchableOpacity>
         )}
 
@@ -58,7 +64,7 @@ export function TripCard({
             {trip.title}
           </Text>
           <View style={styles.overlayMetaRow}>
-            <MaterialCommunityIcons name="map-marker" size={13} color={COLORS.border} />
+            <MaterialCommunityIcons name="map-marker" size={13} color={colors.border} />
             <Text style={styles.overlayMeta} numberOfLines={1}>
               {trip.destination} · {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
               {typeof trip.distanceKm === "number"
@@ -71,13 +77,13 @@ export function TripCard({
 
       <View style={styles.body}>
         <View style={styles.modeRow}>
-          <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={14} color={COLORS.primary} />
-          <Text style={styles.mode}>{travelModeText(trip.travelMode)}</Text>
+          <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={14} color={colors.primary} />
+          <Text style={[styles.mode, { color: colors.primary }]}>{travelModeText(trip.travelMode)}</Text>
         </View>
         <View style={styles.rowBetween}>
           <View style={styles.metaGroup}>
-            <MaterialCommunityIcons name="account-multiple" size={14} color={COLORS.muted} />
-            <Text style={styles.meta}>
+            <MaterialCommunityIcons name="account-multiple" size={14} color={colors.muted} />
+            <Text style={[styles.meta, { color: colors.muted }]}>
               {trip.seatsFilled}/{trip.seats} joined
             </Text>
           </View>
@@ -85,13 +91,13 @@ export function TripCard({
             <MaterialCommunityIcons
               name={trip.isLiked ? "heart" : "heart-outline"}
               size={14}
-              color={trip.isLiked ? COLORS.danger : COLORS.muted}
+              color={trip.isLiked ? colors.danger : colors.muted}
             />
-            <Text style={styles.meta}>{trip._count.likes}</Text>
-            <MaterialCommunityIcons name="comment-outline" size={14} color={COLORS.muted} style={styles.metaIconSpacer} />
-            <Text style={styles.meta}>{trip._count.comments}</Text>
-            <MaterialCommunityIcons name="hand-front-right" size={14} color={COLORS.muted} style={styles.metaIconSpacer} />
-            <Text style={styles.meta}>{trip._count.joinRequests}</Text>
+            <Text style={[styles.meta, { color: colors.muted }]}>{trip._count.likes}</Text>
+            <MaterialCommunityIcons name="comment-outline" size={14} color={colors.muted} style={styles.metaIconSpacer} />
+            <Text style={[styles.meta, { color: colors.muted }]}>{trip._count.comments}</Text>
+            <MaterialCommunityIcons name="hand-front-right" size={14} color={colors.muted} style={styles.metaIconSpacer} />
+            <Text style={[styles.meta, { color: colors.muted }]}>{trip._count.joinRequests}</Text>
           </View>
         </View>
       </View>
@@ -101,11 +107,9 @@ export function TripCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.white,
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
-    shadowColor: COLORS.ink,
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -132,7 +136,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: RADIUS.pill,
   },
-  statusText: { color: COLORS.white, fontSize: 10, fontWeight: "700" },
+  statusText: { color: "#ffffff", fontSize: 10, fontWeight: "700" },
   deleteButton: {
     position: "absolute",
     top: 10,
@@ -146,12 +150,12 @@ const styles = StyleSheet.create({
   },
   body: { padding: 14, paddingTop: 10, gap: 8 },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 17, fontWeight: "700", color: COLORS.white },
+  title: { fontSize: 17, fontWeight: "700", color: "#ffffff" },
   overlayMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  overlayMeta: { fontSize: 12, color: COLORS.border, flexShrink: 1 },
+  overlayMeta: { fontSize: 12, color: "#e2e8f0", flexShrink: 1 },
   modeRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  mode: { fontSize: 12, fontWeight: "600", color: COLORS.primary },
+  mode: { fontSize: 12, fontWeight: "600" },
   metaGroup: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaIconSpacer: { marginLeft: 6 },
-  meta: { fontSize: 12, color: COLORS.muted },
+  meta: { fontSize: 12 },
 });

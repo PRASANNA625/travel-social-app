@@ -7,6 +7,7 @@ import { MyTripsScreen } from "../screens/MyTripsScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { useNotifications } from "../api/notifications";
+import { useTheme } from "../theme/ThemeContext";
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
@@ -22,13 +23,14 @@ const ICONS: Record<keyof AppTabParamList, { active: IconName; inactive: IconNam
 export function AppTabs() {
   const { data } = useNotifications();
   const unreadCount = data?.unreadCount ?? 0;
+  const { colors } = useTheme();
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarActiveTintColor: "#0f766e",
-        tabBarInactiveTintColor: "#94a3b8",
-        tabBarStyle: { borderTopWidth: 1, borderTopColor: "#f1f5f9" },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.mutedLight,
+        tabBarStyle: { borderTopWidth: 1, borderTopColor: colors.divider, backgroundColor: colors.navBarBg },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         tabBarIcon: ({ focused, color }) => {
           const icon = ICONS[route.name as keyof AppTabParamList];
