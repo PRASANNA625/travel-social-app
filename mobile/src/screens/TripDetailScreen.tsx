@@ -249,16 +249,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
         <Text style={styles.headerTitle} numberOfLines={1}>
           Trip Details
         </Text>
-        {isOwner ? (
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => navigation.navigate("CreateTrip", { tripId })}
-          >
-            <MaterialCommunityIcons name="pencil" size={18} color={COLORS.ink} />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.headerSpacer} />
-        )}
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
