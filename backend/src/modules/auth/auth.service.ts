@@ -4,7 +4,7 @@ import { prisma } from "../../config/prisma";
 import { env } from "../../config/env";
 import { signToken } from "../../utils/jwt";
 import { HttpError } from "../../middleware/error";
-import { phoneProvider } from "./phoneProvider";
+import { isMockPhoneProvider, phoneProvider } from "./phoneProvider";
 
 const googleClient = new OAuth2Client(env.googleClientId);
 
@@ -59,7 +59,11 @@ export async function loginWithGoogle(idToken: string) {
 }
 
 export async function sendPhoneOtp(phone: string) {
-  await phoneProvider.sendOtp(phone);
+  const code = await phoneProvider.sendOtp(phone);
+  // No real SMS provider is wired up yet (see phoneProvider.ts) - surface the
+  // code to the client so phone login is actually testable end-to-end until
+  // one is. Remove this once isMockPhoneProvider goes away.
+  return isMockPhoneProvider ? { devCode: code } : {};
 }
 
 export async function verifyPhoneOtp(phone: string, code: string, name?: string) {

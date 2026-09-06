@@ -43,7 +43,10 @@ export function useGoogleLogin() {
 export function useSendPhoneOtp() {
   return useMutation({
     mutationFn: async (phone: string) => {
-      await apiClient.post("/auth/phone/send-otp", { phone });
+      // devCode is only ever present while phoneProvider.ts is the mock SMS
+      // provider (no real SMS is sent yet) - see backend/auth.service.ts.
+      const { data } = await apiClient.post<{ ok: true; devCode?: string }>("/auth/phone/send-otp", { phone });
+      return data;
     },
   });
 }

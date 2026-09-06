@@ -27,6 +27,7 @@ export function PhoneLoginScreen({ navigation }: Props) {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   const sendOtp = useSendPhoneOtp();
   const verifyOtp = useVerifyPhoneOtp();
@@ -41,7 +42,11 @@ export function PhoneLoginScreen({ navigation }: Props) {
       return;
     }
     sendOtp.mutate(trimmedPhone, {
-      onSuccess: () => setStep("code"),
+      onSuccess: (data) => {
+        setDevCode(data.devCode ?? null);
+        setCode(data.devCode ?? "");
+        setStep("code");
+      },
       onError: (err: any) => Alert.alert("Couldn't send code", err?.response?.data?.error ?? "Please try again"),
     });
   };
@@ -131,6 +136,14 @@ export function PhoneLoginScreen({ navigation }: Props) {
               {step === "code" && (
                 <>
                   <Text style={styles.subheading}>{t("phoneLogin.codeStepSubtitle").replace("{phone}", phone.trim())}</Text>
+                  {devCode && (
+                    <View style={styles.devBanner}>
+                      <MaterialCommunityIcons name="flask-outline" size={14} color={COLORS.warningText} />
+                      <Text style={styles.devBannerText}>
+                        Dev mode - no SMS provider is set up yet. Your test code ({devCode}) has been filled in below.
+                      </Text>
+                    </View>
+                  )}
                   <IconInput
                     icon="message-text-outline"
                     placeholder={t("phoneLogin.code")}
@@ -209,6 +222,16 @@ const styles = StyleSheet.create({
   card: { padding: 24, gap: 14 },
   heading: { fontSize: 24, fontWeight: "800", color: COLORS.ink },
   subheading: { fontSize: 13.5, color: COLORS.muted, lineHeight: 19, marginTop: -6, marginBottom: 4 },
+  devBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    backgroundColor: COLORS.warningBg,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: -4,
+  },
+  devBannerText: { flex: 1, fontSize: 12, color: COLORS.warningText, lineHeight: 16, fontWeight: "600" },
   secondaryLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 },
   secondaryLinkText: { color: COLORS.primary, fontSize: 13.5, fontWeight: "600" },
   languageSelector: { position: "absolute", right: 20, zIndex: 10 },

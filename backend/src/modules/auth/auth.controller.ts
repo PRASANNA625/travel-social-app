@@ -37,8 +37,8 @@ const sendOtpSchema = z.object({ phone: z.string().min(6) });
 
 export async function sendOtp(req: Request, res: Response) {
   const { phone } = sendOtpSchema.parse(req.body);
-  await service.sendPhoneOtp(phone);
-  res.json({ ok: true });
+  const result = await service.sendPhoneOtp(phone);
+  res.json({ ok: true, ...result });
 }
 
 const verifyOtpSchema = z.object({
