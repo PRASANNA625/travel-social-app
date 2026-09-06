@@ -6,6 +6,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -62,10 +63,10 @@ function formatRelativeTime(iso: string) {
 export function TripDetailScreen({ route, navigation }: Props) {
   const { tripId } = route.params;
   const me = useAuthStore((s) => s.user);
-  const { data: trip, isLoading } = useTrip(tripId);
-  const { data: comments } = useTripComments(tripId);
-  const { data: myRequests } = useMyJoinRequests();
-  const { data: group } = useGroupByTrip(tripId);
+  const { data: trip, isLoading, isFetching, refetch: refetchTrip } = useTrip(tripId);
+  const { data: comments, refetch: refetchComments } = useTripComments(tripId);
+  const { data: myRequests, refetch: refetchMyRequests } = useMyJoinRequests();
+  const { data: group, refetch: refetchGroup } = useGroupByTrip(tripId);
   const [commentText, setCommentText] = useState("");
   const [editingPhotos, setEditingPhotos] = useState(false);
   const [editImages, setEditImages] = useState<string[]>([]);
@@ -158,6 +159,13 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const onSendComment = () => {
     if (!commentText.trim()) return;
     addComment.mutate(commentText.trim(), { onSuccess: () => setCommentText("") });
+  };
+
+  const onRefresh = () => {
+    refetchTrip();
+    refetchComments();
+    refetchMyRequests();
+    refetchGroup();
   };
 
   let actionSlot: React.ReactNode;
@@ -257,6 +265,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={onRefresh} />}
       >
       <View style={isWeb ? styles.pageInnerWeb : undefined}>
         {editingPhotos ? (
