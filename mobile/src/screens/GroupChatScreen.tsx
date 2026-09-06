@@ -25,6 +25,7 @@ import { Alert } from "../utils/alert";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 import { Skeleton } from "../components/theme/Skeleton";
 import { AttachmentSheet } from "../components/AttachmentSheet";
+import { ChatWallpaper } from "../components/ChatWallpaper";
 import { GroupMembersModal } from "../components/GroupMembersModal";
 import { ReactionPickerModal } from "../components/ReactionPickerModal";
 import { SeenByModal } from "../components/SeenByModal";
@@ -242,34 +243,37 @@ export function GroupChatScreen({ route, navigation }: Props) {
       </View>
 
       <View style={[styles.body, isWeb && styles.bodyWeb]}>
-        {isLoading ? (
-          <View style={styles.listContent}>
-            <View style={[styles.bubbleRow]}>
-              <Skeleton style={styles.skeletonAvatar} />
-              <Skeleton style={styles.skeletonBubble} />
+        <View style={styles.messageArea}>
+          <ChatWallpaper />
+          {isLoading ? (
+            <View style={styles.listContent}>
+              <View style={[styles.bubbleRow]}>
+                <Skeleton style={styles.skeletonAvatar} />
+                <Skeleton style={styles.skeletonBubble} />
+              </View>
+              <View style={[styles.bubbleRow, styles.bubbleRowMine]}>
+                <Skeleton style={[styles.skeletonBubble, styles.skeletonBubbleMine]} />
+              </View>
+              <View style={[styles.bubbleRow]}>
+                <Skeleton style={styles.skeletonAvatar} />
+                <Skeleton style={styles.skeletonBubble} />
+              </View>
             </View>
-            <View style={[styles.bubbleRow, styles.bubbleRowMine]}>
-              <Skeleton style={[styles.skeletonBubble, styles.skeletonBubbleMine]} />
+          ) : messages.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <MaterialCommunityIcons name="chat-outline" size={40} color="#cbd5e1" />
+              <Text style={styles.emptyText}>No messages yet. Say hello to the group!</Text>
             </View>
-            <View style={[styles.bubbleRow]}>
-              <Skeleton style={styles.skeletonAvatar} />
-              <Skeleton style={styles.skeletonBubble} />
-            </View>
-          </View>
-        ) : messages.length === 0 ? (
-          <View style={styles.emptyWrap}>
-            <MaterialCommunityIcons name="chat-outline" size={40} color="#cbd5e1" />
-            <Text style={styles.emptyText}>No messages yet. Say hello to the group!</Text>
-          </View>
-        ) : (
-          <FlatList
-            style={styles.list}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.listContent}
-          />
-        )}
+          ) : (
+            <FlatList
+              style={styles.list}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              renderItem={renderMessage}
+              contentContainerStyle={styles.listContent}
+            />
+          )}
+        </View>
 
         {pendingPhoto ? (
           <View style={[styles.previewBar, { paddingBottom: insets.bottom + 12 }]}>
@@ -385,6 +389,7 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 11.5, color: COLORS.muted, flexShrink: 1 },
   body: { flex: 1 },
   bodyWeb: { width: "100%", maxWidth: 640, alignSelf: "center" },
+  messageArea: { flex: 1, position: "relative", overflow: "hidden" },
   list: { flex: 1 },
   listContent: { padding: 14, gap: 10 },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
