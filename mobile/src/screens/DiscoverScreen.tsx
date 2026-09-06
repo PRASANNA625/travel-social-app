@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -26,6 +26,7 @@ import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { DiscoverHeroCarousel } from "../components/DiscoverHeroCarousel";
+import { ProfileMenu, type ProfileMenuAnchor } from "../components/ProfileMenu";
 import { COLORS, RADIUS } from "../theme/tokens";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 
@@ -46,6 +47,9 @@ export function DiscoverScreen({ navigation }: Props) {
   const [radiusSheetVisible, setRadiusSheetVisible] = useState(false);
   const [locationDeniedVisible, setLocationDeniedVisible] = useState(false);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [profileMenuVisible, setProfileMenuVisible] = useState(false);
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState<ProfileMenuAnchor | null>(null);
+  const avatarWrapRef = useRef<View>(null);
 
   const { data: me } = useMe();
 
@@ -98,6 +102,13 @@ export function DiscoverScreen({ navigation }: Props) {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
+  const onAvatarPress = () => {
+    avatarWrapRef.current?.measureInWindow((x, y, width, height) => {
+      setProfileMenuAnchor({ x, y, width, height });
+      setProfileMenuVisible(true);
+    });
+  };
+
   return (
     <View style={styles.container}>
       <GradientBackground style={styles.header}>
@@ -106,15 +117,17 @@ export function DiscoverScreen({ navigation }: Props) {
             <Text style={styles.greeting}>Hi, {me?.name?.split(" ")[0] ?? "there"} 👋</Text>
             <Text style={styles.greetingSub}>Where to next?</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-            {me?.photoUrl ? (
-              <Image source={{ uri: optimizedImageUrl(me.photoUrl, 84) }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarInitial}>{(me?.name ?? "?").charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View ref={avatarWrapRef} collapsable={false}>
+            <TouchableOpacity onPress={onAvatarPress} accessibilityRole="button" accessibilityLabel="Profile menu">
+              {me?.photoUrl ? (
+                <Image source={{ uri: optimizedImageUrl(me.photoUrl, 84) }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarInitial}>{(me?.name ?? "?").charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </GradientBackground>
 
@@ -321,6 +334,13 @@ export function DiscoverScreen({ navigation }: Props) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <ProfileMenu
+        visible={profileMenuVisible}
+        anchor={profileMenuAnchor}
+        onClose={() => setProfileMenuVisible(false)}
+        onViewProfile={() => navigation.navigate("Profile")}
+      />
     </View>
   );
 }
