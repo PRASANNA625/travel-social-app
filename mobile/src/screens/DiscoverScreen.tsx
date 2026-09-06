@@ -25,6 +25,7 @@ import { TripCardSkeleton } from "../components/TripCardSkeleton";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 import { GradientBackground } from "../components/theme/GradientBackground";
+import { HeroCarousel } from "../components/HeroCarousel";
 import { COLORS, RADIUS } from "../theme/tokens";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 
@@ -110,6 +111,8 @@ export function DiscoverScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </GradientBackground>
+
+      <HeroCarousel />
 
       <View style={styles.searchWrap}>
         <MaterialCommunityIcons name="magnify" size={18} color={COLORS.mutedLight} />
