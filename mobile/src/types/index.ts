@@ -141,6 +141,11 @@ export interface PresenceInfo {
   lastSeenAt: string | null;
 }
 
+export interface MessageReadEntry {
+  userId: string;
+  readAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   groupId: string;
@@ -151,6 +156,7 @@ export interface ChatMessage {
   createdAt: string;
   sender: TripOwnerSummary;
   reactions?: MessageReactionSummary[];
+  readBy?: MessageReadEntry[];
 }
 
 export interface AppNotification {
