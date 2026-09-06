@@ -21,7 +21,8 @@ import { LanguageSelector } from "../components/LanguageSelector";
 import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
-import { COLORS, GRADIENT_PRIMARY } from "../theme/tokens";
+import { GRADIENT_PRIMARY } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 
@@ -34,6 +35,7 @@ export function RegisterScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const { t } = useLanguage();
+  const { colors } = useTheme();
 
   const onSubmit = () => {
     if (!name.trim() || !email.trim() || password.length < 8) {
@@ -74,8 +76,8 @@ export function RegisterScreen({ navigation }: Props) {
             </View>
 
             <Card style={styles.card}>
-              <Text style={styles.heading}>{t("register.heading")}</Text>
-              <Text style={styles.subheading}>{t("register.subheading")}</Text>
+              <Text style={[styles.heading, { color: colors.ink }]}>{t("register.heading")}</Text>
+              <Text style={[styles.subheading, { color: colors.muted }]}>{t("register.subheading")}</Text>
 
               <IconInput
                 icon="account-outline"
@@ -104,7 +106,7 @@ export function RegisterScreen({ navigation }: Props) {
                     <MaterialCommunityIcons
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={19}
-                      color={COLORS.muted}
+                      color={colors.muted}
                     />
                   </TouchableOpacity>
                 }
@@ -119,8 +121,8 @@ export function RegisterScreen({ navigation }: Props) {
               />
 
               <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("Login")}>
-                <MaterialCommunityIcons name="login" size={16} color={COLORS.primary} />
-                <Text style={styles.secondaryLinkText}>{t("register.haveAccount")}</Text>
+                <MaterialCommunityIcons name="login" size={16} color={colors.primary} />
+                <Text style={[styles.secondaryLinkText, { color: colors.primary }]}>{t("register.haveAccount")}</Text>
               </TouchableOpacity>
             </Card>
           </View>
@@ -145,22 +147,22 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 13,
     overflow: "hidden",
-    shadowColor: COLORS.ink,
+    shadowColor: "#0f172a",
     shadowOpacity: 0.2,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
-  brandName: { color: COLORS.white, fontSize: 15, fontWeight: "700", letterSpacing: 0.2 },
+  brandName: { color: "#ffffff", fontSize: 15, fontWeight: "700", letterSpacing: 0.2 },
   // Card's own defaults are padding:18, gap:12 - these two properties are
   // overridden here to preserve Register's original padding:24, gap:14
   // exactly (Card's backgroundColor/borderRadius/borderWidth/borderColor/
   // shadow already match Register's original values exactly and need no
   // override).
   card: { padding: 24, gap: 14 },
-  heading: { fontSize: 24, fontWeight: "800", color: COLORS.ink },
-  subheading: { fontSize: 13.5, color: COLORS.muted, lineHeight: 19, marginTop: -6, marginBottom: 4 },
+  heading: { fontSize: 24, fontWeight: "800" },
+  subheading: { fontSize: 13.5, lineHeight: 19, marginTop: -6, marginBottom: 4 },
   secondaryLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 },
-  secondaryLinkText: { color: COLORS.primary, fontSize: 13.5, fontWeight: "600" },
+  secondaryLinkText: { fontSize: 13.5, fontWeight: "600" },
   languageSelector: { position: "absolute", right: 20, zIndex: 10 },
 });

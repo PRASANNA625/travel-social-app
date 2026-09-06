@@ -12,7 +12,8 @@ import { Alert } from "../utils/alert";
 import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
-import { COLORS, GRADIENT_PRIMARY } from "../theme/tokens";
+import { GRADIENT_PRIMARY } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "PhoneLogin">;
 
@@ -34,6 +35,7 @@ export function PhoneLoginScreen({ navigation }: Props) {
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
+  const { colors } = useTheme();
 
   const onSendCode = () => {
     const trimmedPhone = phone.trim();
@@ -111,11 +113,11 @@ export function PhoneLoginScreen({ navigation }: Props) {
             </View>
 
             <Card style={styles.card}>
-              <Text style={styles.heading}>{t("phoneLogin.title")}</Text>
+              <Text style={[styles.heading, { color: colors.ink }]}>{t("phoneLogin.title")}</Text>
 
               {step === "phone" && (
                 <>
-                  <Text style={styles.subheading}>{t("phoneLogin.phoneStepSubtitle")}</Text>
+                  <Text style={[styles.subheading, { color: colors.muted }]}>{t("phoneLogin.phoneStepSubtitle")}</Text>
                   <IconInput
                     icon="cellphone"
                     placeholder={t("phoneLogin.phoneNumber")}
@@ -135,11 +137,11 @@ export function PhoneLoginScreen({ navigation }: Props) {
 
               {step === "code" && (
                 <>
-                  <Text style={styles.subheading}>{t("phoneLogin.codeStepSubtitle").replace("{phone}", phone.trim())}</Text>
+                  <Text style={[styles.subheading, { color: colors.muted }]}>{t("phoneLogin.codeStepSubtitle").replace("{phone}", phone.trim())}</Text>
                   {devCode && (
-                    <View style={styles.devBanner}>
-                      <MaterialCommunityIcons name="flask-outline" size={14} color={COLORS.warningText} />
-                      <Text style={styles.devBannerText}>
+                    <View style={[styles.devBanner, { backgroundColor: colors.warningBg }]}>
+                      <MaterialCommunityIcons name="flask-outline" size={14} color={colors.warningText} />
+                      <Text style={[styles.devBannerText, { color: colors.warningText }]}>
                         Dev mode - no SMS provider is set up yet. Your test code ({devCode}) has been filled in below.
                       </Text>
                     </View>
@@ -160,15 +162,15 @@ export function PhoneLoginScreen({ navigation }: Props) {
                     icon="arrow-right"
                   />
                   <TouchableOpacity style={styles.secondaryLink} onPress={onSendCode} disabled={isPending}>
-                    <MaterialCommunityIcons name="refresh" size={16} color={COLORS.primary} />
-                    <Text style={styles.secondaryLinkText}>{t("phoneLogin.resendCode")}</Text>
+                    <MaterialCommunityIcons name="refresh" size={16} color={colors.primary} />
+                    <Text style={[styles.secondaryLinkText, { color: colors.primary }]}>{t("phoneLogin.resendCode")}</Text>
                   </TouchableOpacity>
                 </>
               )}
 
               {step === "name" && (
                 <>
-                  <Text style={styles.subheading}>{t("phoneLogin.nameStepSubtitle")}</Text>
+                  <Text style={[styles.subheading, { color: colors.muted }]}>{t("phoneLogin.nameStepSubtitle")}</Text>
                   <IconInput
                     icon="account-outline"
                     placeholder={t("common.fullName")}
@@ -186,8 +188,8 @@ export function PhoneLoginScreen({ navigation }: Props) {
               )}
 
               <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.goBack()}>
-                <MaterialCommunityIcons name="arrow-left" size={16} color={COLORS.primary} />
-                <Text style={styles.secondaryLinkText}>{t("phoneLogin.backToLogin")}</Text>
+                <MaterialCommunityIcons name="arrow-left" size={16} color={colors.primary} />
+                <Text style={[styles.secondaryLinkText, { color: colors.primary }]}>{t("phoneLogin.backToLogin")}</Text>
               </TouchableOpacity>
             </Card>
           </View>
@@ -212,27 +214,26 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 13,
     overflow: "hidden",
-    shadowColor: COLORS.ink,
+    shadowColor: "#0f172a",
     shadowOpacity: 0.2,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
-  brandName: { color: COLORS.white, fontSize: 15, fontWeight: "700", letterSpacing: 0.2 },
+  brandName: { color: "#ffffff", fontSize: 15, fontWeight: "700", letterSpacing: 0.2 },
   card: { padding: 24, gap: 14 },
-  heading: { fontSize: 24, fontWeight: "800", color: COLORS.ink },
-  subheading: { fontSize: 13.5, color: COLORS.muted, lineHeight: 19, marginTop: -6, marginBottom: 4 },
+  heading: { fontSize: 24, fontWeight: "800" },
+  subheading: { fontSize: 13.5, lineHeight: 19, marginTop: -6, marginBottom: 4 },
   devBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 6,
-    backgroundColor: COLORS.warningBg,
     borderRadius: 10,
     padding: 10,
     marginTop: -4,
   },
-  devBannerText: { flex: 1, fontSize: 12, color: COLORS.warningText, lineHeight: 16, fontWeight: "600" },
+  devBannerText: { flex: 1, fontSize: 12, lineHeight: 16, fontWeight: "600" },
   secondaryLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 },
-  secondaryLinkText: { color: COLORS.primary, fontSize: 13.5, fontWeight: "600" },
+  secondaryLinkText: { fontSize: 13.5, fontWeight: "600" },
   languageSelector: { position: "absolute", right: 20, zIndex: 10 },
 });

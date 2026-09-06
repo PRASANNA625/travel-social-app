@@ -3,7 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDDMMYYYY, startOfToday } from "../utils/date";
-import { COLORS } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
 
 export function TripDateFields({
   startDate,
@@ -26,19 +26,20 @@ export function TripDateFields({
 }) {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const { colors } = useTheme();
 
   return (
     <View style={styles.row}>
       <TouchableOpacity style={[inputStyle, styles.flex1, styles.fieldRow]} onPress={() => setShowStartPicker(true)}>
-        <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={COLORS.muted} />
-        <Text>Start: {formatDDMMYYYY(startDate)}</Text>
+        <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={colors.muted} />
+        <Text style={{ color: colors.ink }}>Start: {formatDDMMYYYY(startDate)}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[inputStyle, styles.flex1, styles.fieldRow, endError && errorStyle]}
         onPress={() => setShowEndPicker(true)}
       >
-        <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={COLORS.muted} />
-        <Text style={!endDate && placeholderStyle}>
+        <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={colors.muted} />
+        <Text style={[{ color: colors.ink }, !endDate && placeholderStyle]}>
           {endDate ? `End: ${formatDDMMYYYY(endDate)}` : "End date"}
         </Text>
       </TouchableOpacity>

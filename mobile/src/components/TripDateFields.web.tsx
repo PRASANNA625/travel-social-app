@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDDMMYYYY, startOfToday } from "../utils/date";
-import { COLORS } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
 
 // Metro-platform-split sibling of TripDateFields.tsx: the native file opens
 // @react-native-community/datetimepicker (no web build), so this variant
@@ -60,10 +60,11 @@ function DateField({
   style: StyleProp<ViewStyle>;
   placeholderStyle: object;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={[style, styles.fieldRow]}>
-      <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={COLORS.muted} />
-      <Text style={[styles.displayText, !value && placeholderStyle]}>
+      <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={colors.muted} />
+      <Text style={[styles.displayText, { color: colors.ink }, !value && placeholderStyle]}>
         {value ? `${label}: ${formatDDMMYYYY(value)}` : placeholder}
       </Text>
       <input
@@ -130,5 +131,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 10 },
   flex1: { flex: 1 },
   fieldRow: { flexDirection: "row", alignItems: "center", gap: 8, position: "relative" },
-  displayText: { flex: 1, fontSize: 15, color: COLORS.ink },
+  displayText: { flex: 1, fontSize: 15 },
 });

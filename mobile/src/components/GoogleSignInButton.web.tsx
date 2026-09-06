@@ -8,6 +8,7 @@ import { useGoogleLogin } from "../api/auth";
 import { Alert } from "../utils/alert";
 import { useLanguage } from "../i18n/LanguageContext";
 import { GOOGLE_CLIENT_ID } from "../utils/googleAuth";
+import { useTheme } from "../theme/ThemeContext";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -16,6 +17,7 @@ WebBrowser.maybeCompleteAuthSession();
 // deprecated it for native (see GoogleSignInButton.tsx, the native build).
 export function GoogleSignInButton() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const googleLogin = useGoogleLogin();
   const [, googleResponse, promptGoogleLogin] = Google.useAuthRequest({
     webClientId: GOOGLE_CLIENT_ID,
@@ -39,13 +41,17 @@ export function GoogleSignInButton() {
   }, [googleResponse]);
 
   return (
-    <TouchableOpacity style={styles.googleButton} onPress={() => promptGoogleLogin()} disabled={googleLogin.isPending}>
+    <TouchableOpacity
+      style={[styles.googleButton, { borderColor: colors.border }]}
+      onPress={() => promptGoogleLogin()}
+      disabled={googleLogin.isPending}
+    >
       {googleLogin.isPending ? (
-        <ActivityIndicator color="#0f766e" />
+        <ActivityIndicator color={colors.primary} />
       ) : (
         <>
-          <MaterialCommunityIcons name="google" size={18} color="#334155" />
-          <Text style={styles.googleButtonText}>{t("login.continueWithGoogle")}</Text>
+          <MaterialCommunityIcons name="google" size={18} color={colors.ink} />
+          <Text style={[styles.googleButtonText, { color: colors.ink }]}>{t("login.continueWithGoogle")}</Text>
         </>
       )}
     </TouchableOpacity>
@@ -59,9 +65,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderWidth: 1.5,
-    borderColor: "#e2e8f0",
     borderRadius: 14,
     paddingVertical: 14,
   },
-  googleButtonText: { color: "#334155", fontSize: 15, fontWeight: "600" },
+  googleButtonText: { fontSize: 15, fontWeight: "600" },
 });

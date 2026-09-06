@@ -23,6 +23,7 @@ import { useLanguage } from "../i18n/LanguageContext";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { GOOGLE_CLIENT_ID } from "../utils/googleAuth";
+import { useTheme } from "../theme/ThemeContext";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -37,6 +38,7 @@ export function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const { t } = useLanguage();
+  const { colors } = useTheme();
 
   const onSubmit = () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -77,16 +79,16 @@ export function LoginScreen({ navigation }: Props) {
               <Text style={styles.brandName}>{t("login.brand")}</Text>
             </View>
 
-            <View style={styles.card}>
-              <Text style={styles.heading}>{t("login.heading")}</Text>
-              <Text style={styles.subheading}>{t("login.subheading")}</Text>
+            <View style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
+              <Text style={[styles.heading, { color: colors.ink }]}>{t("login.heading")}</Text>
+              <Text style={[styles.subheading, { color: colors.muted }]}>{t("login.subheading")}</Text>
 
-              <View style={styles.fieldWrap}>
-                <MaterialCommunityIcons name="email-outline" size={18} color="#64748b" />
+              <View style={[styles.fieldWrap, { backgroundColor: colors.fieldBg, borderColor: colors.border }]}>
+                <MaterialCommunityIcons name="email-outline" size={18} color={colors.muted} />
                 <TextInput
-                  style={styles.fieldInput}
+                  style={[styles.fieldInput, { color: colors.ink }]}
                   placeholder={t("common.email")}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.mutedLight}
                   autoCapitalize="none"
                   keyboardType="email-address"
                   value={email}
@@ -94,12 +96,12 @@ export function LoginScreen({ navigation }: Props) {
                 />
               </View>
 
-              <View style={styles.fieldWrap}>
-                <MaterialCommunityIcons name="lock-outline" size={18} color="#64748b" />
+              <View style={[styles.fieldWrap, { backgroundColor: colors.fieldBg, borderColor: colors.border }]}>
+                <MaterialCommunityIcons name="lock-outline" size={18} color={colors.muted} />
                 <TextInput
-                  style={styles.fieldInput}
+                  style={[styles.fieldInput, { color: colors.ink }]}
                   placeholder={t("common.password")}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.mutedLight}
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={setPassword}
@@ -108,13 +110,13 @@ export function LoginScreen({ navigation }: Props) {
                   <MaterialCommunityIcons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                     size={19}
-                    color="#64748b"
+                    color={colors.muted}
                   />
                 </TouchableOpacity>
               </View>
 
               <TouchableOpacity
-                style={styles.loginButton}
+                style={[styles.loginButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
                 onPress={onSubmit}
                 disabled={login.isPending}
                 activeOpacity={0.9}
@@ -132,18 +134,18 @@ export function LoginScreen({ navigation }: Props) {
               {GOOGLE_CLIENT_ID ? (
                 <GoogleSignInButton />
               ) : (
-                <Text style={styles.note}>{t("login.googleNotConfigured")}</Text>
+                <Text style={[styles.note, { color: colors.mutedLight }]}>{t("login.googleNotConfigured")}</Text>
               )}
 
               <View style={styles.secondaryActions}>
                 <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("Register")}>
-                  <MaterialCommunityIcons name="account-plus-outline" size={16} color="#0f766e" />
-                  <Text style={styles.secondaryLinkText}>{t("login.createAccount")}</Text>
+                  <MaterialCommunityIcons name="account-plus-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.secondaryLinkText, { color: colors.primary }]}>{t("login.createAccount")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("PhoneLogin")}>
-                  <MaterialCommunityIcons name="phone-outline" size={16} color="#0f766e" />
-                  <Text style={styles.secondaryLinkText}>{t("login.phoneLogin")}</Text>
+                  <MaterialCommunityIcons name="phone-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.secondaryLinkText, { color: colors.primary }]}>{t("login.phoneLogin")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -179,41 +181,35 @@ const styles = StyleSheet.create({
   },
   brandName: { color: "#fff", fontSize: 15, fontWeight: "700", letterSpacing: 0.2 },
   card: {
-    backgroundColor: "rgba(255,255,255,0.96)",
     borderRadius: 24,
     padding: 24,
     gap: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.5)",
     shadowColor: "#0f172a",
     shadowOpacity: 0.25,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
     elevation: 8,
   },
-  heading: { fontSize: 24, fontWeight: "800", color: "#0f172a" },
-  subheading: { fontSize: 13.5, color: "#64748b", lineHeight: 19, marginTop: -6, marginBottom: 4 },
+  heading: { fontSize: 24, fontWeight: "800" },
+  subheading: { fontSize: 13.5, lineHeight: 19, marginTop: -6, marginBottom: 4 },
   fieldWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
     borderRadius: 14,
     paddingHorizontal: 14,
   },
-  fieldInput: { flex: 1, paddingVertical: 14, fontSize: 15, color: "#0f172a" },
+  fieldInput: { flex: 1, paddingVertical: 14, fontSize: 15 },
   loginButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#0f766e",
     borderRadius: 14,
     paddingVertical: 15,
     marginTop: 6,
-    shadowColor: "#0f766e",
     shadowOpacity: 0.35,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
@@ -231,10 +227,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   googleButtonText: { color: "#334155", fontSize: 15, fontWeight: "600" },
-  note: { color: "#94a3b8", fontSize: 12, textAlign: "center" },
+  note: { fontSize: 12, textAlign: "center" },
   secondaryActions: { gap: 2, marginTop: 6, alignItems: "center" },
   secondaryLink: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8 },
-  secondaryLinkText: { color: "#0f766e", fontSize: 13.5, fontWeight: "600" },
+  secondaryLinkText: { fontSize: 13.5, fontWeight: "600" },
   versionText: {
     color: "rgba(255,255,255,0.55)",
     fontSize: 11.5,
