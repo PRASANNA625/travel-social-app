@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -17,9 +18,30 @@ const RESOLVED_STATUS: Record<"APPROVED" | "REJECTED", { icon: IconName; bg: str
 };
 
 export function JoinRequestsInboxScreen({ route, navigation }: Props) {
-  const { tripId } = route.params;
+  const { tripId, highlightRequestId } = route.params;
   const { data: requests, isLoading } = useJoinRequestsForTrip(tripId);
   const respond = useRespondToJoinRequest(tripId);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const listRef = useRef<FlatList<JoinRequest>>(null);
+  const handledHighlightRef = useRef(!highlightRequestId);
+
+  useEffect(() => {
+    if (handledHighlightRef.current || !requests) return;
+    const index = requests.findIndex((r) => r.id === highlightRequestId);
+    if (index === -1) return;
+    handledHighlightRef.current = true;
+    setHighlightedId(highlightRequestId!);
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+    });
+    const timer = setTimeout(() => setHighlightedId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [requests, highlightRequestId]);
+
+  const onScrollToIndexFailed = ({ index }: { index: number }) => {
+    listRef.current?.scrollToOffset({ offset: index * 140, animated: false });
+    setTimeout(() => listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 }), 100);
+  };
 
   if (isLoading) {
     return (
@@ -43,9 +65,11 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       <FlatList
+        ref={listRef}
         contentContainerStyle={styles.list}
         data={requests ?? []}
         keyExtractor={(item) => item.id}
+        onScrollToIndexFailed={onScrollToIndexFailed}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <MaterialCommunityIcons name="account-clock-outline" size={40} color={COLORS.mutedLight} />
@@ -53,7 +77,7 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
           </View>
         }
         renderItem={({ item }: { item: JoinRequest }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, item.id === highlightedId && styles.cardHighlighted]}>
             <TouchableOpacity onPress={() => navigation.navigate("UserProfile", { userId: item.userId })}>
               <Text style={styles.name}>{item.user?.name}</Text>
             </TouchableOpacity>
@@ -106,6 +130,14 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  cardHighlighted: {
+    borderWidth: 2,
+    borderColor: COLORS.warningText,
+    shadowColor: COLORS.warningText,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
   },
   name: { fontSize: 16, fontWeight: "700", color: COLORS.primary },
   meta: { fontSize: 13, color: COLORS.muted, marginTop: 2 },

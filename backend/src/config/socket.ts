@@ -131,6 +131,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
               groupId: data.groupId,
               tripId: trip.id,
               tripTitle: trip.title,
+              messageId: message.id,
               senderId: userId,
               senderName: message.sender.name,
               messageType: message.type,

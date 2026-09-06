@@ -14,6 +14,7 @@ export interface GroupMessagePayload {
   groupId: string;
   tripId: string;
   tripTitle: string;
+  messageId: string;
   senderId: string;
   senderName: string;
   messageType: "TEXT" | "IMAGE";
@@ -110,4 +111,41 @@ export async function retractMessageReactionNotification(
 
   await prisma.notification.delete({ where: { id: existing.id } });
   emitToUser(userId, "notification:removed", { id: existing.id });
+}
+
+export interface TripCommentPayload {
+  tripId: string;
+  tripTitle: string;
+  commentId: string;
+  commenterId: string;
+  commenterName: string;
+  commenterPhotoUrl: string | null;
+  content: string;
+}
+
+// Collapses repeated comments on the same trip into one unread notification
+// (latest comment/commenter wins), mirroring notifyGroupMessage's per-group
+// collapse above - the trip owner doesn't need a fresh row for every comment
+// piling up while they haven't looked yet.
+export async function notifyTripComment(userId: string, payload: TripCommentPayload) {
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      type: "TRIP_COMMENT",
+      read: false,
+      payload: { path: ["tripId"], equals: payload.tripId },
+    },
+  });
+
+  const notification = existing
+    ? await prisma.notification.update({
+        where: { id: existing.id },
+        data: { payload: payload as unknown as Prisma.InputJsonValue, createdAt: new Date() },
+      })
+    : await prisma.notification.create({
+        data: { userId, type: "TRIP_COMMENT", payload: payload as unknown as Prisma.InputJsonValue },
+      });
+
+  emitToUser(userId, "notification:new", notification);
+  return notification;
 }

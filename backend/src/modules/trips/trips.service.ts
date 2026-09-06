@@ -3,6 +3,7 @@ import { prisma } from "../../config/prisma";
 import { HttpError } from "../../middleware/error";
 import { parsePageParams } from "../../utils/pagination";
 import { createGroupWithOwner } from "../groups/groups.service";
+import { notifyTripComment } from "../notifications/notify";
 import type { CreateTripInput, TripFilters, UpdateTripInput } from "./trips.types";
 
 const cardInclude = {
@@ -243,10 +244,28 @@ export async function addComment(tripId: string, userId: string, text: string) {
   if (trip.status === "COMPLETED") {
     throw new HttpError(403, "This trip is closed. New comments are disabled");
   }
-  return prisma.tripComment.create({
+  const comment = await prisma.tripComment.create({
     data: { tripId, userId, text },
     include: { user: { select: { id: true, name: true, photoUrl: true } } },
   });
+
+  if (trip.ownerId !== userId) {
+    try {
+      await notifyTripComment(trip.ownerId, {
+        tripId,
+        tripTitle: trip.title,
+        commentId: comment.id,
+        commenterId: userId,
+        commenterName: comment.user.name,
+        commenterPhotoUrl: comment.user.photoUrl,
+        content: text,
+      });
+    } catch (err) {
+      console.error("[trips] comment notification failed", err);
+    }
+  }
+
+  return comment;
 }
 
 export async function listComments(tripId: string) {

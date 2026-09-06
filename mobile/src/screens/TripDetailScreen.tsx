@@ -60,7 +60,7 @@ function formatRelativeTime(iso: string) {
 }
 
 export function TripDetailScreen({ route, navigation }: Props) {
-  const { tripId } = route.params;
+  const { tripId, highlightCommentId } = route.params;
   const me = useAuthStore((s) => s.user);
   const { data: trip, isLoading, isFetching, refetch: refetchTrip } = useTrip(tripId);
   const { data: comments, refetch: refetchComments } = useTripComments(tripId);
@@ -72,12 +72,45 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const [newPhotoAssets, setNewPhotoAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const [heroWidth, setHeroWidth] = useState(width);
   const heroHeight = isWeb ? Math.min(Math.round(heroWidth / 2.4), 380) : 260;
   const scrollViewRef = useRef<ScrollView>(null);
+  const commentsScrollRef = useRef<ScrollView>(null);
+  const commentsSectionY = useRef(0);
+  const commentOffsets = useRef<Map<string, number>>(new Map());
+  const handledHighlightRef = useRef(!highlightCommentId);
+
+  // A notification can deep-link to one specific comment (a new comment on
+  // your trip). Bring the comments section into view, then scroll the
+  // nested comments list to that exact comment and flash it briefly.
+  useEffect(() => {
+    if (handledHighlightRef.current || !highlightCommentId || !comments) return;
+    if (!comments.some((c) => c.id === highlightCommentId)) return;
+    handledHighlightRef.current = true;
+    setHighlightedCommentId(highlightCommentId);
+
+    let attempts = 0;
+    const tryScroll = () => {
+      const offsetY = commentOffsets.current.get(highlightCommentId);
+      if (offsetY === undefined && attempts < 10) {
+        attempts += 1;
+        setTimeout(tryScroll, 100);
+        return;
+      }
+      scrollViewRef.current?.scrollTo({ y: Math.max(commentsSectionY.current - 12, 0), animated: true });
+      setTimeout(() => {
+        commentsScrollRef.current?.scrollTo({ y: Math.max((offsetY ?? 0) - 8, 0), animated: true });
+      }, 350);
+    };
+    tryScroll();
+
+    const clearTimer = setTimeout(() => setHighlightedCommentId(null), 3000);
+    return () => clearTimeout(clearTimer);
+  }, [comments, highlightCommentId]);
 
   const likeTrip = useLikeTrip();
   const bookmarkTrip = useBookmarkTrip();
@@ -477,7 +510,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
           )}
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.section} onLayout={(e) => (commentsSectionY.current = e.nativeEvent.layout.y)}>
           <View style={styles.blockHeaderRow}>
             <MaterialCommunityIcons name="comment-text-outline" size={16} color={COLORS.ink} />
             <Text style={styles.blockTitle}>Comments ({comments?.length ?? 0})</Text>
@@ -490,12 +523,17 @@ export function TripDetailScreen({ route, navigation }: Props) {
             </View>
           ) : (
             <ScrollView
+              ref={commentsScrollRef}
               nestedScrollEnabled
               style={styles.commentsList}
               contentContainerStyle={styles.commentsListContent}
             >
               {comments.map((c) => (
-                <View key={c.id} style={styles.commentCard}>
+                <View
+                  key={c.id}
+                  style={[styles.commentCard, c.id === highlightedCommentId && styles.commentCardHighlighted]}
+                  onLayout={(e) => commentOffsets.current.set(c.id, e.nativeEvent.layout.y)}
+                >
                   {c.user.photoUrl ? (
                     <Image source={{ uri: optimizedImageUrl(c.user.photoUrl, 34) }} style={styles.commentAvatar} />
                   ) : (
@@ -720,6 +758,14 @@ const styles = StyleSheet.create({
   commentsList: { maxHeight: 320, borderWidth: 1, borderColor: "#f1f5f9", borderRadius: RADIUS.field },
   commentsListContent: { padding: 10, gap: 10 },
   commentCard: { flexDirection: "row", gap: 10 },
+  commentCardHighlighted: {
+    backgroundColor: COLORS.warningBg,
+    borderRadius: RADIUS.field,
+    marginHorizontal: -6,
+    marginVertical: -4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
   commentAvatar: { width: 34, height: 34, borderRadius: 17 },
   commentAvatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
   commentAvatarInitial: { color: COLORS.white, fontWeight: "700", fontSize: 13 },

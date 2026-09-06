@@ -40,7 +40,7 @@ function formatTime(iso: string) {
 }
 
 export function GroupChatScreen({ route, navigation }: Props) {
-  const { groupId, tripTitle } = route.params;
+  const { groupId, tripTitle, highlightMessageId } = route.params;
   const me = useAuthStore((s) => s.user);
   const { data: group } = useGroup(groupId);
   const { data: history, isLoading } = useMessageHistory(groupId);
@@ -58,8 +58,10 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const [membersModalVisible, setMembersModalVisible] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
   const [seenByTargetId, setSeenByTargetId] = useState<string | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const markedReadIds = useRef<Set<string>>(new Set());
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  const handledHighlightRef = useRef(!highlightMessageId);
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const isClosed = group?.trip.status === "COMPLETED";
@@ -71,6 +73,33 @@ export function GroupChatScreen({ route, navigation }: Props) {
   }, [groupId]);
 
   const scrollToBottom = (animated: boolean) => listRef.current?.scrollToEnd({ animated });
+
+  // A notification can deep-link to a specific message (a reaction, or a
+  // message sent while the recipient was away). Jump to it and briefly flash
+  // it once it's in the loaded history, instead of always auto-scrolling to
+  // the bottom below. Messages older than the last ~30 (this screen's fixed
+  // history page) aren't loaded and can't be scrolled to - the chat still
+  // opens correctly, it just can't jump to something that far back.
+  useEffect(() => {
+    if (handledHighlightRef.current || !highlightMessageId) return;
+    const index = messages.findIndex((m) => m.id === highlightMessageId);
+    if (index === -1) {
+      if (!isLoading) handledHighlightRef.current = true;
+      return;
+    }
+    handledHighlightRef.current = true;
+    setHighlightedMessageId(highlightMessageId);
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.4 });
+    });
+    const timer = setTimeout(() => setHighlightedMessageId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [messages, isLoading, highlightMessageId]);
+
+  const onScrollToIndexFailed = ({ index }: { index: number }) => {
+    listRef.current?.scrollToOffset({ offset: index * 80, animated: false });
+    setTimeout(() => listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.4 }), 100);
+  };
 
   useEffect(() => {
     const sub = Keyboard.addListener("keyboardDidShow", () => scrollToBottom(true));
@@ -167,6 +196,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isMine = item.senderId === me?.id;
     const reactions = item.reactions ?? [];
+    const isHighlighted = item.id === highlightedMessageId;
     return (
       <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}>
         {!isMine &&
@@ -183,6 +213,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
               styles.bubble,
               isMine ? styles.bubbleMine : styles.bubbleTheirs,
               item.type === "IMAGE" && styles.bubbleImageWrap,
+              isHighlighted && styles.bubbleHighlighted,
             ]}
             activeOpacity={0.85}
             onLongPress={() => setReactionTargetId(item.id)}
@@ -289,7 +320,10 @@ export function GroupChatScreen({ route, navigation }: Props) {
               keyExtractor={(item) => item.id}
               renderItem={renderMessage}
               contentContainerStyle={styles.listContent}
-              onContentSizeChange={() => scrollToBottom(false)}
+              onContentSizeChange={() => {
+                if (handledHighlightRef.current) scrollToBottom(false);
+              }}
+              onScrollToIndexFailed={onScrollToIndexFailed}
               keyboardShouldPersistTaps="handled"
             />
           )}
@@ -453,6 +487,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   bubbleImageWrap: { padding: 4, overflow: "hidden" },
+  bubbleHighlighted: { borderWidth: 2, borderColor: COLORS.warningText, shadowColor: COLORS.warningText, shadowOpacity: 0.35, shadowRadius: 6, elevation: 3 },
   senderName: { fontSize: 11, fontWeight: "700", color: COLORS.primary, marginBottom: 3 },
   messageText: { fontSize: 14, color: "#1e293b", lineHeight: 20 },
   messageTextMine: { color: COLORS.white },

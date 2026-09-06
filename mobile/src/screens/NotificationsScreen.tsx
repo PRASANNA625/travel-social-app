@@ -32,6 +32,7 @@ const NOTIFICATION_COPY: Record<string, (payload: Record<string, unknown>) => st
   JOIN_REQUEST_REJECTED: (p) => `Your request for "${p.tripTitle}" wasn't approved`,
   GROUP_MESSAGE: (p) => `${p.senderName} in "${p.tripTitle}": ${messagePreview(p)}`,
   MESSAGE_REACTION: (p) => `${p.reactorName} reacted ${p.emoji} to your message in "${p.tripTitle}": ${messagePreview(p)}`,
+  TRIP_COMMENT: (p) => `${p.commenterName} commented on "${p.tripTitle}": ${messagePreview(p)}`,
 };
 
 function describe(notification: AppNotification): string {
@@ -47,7 +48,17 @@ const NOTIFICATION_ICON: Record<string, { icon: IconName; bg: string; color: str
   JOIN_REQUEST_REJECTED: { icon: "close-circle-outline", bg: COLORS.dangerBg, color: COLORS.danger },
   GROUP_MESSAGE: { icon: "chat-processing-outline", bg: COLORS.successBg, color: COLORS.primary },
   MESSAGE_REACTION: { icon: "heart-outline", bg: COLORS.successBg, color: COLORS.primary },
+  TRIP_COMMENT: { icon: "comment-text-outline", bg: COLORS.fieldBg, color: COLORS.primary },
 };
+
+// The person whose action the notification is about, when it's someone
+// other than the viewer - shown as the badge photo instead of the generic
+// per-type icon (reactor for MESSAGE_REACTION, commenter for TRIP_COMMENT).
+function actorPhotoUrl(item: AppNotification): string | null {
+  const key = item.type === "MESSAGE_REACTION" ? "reactorPhotoUrl" : item.type === "TRIP_COMMENT" ? "commenterPhotoUrl" : null;
+  const value = key ? item.payload[key] : null;
+  return typeof value === "string" ? value : null;
+}
 const DEFAULT_ICON: { icon: IconName; bg: string; color: string } = {
   icon: "message-text-outline",
   bg: COLORS.fieldBg,
@@ -80,11 +91,51 @@ export function NotificationsScreen({ navigation }: Props) {
 
   const onPressNotification = (item: AppNotification) => {
     if (!item.read) markRead.mutate(item.id);
-    if (item.type === "GROUP_MESSAGE" || item.type === "MESSAGE_REACTION") {
-      const { groupId, tripTitle } = item.payload;
-      if (typeof groupId === "string" && typeof tripTitle === "string") {
-        navigation.navigate("GroupChat", { groupId, tripTitle });
+    const { payload } = item;
+
+    switch (item.type) {
+      case "GROUP_MESSAGE":
+      case "MESSAGE_REACTION": {
+        const { groupId, tripTitle, messageId } = payload;
+        if (typeof groupId === "string" && typeof tripTitle === "string") {
+          navigation.navigate("GroupChat", {
+            groupId,
+            tripTitle,
+            highlightMessageId: typeof messageId === "string" ? messageId : undefined,
+          });
+        }
+        break;
       }
+      case "TRIP_COMMENT": {
+        const { tripId, commentId } = payload;
+        if (typeof tripId === "string") {
+          navigation.navigate("TripDetail", {
+            tripId,
+            highlightCommentId: typeof commentId === "string" ? commentId : undefined,
+          });
+        }
+        break;
+      }
+      case "NEW_JOIN_REQUEST": {
+        const { tripId, requestId } = payload;
+        if (typeof tripId === "string") {
+          navigation.navigate("JoinRequestsInbox", {
+            tripId,
+            highlightRequestId: typeof requestId === "string" ? requestId : undefined,
+          });
+        }
+        break;
+      }
+      case "JOIN_REQUEST_APPROVED":
+      case "JOIN_REQUEST_REJECTED": {
+        const { tripId } = payload;
+        if (typeof tripId === "string") {
+          navigation.navigate("TripDetail", { tripId });
+        }
+        break;
+      }
+      default:
+        break;
     }
   };
 
@@ -152,18 +203,15 @@ export function NotificationsScreen({ navigation }: Props) {
           }
           renderItem={({ item }) => {
             const meta = iconFor(item.type);
-            const reactorPhotoUrl =
-              item.type === "MESSAGE_REACTION" && typeof item.payload.reactorPhotoUrl === "string"
-                ? item.payload.reactorPhotoUrl
-                : null;
+            const photoUrl = actorPhotoUrl(item);
             return (
               <TouchableOpacity
                 style={[styles.item, !item.read && styles.itemUnread]}
                 onPress={() => onPressNotification(item)}
                 activeOpacity={0.85}
               >
-                {reactorPhotoUrl ? (
-                  <Image source={{ uri: optimizedImageUrl(reactorPhotoUrl, 40) }} style={styles.avatarBadge} />
+                {photoUrl ? (
+                  <Image source={{ uri: optimizedImageUrl(photoUrl, 40) }} style={styles.avatarBadge} />
                 ) : (
                   <View style={[styles.iconBadge, { backgroundColor: meta.bg }]}>
                     <MaterialCommunityIcons name={meta.icon} size={18} color={meta.color} />

@@ -47,7 +47,7 @@ export async function createJoinRequest(tripId: string, userId: string, message?
   if (autoApprove) {
     await finalizeApproval(tripId, userId);
   } else {
-    await notify(trip.ownerId, "NEW_JOIN_REQUEST", { tripId, tripTitle: trip.title, userId });
+    await notify(trip.ownerId, "NEW_JOIN_REQUEST", { tripId, tripTitle: trip.title, userId, requestId: request.id });
   }
 
   return request;
