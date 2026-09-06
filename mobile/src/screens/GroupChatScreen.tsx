@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -27,6 +27,7 @@ import { Skeleton } from "../components/theme/Skeleton";
 import { AttachmentSheet } from "../components/AttachmentSheet";
 import { GroupMembersModal } from "../components/GroupMembersModal";
 import { ReactionPickerModal } from "../components/ReactionPickerModal";
+import { SeenByModal } from "../components/SeenByModal";
 import { COLORS, TYPE } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AppStackParamList, "GroupChat">;
@@ -41,7 +42,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const { data: group } = useGroup(groupId);
   const { data: history, isLoading } = useMessageHistory(groupId);
   const memberIds = group?.members.map((m) => m.userId) ?? [];
-  const { messages, sendMessage, presence, toggleReaction } = useLiveGroupChat(
+  const { messages, sendMessage, presence, toggleReaction, markRead } = useLiveGroupChat(
     groupId,
     history?.items ?? [],
     memberIds
@@ -53,6 +54,8 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
   const [membersModalVisible, setMembersModalVisible] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
+  const [seenByTargetId, setSeenByTargetId] = useState<string | null>(null);
+  const markedReadIds = useRef<Set<string>>(new Set());
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
 
@@ -119,6 +122,18 @@ export function GroupChatScreen({ route, navigation }: Props) {
     }
   };
 
+  useEffect(() => {
+    if (!me) return;
+    const alreadyMarked = markedReadIds.current;
+    const unread = messages
+      .filter((m) => m.senderId !== me.id && !alreadyMarked.has(m.id))
+      .map((m) => m.id);
+    if (unread.length === 0) return;
+    for (const id of unread) alreadyMarked.add(id);
+    markRead(unread);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length, me?.id]);
+
   const reactionTargetMessage = messages.find((m) => m.id === reactionTargetId) ?? null;
   const reactionTargetCurrentEmoji =
     reactionTargetMessage?.reactions?.find((r) => r.userIds.includes(me?.id ?? ""))?.emoji ?? null;
@@ -127,6 +142,9 @@ export function GroupChatScreen({ route, navigation }: Props) {
     if (reactionTargetId) toggleReaction(reactionTargetId, emoji);
     setReactionTargetId(null);
   };
+
+  const seenByTargetMessage = messages.find((m) => m.id === seenByTargetId) ?? null;
+  const seenByOtherMembers = (group?.members ?? []).filter((m) => m.userId !== me?.id);
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isMine = item.senderId === me?.id;
@@ -173,6 +191,18 @@ export function GroupChatScreen({ route, navigation }: Props) {
             </View>
           )}
           <Text style={[styles.timeText, isMine && styles.timeTextMine]}>{formatTime(item.createdAt)}</Text>
+          {isMine && (
+            <TouchableOpacity style={styles.seenByRow} onPress={() => setSeenByTargetId(item.id)}>
+              <MaterialCommunityIcons
+                name={(item.readBy?.length ?? 0) > 0 ? "check-all" : "check"}
+                size={13}
+                color={(item.readBy?.length ?? 0) > 0 ? COLORS.primary : COLORS.mutedLight}
+              />
+              <Text style={(item.readBy?.length ?? 0) > 0 ? styles.seenByTextSeen : styles.seenByText}>
+                {(item.readBy?.length ?? 0) > 0 ? `Seen by ${item.readBy!.length}` : "Sent"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -312,6 +342,14 @@ export function GroupChatScreen({ route, navigation }: Props) {
         onSelect={onSelectReaction}
         currentReaction={reactionTargetCurrentEmoji}
       />
+
+      <SeenByModal
+        visible={!!seenByTargetId}
+        onClose={() => setSeenByTargetId(null)}
+        members={seenByOtherMembers}
+        presence={presence}
+        readBy={seenByTargetMessage?.readBy ?? []}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -395,6 +433,9 @@ const styles = StyleSheet.create({
   reactionPillMine: { backgroundColor: COLORS.successBg, borderColor: COLORS.successBorderLight },
   reactionEmoji: { fontSize: 13 },
   reactionCount: { fontSize: 11, color: COLORS.muted, fontWeight: "700" },
+  seenByRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3, alignSelf: "flex-end" },
+  seenByText: { fontSize: 10.5, color: COLORS.mutedLight },
+  seenByTextSeen: { fontSize: 10.5, color: COLORS.primary, fontWeight: "600" },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
