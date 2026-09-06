@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -7,15 +7,19 @@ import type { AppStackParamList } from "../navigation/types";
 import { useJoinRequestsForTrip, useRespondToJoinRequest } from "../api/joinRequests";
 import type { JoinRequest } from "../types";
 import { Skeleton } from "../components/theme/Skeleton";
-import { COLORS, RADIUS } from "../theme/tokens";
+import { RADIUS } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 
 type Props = NativeStackScreenProps<AppStackParamList, "JoinRequestsInbox">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const RESOLVED_STATUS: Record<"APPROVED" | "REJECTED", { icon: IconName; bg: string; color: string; label: string }> = {
-  APPROVED: { icon: "check-circle", bg: COLORS.successBg, color: COLORS.primary, label: "Approved" },
-  REJECTED: { icon: "close-circle-outline", bg: COLORS.dangerBg, color: COLORS.danger, label: "Rejected" },
-};
+function resolvedStatusMap(colors: Palette): Record<"APPROVED" | "REJECTED", { icon: IconName; bg: string; color: string; label: string }> {
+  return {
+    APPROVED: { icon: "check-circle", bg: colors.successBg, color: colors.primary, label: "Approved" },
+    REJECTED: { icon: "close-circle-outline", bg: colors.dangerBg, color: colors.danger, label: "Rejected" },
+  };
+}
 
 export function JoinRequestsInboxScreen({ route, navigation }: Props) {
   const { tripId, highlightRequestId } = route.params;
@@ -24,6 +28,9 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const listRef = useRef<FlatList<JoinRequest>>(null);
   const handledHighlightRef = useRef(!highlightRequestId);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const resolvedStatus = useMemo(() => resolvedStatusMap(colors), [colors]);
 
   useEffect(() => {
     if (handledHighlightRef.current || !requests) return;
@@ -72,7 +79,7 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
         onScrollToIndexFailed={onScrollToIndexFailed}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <MaterialCommunityIcons name="account-clock-outline" size={40} color={COLORS.mutedLight} />
+            <MaterialCommunityIcons name="account-clock-outline" size={40} color={colors.mutedLight} />
             <Text style={styles.empty}>No one has requested to join yet.</Text>
           </View>
         }
@@ -101,14 +108,14 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={[styles.statusPill, { backgroundColor: RESOLVED_STATUS[item.status].bg }]}>
+              <View style={[styles.statusPill, { backgroundColor: resolvedStatus[item.status].bg }]}>
                 <MaterialCommunityIcons
-                  name={RESOLVED_STATUS[item.status].icon}
+                  name={resolvedStatus[item.status].icon}
                   size={14}
-                  color={RESOLVED_STATUS[item.status].color}
+                  color={resolvedStatus[item.status].color}
                 />
-                <Text style={[styles.statusLabel, { color: RESOLVED_STATUS[item.status].color }]}>
-                  {RESOLVED_STATUS[item.status].label}
+                <Text style={[styles.statusLabel, { color: resolvedStatus[item.status].color }]}>
+                  {resolvedStatus[item.status].label}
                 </Text>
               </View>
             )}
@@ -119,34 +126,35 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.fieldBg },
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.fieldBg },
   list: { padding: 12, gap: 12 },
-  empty: { textAlign: "center", color: COLORS.mutedLight },
+  empty: { textAlign: "center", color: colors.mutedLight },
   emptyWrap: { alignItems: "center", gap: 10, marginTop: 60, paddingHorizontal: 32 },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: RADIUS.field,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   cardHighlighted: {
     borderWidth: 2,
-    borderColor: COLORS.warningText,
-    shadowColor: COLORS.warningText,
+    borderColor: colors.warningText,
+    shadowColor: colors.warningText,
     shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 3,
   },
-  name: { fontSize: 16, fontWeight: "700", color: COLORS.primary },
-  meta: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
-  message: { fontSize: 13, color: "#334155", marginTop: 6, fontStyle: "italic" },
+  name: { fontSize: 16, fontWeight: "700", color: colors.primary },
+  meta: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  message: { fontSize: 13, color: colors.ink, marginTop: 6, fontStyle: "italic" },
   actionsRow: { flexDirection: "row", gap: 10, marginTop: 12 },
   actionButton: { flex: 1, padding: 10, borderRadius: 8, alignItems: "center" },
-  approve: { backgroundColor: COLORS.primary },
-  reject: { backgroundColor: COLORS.danger },
-  actionText: { color: COLORS.white, fontWeight: "700" },
+  approve: { backgroundColor: colors.primary },
+  reject: { backgroundColor: colors.danger },
+  actionText: { color: colors.white, fontWeight: "700" },
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -159,15 +167,16 @@ const styles = StyleSheet.create({
   },
   statusLabel: { fontSize: 12.5, fontWeight: "700" },
   skeletonCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: RADIUS.field,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     gap: 8,
   },
   skeletonName: { height: 16, width: "50%" },
   skeletonMeta: { height: 12, width: "70%" },
   skeletonActionsRow: { flexDirection: "row", gap: 10, marginTop: 4 },
   skeletonAction: { flex: 1, height: 38, borderRadius: 8 },
-});
+  });
+}

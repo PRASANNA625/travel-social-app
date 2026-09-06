@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -18,12 +18,14 @@ import type { AppStackParamList } from "../navigation/types";
 import { useAssistantReply } from "../api/assistant";
 import type { AssistantMessage } from "../types";
 import { GradientBackground } from "../components/theme/GradientBackground";
-import { COLORS, RADIUS, TYPE } from "../theme/tokens";
+import { RADIUS, TYPE } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Assistant">;
 type ChatEntry = AssistantMessage & { id: string };
 
-function TypingDots() {
+function TypingDots({ styles }: { styles: ReturnType<typeof createStyles> }) {
   const dots = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
 
   useEffect(() => {
@@ -65,6 +67,8 @@ export function AssistantScreen({ navigation }: Props) {
   const listRef = useRef<FlatList<ChatEntry>>(null);
   const insets = useSafeAreaInsets();
   const sendMutation = useAssistantReply();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const makeId = () => `${Date.now()}-${nextId.current++}`;
 
@@ -101,11 +105,11 @@ export function AssistantScreen({ navigation }: Props) {
       <GradientBackground style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-            <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.white} />
+            <MaterialCommunityIcons name="arrow-left" size={20} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
             <View style={styles.robotBadge}>
-              <MaterialCommunityIcons name="robot-outline" size={18} color={COLORS.white} />
+              <MaterialCommunityIcons name="robot-outline" size={18} color={colors.white} />
             </View>
             <View>
               <Text style={styles.headerTitle}>AI Trip Assistant</Text>
@@ -118,7 +122,7 @@ export function AssistantScreen({ navigation }: Props) {
 
       {messages.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <MaterialCommunityIcons name="robot-happy-outline" size={44} color={COLORS.mutedLight} />
+          <MaterialCommunityIcons name="robot-happy-outline" size={44} color={colors.mutedLight} />
           <Text style={styles.emptyTitle}>Plan your next trip</Text>
           <Text style={styles.emptySubtitle}>
             Try "Suggest a 5-day budget trip to Goa" or "What's the best time to visit Manali?"
@@ -142,7 +146,7 @@ export function AssistantScreen({ navigation }: Props) {
           ListFooterComponent={
             sendMutation.isPending ? (
               <View style={styles.bubbleRow}>
-                <TypingDots />
+                <TypingDots styles={styles} />
               </View>
             ) : null
           }
@@ -151,7 +155,7 @@ export function AssistantScreen({ navigation }: Props) {
 
       {error && (
         <View style={styles.errorBanner}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={16} color={COLORS.danger} />
+          <MaterialCommunityIcons name="alert-circle-outline" size={16} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={onRetry} disabled={sendMutation.isPending}>
             <Text style={styles.retryText}>Retry</Text>
@@ -163,7 +167,7 @@ export function AssistantScreen({ navigation }: Props) {
         <TextInput
           style={styles.input}
           placeholder="Ask the assistant..."
-          placeholderTextColor={COLORS.mutedLight}
+          placeholderTextColor={colors.mutedLight}
           value={input}
           onChangeText={setInput}
           onSubmitEditing={onSend}
@@ -176,15 +180,16 @@ export function AssistantScreen({ navigation }: Props) {
           accessibilityRole="button"
           accessibilityLabel="Send message"
         >
-          <MaterialCommunityIcons name="send" size={18} color={COLORS.white} />
+          <MaterialCommunityIcons name="send" size={18} color={colors.white} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  flexScreen: { flex: 1, backgroundColor: COLORS.fieldBg },
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+  flexScreen: { flex: 1, backgroundColor: colors.fieldBg },
   header: { paddingHorizontal: 12, paddingBottom: 14 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerButton: {
@@ -204,28 +209,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { ...TYPE.heading, fontSize: 17, color: COLORS.white },
+  headerTitle: { ...TYPE.heading, fontSize: 17, color: colors.white },
   headerSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 11.5, marginTop: 2 },
   headerSpacer: { width: 36 },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.ink },
-  emptySubtitle: { fontSize: 13, color: COLORS.mutedLight, textAlign: "center", lineHeight: 19 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: colors.ink },
+  emptySubtitle: { fontSize: 13, color: colors.mutedLight, textAlign: "center", lineHeight: 19 },
   list: { flex: 1 },
   listContent: { padding: 14, gap: 10 },
   bubbleRow: { flexDirection: "row" },
   bubbleRowMine: { justifyContent: "flex-end" },
   bubble: { maxWidth: "80%", borderRadius: 16, padding: 12 },
   bubbleAssistant: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderBottomLeftRadius: 4,
   },
-  bubbleMine: { backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
-  bubbleText: { fontSize: 14, color: "#1e293b", lineHeight: 20 },
-  bubbleTextMine: { color: COLORS.white },
+  bubbleMine: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
+  bubbleText: { fontSize: 14, color: colors.ink, lineHeight: 20 },
+  bubbleTextMine: { color: colors.white },
   typingBubble: { flexDirection: "row", gap: 4, alignItems: "center", paddingVertical: 14 },
-  typingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.mutedLight },
+  typingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.mutedLight },
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -234,41 +239,42 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 10,
     borderRadius: RADIUS.field,
-    backgroundColor: COLORS.dangerBg,
+    backgroundColor: colors.dangerBg,
     borderWidth: 1,
-    borderColor: COLORS.dangerBorderLight,
+    borderColor: colors.dangerBorderLight,
   },
-  errorText: { flex: 1, fontSize: 12.5, color: COLORS.danger },
-  retryButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.pill, backgroundColor: COLORS.danger },
-  retryText: { color: COLORS.white, fontSize: 12, fontWeight: "700" },
+  errorText: { flex: 1, fontSize: 12.5, color: colors.danger },
+  retryButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.pill, backgroundColor: colors.danger },
+  retryText: { color: colors.white, fontSize: 12, fontWeight: "700" },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     padding: 10,
     gap: 8,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: colors.divider,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 14,
-    color: COLORS.ink,
+    color: colors.ink,
     maxHeight: 100,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
   },
   sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  sendButtonDisabled: { backgroundColor: COLORS.mutedLight },
-});
+  sendButtonDisabled: { backgroundColor: colors.mutedLight },
+  });
+}

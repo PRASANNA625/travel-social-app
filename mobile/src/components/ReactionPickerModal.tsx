@@ -1,5 +1,8 @@
+import { useMemo } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { COLORS, RADIUS, SHADOW } from "../theme/tokens";
+import { RADIUS, SHADOW } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 
 // Must stay byte-identical to backend/src/modules/messages/messages.service.ts's
 // ALLOWED_REACTIONS - these emoji include invisible variation-selector
@@ -18,6 +21,9 @@ export function ReactionPickerModal({
   onSelect: (emoji: string) => void;
   currentReaction: string | null;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
@@ -37,18 +43,20 @@ export function ReactionPickerModal({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(15,23,42,0.35)", alignItems: "center", justifyContent: "center" },
-  sheet: {
-    flexDirection: "row",
-    gap: 6,
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    ...SHADOW.card,
-  },
-  emojiButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  emojiButtonActive: { backgroundColor: COLORS.fieldBg },
-  emoji: { fontSize: 22 },
-});
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    backdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: "center", justifyContent: "center" },
+    sheet: {
+      flexDirection: "row",
+      gap: 6,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      ...SHADOW.card,
+    },
+    emojiButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+    emojiButtonActive: { backgroundColor: colors.fieldBg },
+    emoji: { fontSize: 22 },
+  });
+}

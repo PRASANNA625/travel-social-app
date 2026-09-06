@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { GRADIENT_PRIMARY } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -36,15 +37,20 @@ const PATTERN: PatternItem[] = (() => {
 // Subtle WhatsApp-style chat wallpaper: a faint Triply gradient wash plus a
 // low-opacity repeating grid of travel icons, matching the watermark pattern
 // already used in GradientBackground. Purely decorative - never intercepts touches.
+// In dark mode the wash sits on a navy chat background, so both the gradient
+// wash and the icon grid run at a higher opacity to stay visible rather than
+// washing out to near-invisible against the darker base.
 export function ChatWallpaper() {
+  const { scheme } = useTheme();
+  const isDark = scheme === "dark";
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={[StyleSheet.absoluteFill, isDark && styles.darkBase]} pointerEvents="none">
       <LinearGradient
         colors={GRADIENT_PRIMARY.colors}
         locations={GRADIENT_PRIMARY.locations}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[StyleSheet.absoluteFill, styles.wash]}
+        style={[StyleSheet.absoluteFill, isDark ? styles.washDark : styles.wash]}
       />
       {PATTERN.map((item, i) => (
         <MaterialCommunityIcons
@@ -52,7 +58,11 @@ export function ChatWallpaper() {
           name={item.icon}
           size={item.size}
           color={item.color}
-          style={[styles.icon, { left: item.left, top: item.top, transform: [{ rotate: item.rotate }] }]}
+          style={[
+            styles.icon,
+            isDark && styles.iconDark,
+            { left: item.left, top: item.top, transform: [{ rotate: item.rotate }] },
+          ]}
         />
       ))}
     </View>
@@ -60,6 +70,9 @@ export function ChatWallpaper() {
 }
 
 const styles = StyleSheet.create({
+  darkBase: { backgroundColor: "#0b1120" },
   wash: { opacity: 0.035 },
+  washDark: { opacity: 0.12 },
   icon: { position: "absolute", opacity: 0.09 },
+  iconDark: { opacity: 0.16 },
 });

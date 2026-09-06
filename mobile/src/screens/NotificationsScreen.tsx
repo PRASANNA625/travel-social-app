@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { ComponentProps } from "react";
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -11,7 +12,9 @@ import type { AppNotification } from "../types";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { Skeleton } from "../components/theme/Skeleton";
 import { optimizedImageUrl } from "../utils/optimizedImage";
-import { COLORS, RADIUS, TYPE } from "../theme/tokens";
+import { RADIUS, TYPE } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Notifications">,
@@ -41,15 +44,19 @@ function describe(notification: AppNotification): string {
 }
 
 // Per-type icon + tint. Any notification type not listed here falls back to
-// DEFAULT_ICON's chat-bubble glyph instead of rendering blank.
-const NOTIFICATION_ICON: Record<string, { icon: IconName; bg: string; color: string }> = {
-  NEW_JOIN_REQUEST: { icon: "account-multiple-plus", bg: COLORS.fieldBg, color: COLORS.primary },
-  JOIN_REQUEST_APPROVED: { icon: "check-circle", bg: COLORS.successBg, color: COLORS.primary },
-  JOIN_REQUEST_REJECTED: { icon: "close-circle-outline", bg: COLORS.dangerBg, color: COLORS.danger },
-  GROUP_MESSAGE: { icon: "chat-processing-outline", bg: COLORS.successBg, color: COLORS.primary },
-  MESSAGE_REACTION: { icon: "heart-outline", bg: COLORS.successBg, color: COLORS.primary },
-  TRIP_COMMENT: { icon: "comment-text-outline", bg: COLORS.fieldBg, color: COLORS.primary },
-};
+// the chat-bubble glyph instead of rendering blank. Colors come from the
+// active theme rather than being baked in, since this map is consulted at
+// render time.
+function notificationIconMap(colors: Palette): Record<string, { icon: IconName; bg: string; color: string }> {
+  return {
+    NEW_JOIN_REQUEST: { icon: "account-multiple-plus", bg: colors.fieldBg, color: colors.primary },
+    JOIN_REQUEST_APPROVED: { icon: "check-circle", bg: colors.successBg, color: colors.primary },
+    JOIN_REQUEST_REJECTED: { icon: "close-circle-outline", bg: colors.dangerBg, color: colors.danger },
+    GROUP_MESSAGE: { icon: "chat-processing-outline", bg: colors.successBg, color: colors.primary },
+    MESSAGE_REACTION: { icon: "heart-outline", bg: colors.successBg, color: colors.primary },
+    TRIP_COMMENT: { icon: "comment-text-outline", bg: colors.fieldBg, color: colors.primary },
+  };
+}
 
 // The person whose action the notification is about, when it's someone
 // other than the viewer - shown as the badge photo instead of the generic
@@ -59,14 +66,9 @@ function actorPhotoUrl(item: AppNotification): string | null {
   const value = key ? item.payload[key] : null;
   return typeof value === "string" ? value : null;
 }
-const DEFAULT_ICON: { icon: IconName; bg: string; color: string } = {
-  icon: "message-text-outline",
-  bg: COLORS.fieldBg,
-  color: COLORS.muted,
-};
 
-function iconFor(type: string) {
-  return NOTIFICATION_ICON[type] ?? DEFAULT_ICON;
+function iconFor(type: string, colors: Palette) {
+  return notificationIconMap(colors)[type] ?? { icon: "message-text-outline" as IconName, bg: colors.fieldBg, color: colors.muted };
 }
 
 function formatRelativeTime(iso: string): string {
@@ -86,6 +88,8 @@ export function NotificationsScreen({ navigation }: Props) {
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const unreadCount = data?.unreadCount ?? 0;
 
@@ -145,7 +149,7 @@ export function NotificationsScreen({ navigation }: Props) {
         <View style={styles.heroRow}>
           <View style={styles.heroTitleRow}>
             <View style={styles.bellBadge}>
-              <MaterialCommunityIcons name="bell-outline" size={20} color={COLORS.white} />
+              <MaterialCommunityIcons name="bell-outline" size={20} color={colors.white} />
             </View>
             <View>
               <Text style={styles.heroTitle}>Notifications</Text>
@@ -158,7 +162,7 @@ export function NotificationsScreen({ navigation }: Props) {
               onPress={() => markAllRead.mutate()}
               disabled={markAllRead.isPending}
             >
-              <MaterialCommunityIcons name="check-all" size={14} color={COLORS.white} />
+              <MaterialCommunityIcons name="check-all" size={14} color={colors.white} />
               <Text style={styles.markAllText}>Mark all read</Text>
             </TouchableOpacity>
           )}
@@ -196,13 +200,13 @@ export function NotificationsScreen({ navigation }: Props) {
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <MaterialCommunityIcons name="bell-check-outline" size={40} color={COLORS.mutedLight} />
+              <MaterialCommunityIcons name="bell-check-outline" size={40} color={colors.mutedLight} />
               <Text style={styles.emptyTitle}>You're all caught up!</Text>
               <Text style={styles.emptySubtitle}>New activity on your trips will show up here.</Text>
             </View>
           }
           renderItem={({ item }) => {
-            const meta = iconFor(item.type);
+            const meta = iconFor(item.type, colors);
             const photoUrl = actorPhotoUrl(item);
             return (
               <TouchableOpacity
@@ -231,8 +235,9 @@ export function NotificationsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.fieldBg },
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.fieldBg },
   hero: { paddingHorizontal: 20, paddingBottom: 16 },
   heroRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   heroTitleRow: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
@@ -244,7 +249,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  heroTitle: { ...TYPE.heading, fontSize: 20, color: COLORS.white },
+  heroTitle: { ...TYPE.heading, fontSize: 20, color: colors.white },
   heroSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 12.5, marginTop: 2 },
   markAllButton: {
     flexDirection: "row",
@@ -255,35 +260,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  markAllText: { color: COLORS.white, fontSize: 12, fontWeight: "700" },
+  markAllText: { color: colors.white, fontSize: 12, fontWeight: "700" },
   list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 32, gap: 12 },
   item: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: RADIUS.field,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     padding: 14,
   },
   itemUnread: {
-    backgroundColor: "#f0fdfa",
-    borderColor: COLORS.successBorderLight,
+    backgroundColor: colors.successBg,
+    borderColor: colors.successBorderLight,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary,
+    borderLeftColor: colors.primary,
   },
   iconBadge: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  avatarBadge: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.fieldBg },
+  avatarBadge: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.fieldBg },
   itemBody: { flex: 1 },
   itemText: { ...TYPE.body, lineHeight: 20 },
   itemTextUnread: { fontWeight: "700" },
-  itemTime: { fontSize: 11.5, color: COLORS.mutedLight, marginTop: 4 },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary },
+  itemTime: { fontSize: 11.5, color: colors.mutedLight, marginTop: 4 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
   emptyWrap: { alignItems: "center", gap: 8, marginTop: 36, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 15, fontWeight: "700", color: COLORS.ink },
-  emptySubtitle: { fontSize: 13, color: COLORS.mutedLight, textAlign: "center" },
+  emptyTitle: { fontSize: 15, fontWeight: "700", color: colors.ink },
+  emptySubtitle: { fontSize: 13, color: colors.mutedLight, textAlign: "center" },
   itemSkeleton: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   skeletonLine: { height: 13, width: "80%" },
   skeletonLineShort: { height: 11, width: "35%", marginTop: 6 },
-});
+  });
+}

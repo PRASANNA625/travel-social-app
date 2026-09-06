@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -31,7 +31,9 @@ import { ChatWallpaper } from "../components/ChatWallpaper";
 import { GroupMembersModal } from "../components/GroupMembersModal";
 import { ReactionPickerModal } from "../components/ReactionPickerModal";
 import { SeenByModal } from "../components/SeenByModal";
-import { COLORS, TYPE } from "../theme/tokens";
+import { TYPE } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 
 type Props = NativeStackScreenProps<AppStackParamList, "GroupChat">;
 
@@ -66,6 +68,8 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const isWeb = Platform.OS === "web";
   const isClosed = group?.trip.status === "COMPLETED";
   const markGroupNotificationsRead = useMarkGroupNotificationsRead();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     markGroupNotificationsRead.mutate(groupId);
@@ -249,7 +253,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
               <MaterialCommunityIcons
                 name={(item.readBy?.length ?? 0) > 0 ? "check-all" : "check"}
                 size={13}
-                color={(item.readBy?.length ?? 0) > 0 ? COLORS.primary : COLORS.mutedLight}
+                color={(item.readBy?.length ?? 0) > 0 ? colors.primary : colors.mutedLight}
               />
               <Text style={(item.readBy?.length ?? 0) > 0 ? styles.seenByTextSeen : styles.seenByText}>
                 {(item.readBy?.length ?? 0) > 0 ? `Seen by ${item.readBy!.length}` : "Sent"}
@@ -265,7 +269,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.ink} />
+          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.ink} />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -273,7 +277,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
           </Text>
           {group && (
             <View style={styles.headerSubRow}>
-              <MaterialCommunityIcons name="account-group-outline" size={12} color={COLORS.muted} />
+              <MaterialCommunityIcons name="account-group-outline" size={12} color={colors.muted} />
               <Text style={styles.headerSubtitle} numberOfLines={1}>
                 {group.members.length} member{group.members.length === 1 ? "" : "s"} ·{" "}
                 {group.members.map((m) => m.user.name).join(", ")}
@@ -285,7 +289,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
           style={[styles.headerButton, styles.headerMembersButton]}
           onPress={() => setMembersModalVisible(true)}
         >
-          <MaterialCommunityIcons name="account-group" size={18} color={COLORS.ink} />
+          <MaterialCommunityIcons name="account-group" size={18} color={colors.ink} />
           <Text style={styles.headerMembersCount}>{group?.members?.length ?? 0}</Text>
         </TouchableOpacity>
       </View>
@@ -309,7 +313,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
             </View>
           ) : messages.length === 0 ? (
             <View style={styles.emptyWrap}>
-              <MaterialCommunityIcons name="chat-outline" size={40} color="#cbd5e1" />
+              <MaterialCommunityIcons name="chat-outline" size={40} color={colors.mutedLight} />
               <Text style={styles.emptyText}>No messages yet. Say hello to the group!</Text>
             </View>
           ) : (
@@ -341,17 +345,17 @@ export function GroupChatScreen({ route, navigation }: Props) {
                 onPress={() => setPendingPhoto(null)}
                 disabled={sendingPhoto}
               >
-                <MaterialCommunityIcons name="close" size={18} color={COLORS.danger} />
+                <MaterialCommunityIcons name="close" size={18} color={colors.danger} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.previewIconButton} onPress={onRetake} disabled={sendingPhoto}>
-                <MaterialCommunityIcons name="camera-retake-outline" size={18} color="#334155" />
+                <MaterialCommunityIcons name="camera-retake-outline" size={18} color={colors.ink} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.previewSendButton} onPress={onConfirmSendPhoto} disabled={sendingPhoto}>
                 {sendingPhoto ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
+                  <ActivityIndicator size="small" color={colors.white} />
                 ) : (
                   <>
-                    <MaterialCommunityIcons name="send" size={16} color={COLORS.white} />
+                    <MaterialCommunityIcons name="send" size={16} color={colors.white} />
                     <Text style={styles.previewSendText}>Send</Text>
                   </>
                 )}
@@ -362,7 +366,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
           <>
             {isClosed && (
               <View style={styles.closedBanner}>
-                <MaterialCommunityIcons name="lock-outline" size={14} color={COLORS.mutedLight} />
+                <MaterialCommunityIcons name="lock-outline" size={14} color={colors.mutedLight} />
                 <Text style={styles.closedBannerText}>This trip is closed. Chat is read-only.</Text>
               </View>
             )}
@@ -372,12 +376,12 @@ export function GroupChatScreen({ route, navigation }: Props) {
                 style={[styles.attachButton, isClosed && styles.attachButtonDisabled]}
                 disabled={isClosed}
               >
-                <MaterialCommunityIcons name="paperclip" size={22} color={isClosed ? COLORS.mutedLight : COLORS.primary} />
+                <MaterialCommunityIcons name="paperclip" size={22} color={isClosed ? colors.mutedLight : colors.primary} />
               </TouchableOpacity>
               <TextInput
                 style={[styles.input, isClosed && styles.inputDisabled]}
                 placeholder={isClosed ? "Chat is read-only" : "Message the group..."}
-                placeholderTextColor={COLORS.mutedLight}
+                placeholderTextColor={colors.mutedLight}
                 value={text}
                 onChangeText={setText}
                 onSubmitEditing={onSend}
@@ -385,7 +389,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
                 multiline
               />
               <TouchableOpacity onPress={onSend} style={styles.sendButton} disabled={!text.trim() || isClosed}>
-                <MaterialCommunityIcons name="send" size={18} color={COLORS.white} />
+                <MaterialCommunityIcons name="send" size={18} color={colors.white} />
               </TouchableOpacity>
             </View>
           </>
@@ -429,16 +433,17 @@ export function GroupChatScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  flexScreen: { flex: 1, backgroundColor: COLORS.fieldBg },
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+  flexScreen: { flex: 1, backgroundColor: colors.fieldBg },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
     paddingBottom: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: colors.divider,
   },
   headerButton: {
     width: 40,
@@ -446,53 +451,53 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
   },
   headerMembersButton: { width: undefined, minWidth: 40, paddingHorizontal: 10, flexDirection: "row", gap: 4 },
   headerMembersCount: { ...TYPE.label, fontSize: 12 },
   headerTextWrap: { flex: 1, alignItems: "center", paddingHorizontal: 6 },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: COLORS.ink },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: colors.ink },
   headerSubRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2, maxWidth: "100%" },
-  headerSubtitle: { fontSize: 11.5, color: COLORS.muted, flexShrink: 1 },
+  headerSubtitle: { fontSize: 11.5, color: colors.muted, flexShrink: 1 },
   body: { flex: 1 },
   bodyWeb: { width: "100%", maxWidth: 640, alignSelf: "center" },
   messageArea: { flex: 1, position: "relative", overflow: "hidden" },
   list: { flex: 1 },
   listContent: { padding: 14, gap: 10 },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
-  emptyText: { fontSize: 13.5, color: COLORS.mutedLight, textAlign: "center" },
+  emptyText: { fontSize: 13.5, color: colors.mutedLight, textAlign: "center" },
   bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
   bubbleRowMine: { justifyContent: "flex-end" },
   skeletonAvatar: { width: 28, height: 28, borderRadius: 14 },
   skeletonBubble: { width: "55%", height: 40, borderRadius: 16 },
   skeletonBubbleMine: { width: "40%" },
   avatar: { width: 28, height: 28, borderRadius: 14 },
-  avatarPlaceholder: { backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
-  avatarInitial: { color: COLORS.white, fontSize: 12, fontWeight: "700" },
+  avatarPlaceholder: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+  avatarInitial: { color: colors.white, fontSize: 12, fontWeight: "700" },
   bubbleCol: { maxWidth: "75%", alignItems: "flex-start" },
   bubbleColMine: { alignItems: "flex-end" },
   bubble: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: 16,
     borderBottomLeftRadius: 4,
     padding: 11,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   bubbleTheirs: {},
   bubbleMine: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 4,
   },
   bubbleImageWrap: { padding: 4, overflow: "hidden" },
-  bubbleHighlighted: { borderWidth: 2, borderColor: COLORS.warningText, shadowColor: COLORS.warningText, shadowOpacity: 0.35, shadowRadius: 6, elevation: 3 },
-  senderName: { fontSize: 11, fontWeight: "700", color: COLORS.primary, marginBottom: 3 },
-  messageText: { fontSize: 14, color: "#1e293b", lineHeight: 20 },
-  messageTextMine: { color: COLORS.white },
+  bubbleHighlighted: { borderWidth: 2, borderColor: colors.warningText, shadowColor: colors.warningText, shadowOpacity: 0.35, shadowRadius: 6, elevation: 3 },
+  senderName: { fontSize: 11, fontWeight: "700", color: colors.primary, marginBottom: 3 },
+  messageText: { fontSize: 14, color: colors.ink, lineHeight: 20 },
+  messageTextMine: { color: colors.white },
   messageImage: { width: 190, height: 190, borderRadius: 12 },
-  timeText: { fontSize: 10.5, color: COLORS.mutedLight, marginTop: 3, marginLeft: 4 },
+  timeText: { fontSize: 10.5, color: colors.mutedLight, marginTop: 3, marginLeft: 4 },
   timeTextMine: { marginLeft: 0, marginRight: 4 },
   reactionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginTop: 4 },
   reactionsRowMine: { justifyContent: "flex-end" },
@@ -500,86 +505,86 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  reactionPillMine: { backgroundColor: COLORS.successBg, borderColor: COLORS.successBorderLight },
+  reactionPillMine: { backgroundColor: colors.successBg, borderColor: colors.successBorderLight },
   reactionEmoji: { fontSize: 13 },
-  reactionCount: { fontSize: 11, color: COLORS.muted, fontWeight: "700" },
+  reactionCount: { fontSize: 11, color: colors.muted, fontWeight: "700" },
   seenByRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3, alignSelf: "flex-end" },
-  seenByText: { fontSize: 10.5, color: COLORS.mutedLight },
-  seenByTextSeen: { fontSize: 10.5, color: COLORS.primary, fontWeight: "600" },
+  seenByText: { fontSize: 10.5, color: colors.mutedLight },
+  seenByTextSeen: { fontSize: 10.5, color: colors.primary, fontWeight: "600" },
   closedBanner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     paddingVertical: 8,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: colors.divider,
   },
-  closedBannerText: { fontSize: 12, color: COLORS.mutedLight, fontWeight: "600" },
+  closedBannerText: { fontSize: 12, color: colors.mutedLight, fontWeight: "600" },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     padding: 10,
     gap: 8,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: colors.divider,
   },
   attachButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.successBg,
+    backgroundColor: colors.successBg,
     alignItems: "center",
     justifyContent: "center",
   },
-  attachButtonDisabled: { backgroundColor: COLORS.fieldBg },
+  attachButtonDisabled: { backgroundColor: colors.fieldBg },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 14,
-    color: COLORS.ink,
+    color: colors.ink,
     maxHeight: 100,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
   },
-  inputDisabled: { color: COLORS.mutedLight },
+  inputDisabled: { color: colors.mutedLight },
   sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   previewBar: {
     padding: 14,
     gap: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surfaceElevated,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: colors.divider,
   },
-  previewThumb: { width: "100%", height: 160, borderRadius: 14, backgroundColor: "#f1f5f9" },
-  previewLabel: { fontSize: 13, color: "#334155", fontWeight: "600" },
+  previewThumb: { width: "100%", height: 160, borderRadius: 14, backgroundColor: colors.divider },
+  previewLabel: { fontSize: 13, color: colors.ink, fontWeight: "600" },
   previewActions: { flexDirection: "row", alignItems: "center", gap: 10 },
   previewIconButton: {
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: COLORS.fieldBg,
+    backgroundColor: colors.fieldBg,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -589,9 +594,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 14,
     paddingVertical: 12,
   },
-  previewSendText: { color: COLORS.white, fontWeight: "700", fontSize: 14.5 },
-});
+  previewSendText: { color: colors.white, fontWeight: "700", fontSize: 14.5 },
+  });
+}
