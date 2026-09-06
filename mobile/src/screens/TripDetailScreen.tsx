@@ -79,6 +79,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const [heroWidth, setHeroWidth] = useState(width);
   const heroHeight = isWeb ? Math.min(Math.round(heroWidth / 2.4), 380) : 260;
   const scrollViewRef = useRef<ScrollView>(null);
+  const heroListRef = useRef<FlatList<string>>(null);
+  const activeImageIndexRef = useRef(0);
   const commentsScrollRef = useRef<ScrollView>(null);
   const commentsSectionY = useRef(0);
   const commentOffsets = useRef<Map<string, number>>(new Map());
@@ -125,6 +127,25 @@ export function TripDetailScreen({ route, navigation }: Props) {
     });
     return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    activeImageIndexRef.current = activeImageIndex;
+  }, [activeImageIndex]);
+
+  // Auto-slide the trip photo gallery, same technique as Discover's hero
+  // carousel - only while there's more than one photo, not while the owner
+  // is mid-edit (that view swaps the gallery for an editable thumbnail grid
+  // entirely), and only once the FlatList's real width is known.
+  const imageCount = trip?.images.length ?? 0;
+  useEffect(() => {
+    if (editingPhotos || imageCount <= 1 || heroWidth === 0) return;
+    const timer = setInterval(() => {
+      const next = (activeImageIndexRef.current + 1) % imageCount;
+      heroListRef.current?.scrollToOffset({ offset: next * heroWidth, animated: true });
+      setActiveImageIndex(next);
+    }, 3800);
+    return () => clearInterval(timer);
+  }, [editingPhotos, imageCount, heroWidth]);
 
   if (isLoading || !trip) {
     return (
@@ -356,6 +377,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
           >
             {trip.images.length > 0 ? (
               <FlatList
+                ref={heroListRef}
                 style={styles.heroList}
                 data={trip.images}
                 keyExtractor={(uri) => uri}
