@@ -21,8 +21,9 @@ import { useLogin } from "../api/auth";
 import { Alert } from "../utils/alert";
 import { useLanguage } from "../i18n/LanguageContext";
 import { LanguageSelector } from "../components/LanguageSelector";
-import { GoogleSignInButton } from "../components/GoogleSignInButton";
-import { GOOGLE_CLIENT_ID } from "../utils/googleAuth";
+// Google Sign-In temporarily disabled - see usage below.
+// import { GoogleSignInButton } from "../components/GoogleSignInButton";
+// import { GOOGLE_CLIENT_ID } from "../utils/googleAuth";
 import { useTheme } from "../theme/ThemeContext";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
@@ -131,11 +132,14 @@ export function LoginScreen({ navigation }: Props) {
                 )}
               </TouchableOpacity>
 
+              {/* Google Sign-In temporarily disabled - restore by uncommenting the
+                  import above and this block.
               {GOOGLE_CLIENT_ID ? (
                 <GoogleSignInButton />
               ) : (
                 <Text style={[styles.note, { color: colors.mutedLight }]}>{t("login.googleNotConfigured")}</Text>
               )}
+              */}
 
               <View style={styles.secondaryActions}>
                 <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("Register")}>
