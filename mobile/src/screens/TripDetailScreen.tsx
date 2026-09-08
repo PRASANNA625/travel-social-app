@@ -544,7 +544,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
           {!comments || comments.length === 0 ? (
             <View style={styles.emptyComments}>
-              <MaterialCommunityIcons name="comment-text-outline" size={32} color="#cbd5e1" />
+              <MaterialCommunityIcons name="comment-text-outline" size={32} color={colors.mutedLight} />
               <Text style={styles.emptyCommentsText}>No comments yet. Start the conversation!</Text>
             </View>
           ) : (

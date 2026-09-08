@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LANGUAGES } from "../i18n/languages";
 import { useLanguage } from "../i18n/LanguageContext";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 
 export function LanguageSelector({
   variant = "light",
@@ -18,6 +20,8 @@ export function LanguageSelector({
   const insets = useSafeAreaInsets();
   const isLight = variant === "light";
   const current = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <>
@@ -42,7 +46,7 @@ export function LanguageSelector({
                 }}
               >
                 <Text style={[styles.optionText, l.code === language && styles.optionTextActive]}>{l.native}</Text>
-                {l.code === language && <MaterialCommunityIcons name="check" size={16} color="#0f766e" />}
+                {l.code === language && <MaterialCommunityIcons name="check" size={16} color={colors.primary} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -52,35 +56,40 @@ export function LanguageSelector({
   );
 }
 
-const styles = StyleSheet.create({
-  pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderWidth: 1,
-  },
-  pillLight: { backgroundColor: "rgba(255,255,255,0.16)", borderColor: "rgba(255,255,255,0.3)" },
-  pillDark: { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" },
-  pillText: { fontSize: 12.5, fontWeight: "700" },
-  pillTextLight: { color: "#fff" },
-  pillTextDark: { color: "#0f172a" },
-  backdrop: { flex: 1, backgroundColor: "rgba(15,23,42,0.4)", alignItems: "flex-end", paddingHorizontal: 20 },
-  sheet: {
-    width: 180,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    paddingVertical: 6,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  option: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  optionActive: { backgroundColor: "#ecfdf5" },
-  optionText: { fontSize: 14, color: "#334155", fontWeight: "500" },
-  optionTextActive: { color: "#0f766e", fontWeight: "700" },
-});
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    pill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderWidth: 1,
+    },
+    // pillLight/pillDark are a contrast variant chosen by the caller for the
+    // branded gradient screens this appears on (Welcome, Login, Onboarding,
+    // etc.) - independent of app-wide Dark Mode, so these stay literal.
+    pillLight: { backgroundColor: "rgba(255,255,255,0.16)", borderColor: "rgba(255,255,255,0.3)" },
+    pillDark: { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" },
+    pillText: { fontSize: 12.5, fontWeight: "700" },
+    pillTextLight: { color: "#fff" },
+    pillTextDark: { color: "#0f172a" },
+    backdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: "flex-end", paddingHorizontal: 20 },
+    sheet: {
+      width: 180,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 16,
+      paddingVertical: 6,
+      shadowColor: colors.ink,
+      shadowOpacity: 0.2,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 8,
+    },
+    option: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
+    optionActive: { backgroundColor: colors.successBg },
+    optionText: { fontSize: 14, color: colors.ink, fontWeight: "500" },
+    optionTextActive: { color: colors.primary, fontWeight: "700" },
+  });
+}

@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
+import { useTheme } from "../theme/ThemeContext";
+import type { Palette } from "../theme/palettes";
 
 // Metro-platform-split sibling of LocationPickerModal.tsx (same convention
 // as TripDateFields.tsx / TripDateFields.web.tsx): react-native-webview has
@@ -151,6 +153,8 @@ export function LocationPickerModal({
   const [resolving, setResolving] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [preview, setPreview] = useState<LocationValue | null>(null);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const mapHtml = useMemo(buildMapHtml, []);
 
   // Native's equivalent of this is webviewRef.current?.injectJavaScript(...);
@@ -274,20 +278,20 @@ export function LocationPickerModal({
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
           <TouchableOpacity onPress={onClose} hitSlop={12}>
-            <MaterialCommunityIcons name="close" size={22} color="#0f172a" />
+            <MaterialCommunityIcons name="close" size={22} color={colors.ink} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchWrap}>
-          <MaterialCommunityIcons name="magnify" size={18} color="#94a3b8" />
+          <MaterialCommunityIcons name="magnify" size={18} color={colors.mutedLight} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for a place..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.mutedLight}
             value={query}
             onChangeText={setQuery}
           />
-          {searching && <ActivityIndicator size="small" color="#0f766e" />}
+          {searching && <ActivityIndicator size="small" color={colors.primary} />}
         </View>
 
         {results.length > 0 && (
@@ -298,7 +302,7 @@ export function LocationPickerModal({
                 style={styles.resultRow}
                 onPress={() => movePin(result)}
               >
-                <MaterialCommunityIcons name="map-marker-outline" size={16} color="#64748b" />
+                <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.muted} />
                 <Text style={styles.resultText} numberOfLines={2}>
                   {result.name}
                 </Text>
@@ -309,9 +313,9 @@ export function LocationPickerModal({
 
         <TouchableOpacity style={styles.currentLocationButton} onPress={useCurrentLocation} disabled={locating}>
           {locating ? (
-            <ActivityIndicator size="small" color="#0f766e" />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : (
-            <MaterialCommunityIcons name="crosshairs-gps" size={16} color="#0f766e" />
+            <MaterialCommunityIcons name="crosshairs-gps" size={16} color={colors.primary} />
           )}
           <Text style={styles.currentLocationText}>Use current location</Text>
         </TouchableOpacity>
@@ -348,64 +352,66 @@ export function LocationPickerModal({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 54,
-    paddingBottom: 12,
-  },
-  title: { fontSize: 17, fontWeight: "700", color: "#0f172a" },
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginHorizontal: 16,
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    paddingHorizontal: 14,
-  },
-  searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: "#0f172a" },
-  resultsList: {
-    marginHorizontal: 16,
-    marginTop: 6,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    maxHeight: 160,
-  },
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  resultText: { flex: 1, fontSize: 13, color: "#334155" },
-  currentLocationButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginHorizontal: 16,
-    marginTop: 10,
-    alignSelf: "flex-start",
-  },
-  currentLocationText: { color: "#0f766e", fontWeight: "700", fontSize: 13 },
-  mapWrap: { flex: 1, marginTop: 12, marginHorizontal: 16, borderRadius: 12, overflow: "hidden" },
-  footer: { padding: 16, borderTopWidth: 1, borderTopColor: "#e2e8f0" },
-  previewText: { fontSize: 13, color: "#334155", marginBottom: 10 },
-  footerButtons: { flexDirection: "row", gap: 10 },
-  cancelButton: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", backgroundColor: "#f1f5f9" },
-  cancelButtonText: { color: "#334155", fontWeight: "700", fontSize: 13 },
-  confirmButton: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", backgroundColor: "#0f766e" },
-  confirmButtonDisabled: { backgroundColor: "#94a3b8" },
-  confirmButtonText: { color: "#fff", fontWeight: "700", fontSize: 13 },
-});
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.surface },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingTop: 54,
+      paddingBottom: 12,
+    },
+    title: { fontSize: 17, fontWeight: "700", color: colors.ink },
+    searchWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: 16,
+      backgroundColor: colors.fieldBg,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+    },
+    searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: colors.ink },
+    resultsList: {
+      marginHorizontal: 16,
+      marginTop: 6,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      maxHeight: 160,
+    },
+    resultRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    resultText: { flex: 1, fontSize: 13, color: colors.ink },
+    currentLocationButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginHorizontal: 16,
+      marginTop: 10,
+      alignSelf: "flex-start",
+    },
+    currentLocationText: { color: colors.primary, fontWeight: "700", fontSize: 13 },
+    mapWrap: { flex: 1, marginTop: 12, marginHorizontal: 16, borderRadius: 12, overflow: "hidden" },
+    footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.border },
+    previewText: { fontSize: 13, color: colors.ink, marginBottom: 10 },
+    footerButtons: { flexDirection: "row", gap: 10 },
+    cancelButton: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", backgroundColor: colors.fieldBg },
+    cancelButtonText: { color: colors.ink, fontWeight: "700", fontSize: 13 },
+    confirmButton: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", backgroundColor: colors.primary },
+    confirmButtonDisabled: { backgroundColor: colors.mutedLight },
+    confirmButtonText: { color: colors.white, fontWeight: "700", fontSize: 13 },
+  });
+}
