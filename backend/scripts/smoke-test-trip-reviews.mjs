@@ -164,12 +164,17 @@ async function main() {
   // --- Cancelled trips cannot be reviewed ---
   const trip2 = await createTrip(owner.token);
   await joinAndApprove(trip2.id, owner.token, member1.token);
+  await backdateTrip(trip2.id);
   await requestOk("POST", `/trips/${trip2.id}/cancel`, { token: owner.token });
   const cancelledAttempt = await request("POST", `/trips/${trip2.id}/reviews`, {
     token: member1.token,
     body: { rating: 5 },
   });
   assert(cancelledAttempt.status === 403, `reviewing a cancelled trip should 403, got ${cancelledAttempt.status}`);
+  assert(
+    cancelledAttempt.data.error === "Cancelled trips can't be reviewed",
+    `expected the cancellation-specific error, got ${JSON.stringify(cancelledAttempt.data)}`
+  );
   console.log("✓ a cancelled trip cannot be reviewed");
 
   console.log("All Trip Reviews smoke tests passed.");

@@ -375,6 +375,7 @@ async function canReviewTrip(
 }
 
 async function recomputeTripRatingAggregate(tx: Prisma.TransactionClient, tripId: string) {
+  await tx.$executeRaw`SELECT id FROM "Trip" WHERE id = ${tripId} FOR UPDATE`;
   const agg = await tx.tripReview.aggregate({
     where: { tripId },
     _avg: { rating: true },
@@ -476,11 +477,9 @@ export async function submitReview(
 }
 
 export async function deleteReview(tripId: string, userId: string) {
-  const existing = await prisma.tripReview.findUnique({ where: { tripId_userId: { tripId, userId } } });
-  if (!existing) throw new HttpError(404, "You haven't reviewed this trip");
-
   await prisma.$transaction(async (tx) => {
-    await tx.tripReview.delete({ where: { tripId_userId: { tripId, userId } } });
+    const result = await tx.tripReview.deleteMany({ where: { tripId, userId } });
+    if (result.count === 0) throw new HttpError(404, "You haven't reviewed this trip");
     await recomputeTripRatingAggregate(tx, tripId);
   });
 }

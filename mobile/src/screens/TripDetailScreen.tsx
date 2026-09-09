@@ -252,7 +252,18 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const onDeleteReview = () => {
     Alert.alert("Delete your review?", "This can't be undone.", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteReview.mutate() },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () =>
+          deleteReview.mutate(undefined, {
+            onSuccess: () => {
+              setReviewRating(0);
+              setReviewComment("");
+            },
+            onError: (err: any) => Alert.alert("Couldn't delete review", err?.response?.data?.error ?? "Try again"),
+          }),
+      },
     ]);
   };
 
@@ -690,7 +701,13 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
           {reviewsData?.viewerReview && !editingReview && (
             <View style={styles.reviewOwnCard}>
-              <Text style={styles.reviewOwnLabel}>Your review</Text>
+              <View style={styles.reviewOwnContent}>
+                <Text style={styles.reviewOwnLabel}>Your review</Text>
+                <StarRating rating={reviewsData.viewerReview.rating} readOnly size={14} />
+                {reviewsData.viewerReview.comment && (
+                  <Text style={styles.commentText}>{reviewsData.viewerReview.comment}</Text>
+                )}
+              </View>
               <View style={styles.reviewOwnActions}>
                 <TouchableOpacity onPress={startEditingReview}>
                   <Text style={styles.reviewActionText}>Edit</Text>
@@ -711,6 +728,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
                 placeholderTextColor={colors.mutedLight}
                 value={reviewComment}
                 onChangeText={setReviewComment}
+                maxLength={2000}
                 multiline
               />
               <View style={styles.reviewFormActions}>
@@ -719,7 +737,11 @@ export function TripDetailScreen({ route, navigation }: Props) {
                     variant="outline"
                     style={styles.stickyFlex}
                     label="Cancel"
-                    onPress={() => setEditingReview(false)}
+                    onPress={() => {
+                      setEditingReview(false);
+                      setReviewRating(0);
+                      setReviewComment("");
+                    }}
                   />
                 )}
                 <PrimaryButton
@@ -966,6 +988,7 @@ function createStyles(colors: Palette) {
     borderRadius: RADIUS.field,
     backgroundColor: colors.fieldBg,
   },
+  reviewOwnContent: { flex: 1, gap: 4 },
   reviewOwnLabel: { fontSize: 13, fontWeight: "600", color: colors.ink },
   reviewOwnActions: { flexDirection: "row", gap: 16 },
   reviewActionText: { fontSize: 13, fontWeight: "700", color: colors.primary },

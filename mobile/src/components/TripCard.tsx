@@ -102,7 +102,7 @@ export function TripCard({
               <>
                 <MaterialCommunityIcons name="star" size={14} color={colors.warningText} style={styles.metaIconSpacer} />
                 <Text style={[styles.meta, { color: colors.muted }]}>
-                  {trip.avgRating!.toFixed(1)} ({trip.reviewCount})
+                  {(trip.avgRating ?? 0).toFixed(1)} ({trip.reviewCount})
                 </Text>
               </>
             )}

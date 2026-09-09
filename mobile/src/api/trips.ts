@@ -200,7 +200,7 @@ export function useSubmitReview(tripId: string) {
 export function useDeleteReview(tripId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => apiClient.delete(`/trips/${tripId}/reviews`),
+    mutationFn: async () => (await apiClient.delete<{ ok: boolean }>(`/trips/${tripId}/reviews`)).data,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trips", tripId, "reviews"] });
       queryClient.invalidateQueries({ queryKey: ["trips", tripId] });
