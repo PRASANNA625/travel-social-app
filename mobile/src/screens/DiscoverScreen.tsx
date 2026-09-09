@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,7 +17,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
-import { useTrips } from "../api/trips";
+import { useTrips, useTrendingTrips, useRecommendedTrips } from "../api/trips";
 import { useMe } from "../api/users";
 import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
@@ -26,11 +26,13 @@ import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { DiscoverHeroCarousel } from "../components/DiscoverHeroCarousel";
+import { DiscoverSection } from "../components/DiscoverSection";
 import { ProfileMenu, type ProfileMenuAnchor } from "../components/ProfileMenu";
 import { RADIUS } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
+import { getUpcomingWeekendRange } from "../utils/weekendRange";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -56,6 +58,37 @@ export function DiscoverScreen({ navigation }: Props) {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { data: me } = useMe();
+
+  const [nearYouCoords, setNearYouCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentLocationOrThrow()
+      .then((coords) => {
+        if (!cancelled) setNearYouCoords(coords);
+      })
+      .catch(() => {
+        // Silent - Near You section simply stays hidden if location isn't available.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const weekendRange = useMemo(() => getUpcomingWeekendRange(), []);
+
+  const { data: trendingTrips, isLoading: trendingLoading } = useTrendingTrips();
+  const { data: recommendedTrips, isLoading: recommendedLoading } = useRecommendedTrips();
+  const { data: nearYouData, isLoading: nearYouLoading } = useTrips(
+    { lat: nearYouCoords?.lat, lng: nearYouCoords?.lng, radiusKm: DEFAULT_RADIUS_KM },
+    { enabled: !!nearYouCoords }
+  );
+  const { data: weekendData, isLoading: weekendLoading } = useTrips(
+    { dateFrom: weekendRange.dateFrom, dateTo: weekendRange.dateTo },
+    { enabled: true }
+  );
+
+  const onSectionTripPress = (trip: { id: string }) => navigation.navigate("TripDetail", { tripId: trip.id });
 
   const { data, isLoading, isFetching, refetch } = useTrips({
     search: search || undefined,
@@ -115,130 +148,164 @@ export function DiscoverScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <GradientBackground style={styles.header}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.greeting}>Hi, {me?.name?.split(" ")[0] ?? "there"} 👋</Text>
-            <Text style={styles.greetingSub}>Where to next?</Text>
-          </View>
-          <View ref={avatarWrapRef} collapsable={false}>
-            <TouchableOpacity onPress={onAvatarPress} accessibilityRole="button" accessibilityLabel="Profile menu">
-              {me?.photoUrl ? (
-                <Image source={{ uri: optimizedImageUrl(me.photoUrl, 84) }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarInitial}>{(me?.name ?? "?").charAt(0).toUpperCase()}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </GradientBackground>
-
-      <DiscoverHeroCarousel />
-
-      <View style={styles.searchWrap}>
-        <MaterialCommunityIcons name="magnify" size={18} color={colors.mutedLight} />
-        <TextInput
-          style={styles.search}
-          placeholder="Search trips, destinations..."
-          placeholderTextColor={colors.mutedLight}
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
       <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterRow}
-        contentContainerStyle={styles.filterRowContent}
-        data={[
-          "NEAR_ME" as const,
-          "SORT" as const,
-          ...TRAVEL_MODES,
-          ...(activeFilterCount > 1 ? (["CLEAR_ALL"] as const) : []),
-        ]}
-        keyExtractor={(item) => item}
-        renderItem={({ item }) => {
-          if (item === "SORT") {
-            return (
-              <TouchableOpacity style={styles.chip} onPress={toggleSortOrder}>
-                <MaterialCommunityIcons
-                  name={sortOrder === "asc" ? "sort-calendar-ascending" : "sort-calendar-descending"}
-                  size={15}
-                  color={colors.ink}
-                />
-                <Text style={styles.chipText}>{sortOrder === "asc" ? "Soonest first" : "Latest first"}</Text>
-              </TouchableOpacity>
-            );
-          }
-          if (item === "NEAR_ME") {
-            return (
-              <TouchableOpacity
-                style={[styles.chip, nearMe && styles.chipActive]}
-                onPress={onNearMePress}
-                disabled={locating}
-              >
-                {locating ? (
-                  <ActivityIndicator size="small" color={nearMe ? colors.white : colors.primary} />
-                ) : (
-                  <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? colors.white : colors.ink} />
-                )}
-                <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>
-                  {nearMe ? `Near me · ${radiusKm} km` : "Near me"}
-                </Text>
-                {nearMe && (
-                  <>
-                    <MaterialCommunityIcons name="chevron-down" size={14} color={colors.white} />
-                    <TouchableOpacity
-                      style={styles.chipRemoveButton}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      onPress={clearNearMe}
-                    >
-                      <MaterialCommunityIcons name="close-circle" size={14} color="rgba(255,255,255,0.85)" />
-                    </TouchableOpacity>
-                  </>
-                )}
-              </TouchableOpacity>
-            );
-          }
-          if (item === "CLEAR_ALL") {
-            return (
-              <TouchableOpacity style={styles.clearAllChip} onPress={clearAllFilters}>
-                <MaterialCommunityIcons name="close" size={14} color={colors.danger} />
-                <Text style={styles.clearAllChipText}>Clear all</Text>
-              </TouchableOpacity>
-            );
-          }
-          const active = travelModes.includes(item);
-          return (
-            <TouchableOpacity style={[styles.chip, active && styles.chipActive]} onPress={() => toggleTravelMode(item)}>
-              <MaterialCommunityIcons
-                name={TRAVEL_MODE_ICONS[item]}
-                size={15}
-                color={active ? colors.white : colors.ink}
-              />
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{travelModeText(item)}</Text>
-              {active && <MaterialCommunityIcons name="close-circle" size={14} color="rgba(255,255,255,0.85)" />}
-            </TouchableOpacity>
-          );
-        }}
-      />
+        contentContainerStyle={styles.list}
+        data={data?.items ?? []}
+        keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
+        ListHeaderComponent={
+          <>
+            <GradientBackground style={styles.header}>
+              <View style={styles.headerRow}>
+                <View>
+                  <Text style={styles.greeting}>Hi, {me?.name?.split(" ")[0] ?? "there"} 👋</Text>
+                  <Text style={styles.greetingSub}>Where to next?</Text>
+                </View>
+                <View ref={avatarWrapRef} collapsable={false}>
+                  <TouchableOpacity onPress={onAvatarPress} accessibilityRole="button" accessibilityLabel="Profile menu">
+                    {me?.photoUrl ? (
+                      <Image source={{ uri: optimizedImageUrl(me.photoUrl, 84) }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarInitial}>{(me?.name ?? "?").charAt(0).toUpperCase()}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </GradientBackground>
 
-      {isLoading ? (
-        <View style={styles.list}>
-          <TripCardSkeleton />
-          <TripCardSkeleton />
-          <TripCardSkeleton />
-        </View>
-      ) : (
-        <FlatList
-          contentContainerStyle={styles.list}
-          data={data?.items ?? []}
-          keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
-          ListEmptyComponent={
+            <DiscoverHeroCarousel />
+
+            <View style={styles.searchWrap}>
+              <MaterialCommunityIcons name="magnify" size={18} color={colors.mutedLight} />
+              <TextInput
+                style={styles.search}
+                placeholder="Search trips, destinations..."
+                placeholderTextColor={colors.mutedLight}
+                value={search}
+                onChangeText={setSearch}
+              />
+            </View>
+
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.filterRow}
+              contentContainerStyle={styles.filterRowContent}
+              data={[
+                "NEAR_ME" as const,
+                "SORT" as const,
+                ...TRAVEL_MODES,
+                ...(activeFilterCount > 1 ? (["CLEAR_ALL"] as const) : []),
+              ]}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => {
+                if (item === "SORT") {
+                  return (
+                    <TouchableOpacity style={styles.chip} onPress={toggleSortOrder}>
+                      <MaterialCommunityIcons
+                        name={sortOrder === "asc" ? "sort-calendar-ascending" : "sort-calendar-descending"}
+                        size={15}
+                        color={colors.ink}
+                      />
+                      <Text style={styles.chipText}>{sortOrder === "asc" ? "Soonest first" : "Latest first"}</Text>
+                    </TouchableOpacity>
+                  );
+                }
+                if (item === "NEAR_ME") {
+                  return (
+                    <TouchableOpacity
+                      style={[styles.chip, nearMe && styles.chipActive]}
+                      onPress={onNearMePress}
+                      disabled={locating}
+                    >
+                      {locating ? (
+                        <ActivityIndicator size="small" color={nearMe ? colors.white : colors.primary} />
+                      ) : (
+                        <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? colors.white : colors.ink} />
+                      )}
+                      <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>
+                        {nearMe ? `Near me · ${radiusKm} km` : "Near me"}
+                      </Text>
+                      {nearMe && (
+                        <>
+                          <MaterialCommunityIcons name="chevron-down" size={14} color={colors.white} />
+                          <TouchableOpacity
+                            style={styles.chipRemoveButton}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            onPress={clearNearMe}
+                          >
+                            <MaterialCommunityIcons name="close-circle" size={14} color="rgba(255,255,255,0.85)" />
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  );
+                }
+                if (item === "CLEAR_ALL") {
+                  return (
+                    <TouchableOpacity style={styles.clearAllChip} onPress={clearAllFilters}>
+                      <MaterialCommunityIcons name="close" size={14} color={colors.danger} />
+                      <Text style={styles.clearAllChipText}>Clear all</Text>
+                    </TouchableOpacity>
+                  );
+                }
+                const active = travelModes.includes(item);
+                return (
+                  <TouchableOpacity style={[styles.chip, active && styles.chipActive]} onPress={() => toggleTravelMode(item)}>
+                    <MaterialCommunityIcons
+                      name={TRAVEL_MODE_ICONS[item]}
+                      size={15}
+                      color={active ? colors.white : colors.ink}
+                    />
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{travelModeText(item)}</Text>
+                    {active && <MaterialCommunityIcons name="close-circle" size={14} color="rgba(255,255,255,0.85)" />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+
+            <DiscoverSection
+              title="Recommended For You"
+              emoji="✨"
+              trips={recommendedTrips}
+              isLoading={recommendedLoading}
+              onTripPress={onSectionTripPress}
+            />
+            <DiscoverSection
+              title="Trending Trips"
+              emoji="🔥"
+              trips={trendingTrips}
+              isLoading={trendingLoading}
+              onTripPress={onSectionTripPress}
+            />
+            <DiscoverSection
+              title="Near You"
+              emoji="📍"
+              trips={nearYouData?.items}
+              isLoading={!!nearYouCoords && nearYouLoading}
+              onTripPress={onSectionTripPress}
+            />
+            <DiscoverSection
+              title="This Weekend"
+              emoji="📅"
+              trips={weekendData?.items}
+              isLoading={weekendLoading}
+              onTripPress={onSectionTripPress}
+            />
+
+            {isLoading && (
+              <View style={styles.list}>
+                <TripCardSkeleton />
+                <TripCardSkeleton />
+                <TripCardSkeleton />
+              </View>
+            )}
+          </>
+        }
+        ListEmptyComponent={
+          isLoading ? null : (
             <View style={styles.emptyWrap}>
               <MaterialCommunityIcons
                 name={nearMe ? "map-marker-radius-outline" : "compass-outline"}
@@ -256,12 +323,14 @@ export function DiscoverScreen({ navigation }: Props) {
                 </TouchableOpacity>
               )}
             </View>
-          }
-          renderItem={({ item }) => (
+          )
+        }
+        renderItem={({ item }) =>
+          isLoading ? null : (
             <TripCard trip={item} onPress={() => navigation.navigate("TripDetail", { tripId: item.id })} />
-          )}
-        />
-      )}
+          )
+        }
+      />
 
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("CreateTrip")} activeOpacity={0.9}>
         <MaterialCommunityIcons name="plus" size={18} color={colors.white} />
