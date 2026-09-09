@@ -43,16 +43,45 @@ export function TravelBuddiesScreen({ navigation }: Props) {
   const { data: pendingRequests } = usePendingBuddyRequests();
   const sendBuddyRequest = useSendBuddyRequest();
 
-  // Reset to page 1 and clear accumulated items whenever a filter changes.
-  useEffect(() => {
+  // Reset to page 1 and clear accumulated items in the same tick as the filter
+  // change itself (rather than via a useEffect reacting afterward), so `filters`
+  // never briefly carries a new filter value paired with a stale page number.
+  function resetPagination() {
     setPage(1);
     setAllItems([]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, interest, travelMode, location]);
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    resetPagination();
+  }
+
+  function handleLocationChange(value: string) {
+    setLocation(value);
+    resetPagination();
+  }
+
+  function handleTravelModeChange(mode: TravelMode | undefined) {
+    setTravelMode(mode);
+    resetPagination();
+  }
+
+  function handleInterestChange(value: string | undefined) {
+    setInterest(value);
+    resetPagination();
+  }
 
   useEffect(() => {
     if (!data) return;
-    setAllItems((prev) => (page === 1 ? data.items : [...prev, ...data.items]));
+    setAllItems((prev) => {
+      if (page === 1) return data.items;
+      // A refetch of the current page (e.g. triggered by invalidateQueries after
+      // sending a buddy request) yields the same items again; dedupe by id so
+      // they aren't appended a second time.
+      const seenIds = new Set(prev.map((item) => item.id));
+      const newItems = data.items.filter((item) => !seenIds.has(item.id));
+      return [...prev, ...newItems];
+    });
   }, [data, page]);
 
   const availableInterests = useMemo(() => {
@@ -79,7 +108,7 @@ export function TravelBuddiesScreen({ navigation }: Props) {
           placeholder="Search by name or bio..."
           placeholderTextColor={colors.mutedLight}
           value={search}
-          onChangeText={setSearch}
+          onChangeText={handleSearchChange}
         />
       </View>
 
@@ -90,7 +119,7 @@ export function TravelBuddiesScreen({ navigation }: Props) {
           placeholder="Filter by location..."
           placeholderTextColor={colors.mutedLight}
           value={location}
-          onChangeText={setLocation}
+          onChangeText={handleLocationChange}
         />
       </View>
 
@@ -130,7 +159,7 @@ export function TravelBuddiesScreen({ navigation }: Props) {
             return (
               <TouchableOpacity
                 style={[styles.chip, active && styles.chipActive]}
-                onPress={() => setTravelMode(active ? undefined : mode)}
+                onPress={() => handleTravelModeChange(active ? undefined : mode)}
               >
                 <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[mode]} size={15} color={active ? colors.white : colors.ink} />
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>{travelModeText(mode)}</Text>
@@ -141,7 +170,7 @@ export function TravelBuddiesScreen({ navigation }: Props) {
           return (
             <TouchableOpacity
               style={[styles.chip, active && styles.chipActive]}
-              onPress={() => setInterest(active ? undefined : item)}
+              onPress={() => handleInterestChange(active ? undefined : item)}
             >
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{item}</Text>
             </TouchableOpacity>
