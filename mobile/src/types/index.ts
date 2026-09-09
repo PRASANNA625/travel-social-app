@@ -116,6 +116,26 @@ export interface JoinRequest {
   trip?: Trip;
 }
 
+export type BuddyConnectionState = "none" | "pending_sent" | "pending_received" | "connected";
+
+export interface BuddyMatch extends Omit<User, "email" | "phone" | "phoneVerified"> {
+  sharedInterests: string[];
+  sharedModesCount: number;
+  locationMatch: boolean;
+  compatibilityPercent: number | null;
+  connectionState: BuddyConnectionState;
+  connectionRequestId: string | null;
+}
+
+export interface BuddyConnection {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
+  createdAt: string;
+  fromUser?: User;
+}
+
 export interface GroupMember {
   userId: string;
   role: GroupRole;
