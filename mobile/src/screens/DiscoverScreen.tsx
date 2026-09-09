@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
   Image,
   Modal,
@@ -12,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -61,6 +61,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { height: windowHeight } = useWindowDimensions();
 
   const { data: me } = useMe();
 
@@ -89,6 +90,10 @@ export function DiscoverScreen({ navigation }: Props) {
   useEffect(() => {
     if (viewMode !== "map" || mapLocationRequested.current) return;
     mapLocationRequested.current = true;
+    if (nearYouCoords) {
+      setMapUserLocation(nearYouCoords);
+      return;
+    }
     let cancelled = false;
     getCurrentLocationOrThrow()
       .then((coords) => {
@@ -100,7 +105,7 @@ export function DiscoverScreen({ navigation }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [viewMode]);
+  }, [viewMode, nearYouCoords]);
 
   const weekendRange = useMemo(() => getUpcomingWeekendRange(), []);
 
@@ -133,6 +138,11 @@ export function DiscoverScreen({ navigation }: Props) {
     lng: nearMe?.lng ?? mapUserLocation?.lng,
     radiusKm: nearMe ? radiusKm : undefined,
     sortOrder,
+    // pageSize: 200 fetches full Trip records (images, description, etc.) just to
+    // plot lat/lng pins - a deliberate MVP tradeoff (the plan explicitly chose
+    // reusing GET /trips over building a new viewport/pins-only endpoint). A v2
+    // could add a lighter projection (e.g. ?fields=pins) or fetch the tapped
+    // trip's full detail lazily via useTrip(tripId) instead of prefetching all 200.
     pageSize: 200,
   };
   const { data: mapData, isLoading: mapLoading } = useTrips(mapFilters, { enabled: viewMode === "map" });
@@ -244,7 +254,11 @@ export function DiscoverScreen({ navigation }: Props) {
             <View style={styles.viewModeRow}>
               <TouchableOpacity
                 style={[styles.viewModeButton, viewMode === "list" && styles.viewModeButtonActive]}
-                onPress={() => setViewMode("list")}
+                onPress={() => {
+                  setViewMode("list");
+                  setPanTarget(null);
+                  setPreviewTripId(null);
+                }}
               >
                 <MaterialCommunityIcons
                   name="view-list"
@@ -366,14 +380,14 @@ export function DiscoverScreen({ navigation }: Props) {
                     )}
                   />
                 )}
-                <View style={styles.mapAreaWrap}>
+                <View style={[styles.mapAreaWrap, { height: windowHeight * 0.6 }]}>
                   <ExploreMap
                     pins={mapPins}
                     userLocation={mapUserLocation}
                     panTarget={panTarget}
                     onMarkerPress={setPreviewTripId}
                   />
-                  {!mapLoading && mapPins.length === 0 && (
+                  {mapData !== undefined && mapPins.length === 0 && (
                     <View style={styles.mapEmptyOverlay} pointerEvents="none">
                       <Text style={styles.mapEmptyText}>No trips with a location match your filters yet.</Text>
                     </View>
@@ -609,7 +623,6 @@ function createStyles(colors: Palette) {
     },
     trendingChipText: { fontSize: 12, fontWeight: "600", color: colors.ink },
     mapAreaWrap: {
-      height: Dimensions.get("window").height * 0.6,
       marginHorizontal: 16,
       marginTop: 10,
       borderRadius: 16,
