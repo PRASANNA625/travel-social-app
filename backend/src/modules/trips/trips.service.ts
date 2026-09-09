@@ -89,7 +89,8 @@ export async function getTrendingTrips(viewerId?: string, limit = SECTION_RESULT
   const ranked = candidates
     .map((t) => ({ ...t, score: engagementScore(t) }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .slice(0, limit)
+    .map(({ score, ...rest }) => rest);
 
   return attachViewerFlags(ranked, viewerId);
 }
@@ -152,7 +153,8 @@ export async function getRecommendedTrips(userId: string, limit = SECTION_RESULT
       return { ...t, score };
     })
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .slice(0, limit)
+    .map(({ score, ...rest }) => rest);
 
   return attachViewerFlags(ranked, userId);
 }
