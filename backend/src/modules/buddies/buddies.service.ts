@@ -38,10 +38,14 @@ async function connectionStateMap(viewerId: string, candidateIds: string[]) {
 async function excludedUserIds(viewerId: string): Promise<Set<string>> {
   const rows = await prisma.buddyConnection.findMany({
     where: { OR: [{ fromUserId: viewerId }, { toUserId: viewerId }] },
-    select: { fromUserId: true, toUserId: true },
+    select: { fromUserId: true, toUserId: true, status: true },
   });
   const excluded = new Set<string>([viewerId]);
   for (const row of rows) {
+    // Only rejected connections are removed from the candidate pool - pending
+    // and accepted connections must stay so connectionStateMap can surface
+    // their real state (pending_sent/pending_received/connected) on the card.
+    if (row.status !== "REJECTED") continue;
     excluded.add(row.fromUserId === viewerId ? row.toUserId : row.fromUserId);
   }
   return excluded;
@@ -98,41 +102,73 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
     take: CANDIDATE_POOL_LIMIT,
   });
 
-  const scored = await Promise.all(
-    candidates.map(async (c) => {
-      const sharedInterests = viewer.interests.filter((i) => c.interests.includes(i));
-      const sharedModesCount = overlapCount(viewer.preferredModes, c.preferredModes);
-      const locationMatch =
-        !!viewer.location &&
-        !!c.location &&
-        (viewer.location.toLowerCase().includes(c.location.toLowerCase()) ||
-          c.location.toLowerCase().includes(viewer.location.toLowerCase()));
-      const candidateTripSignals = await tripSignals(c.id);
-      const sharedTripModes = overlapCount([...viewerTripSignals.modes], [...candidateTripSignals.modes]);
-      const sharedDestinations = overlapCount(
-        [...viewerTripSignals.destinations],
-        [...candidateTripSignals.destinations]
-      );
+  const candidateIds = candidates.map((c) => c.id);
+  const [ownedTrips, joinedTrips] = await Promise.all([
+    prisma.trip.findMany({
+      where: { ownerId: { in: candidateIds } },
+      select: { ownerId: true, travelMode: true, destination: true },
+    }),
+    prisma.groupMember.findMany({
+      where: { userId: { in: candidateIds } },
+      select: { userId: true, group: { select: { trip: { select: { travelMode: true, destination: true } } } } },
+    }),
+  ]);
+  const candidateTripSignalsMap = new Map<string, { modes: Set<string>; destinations: Set<string> }>();
+  const getOrCreateSignals = (userId: string) => {
+    let entry = candidateTripSignalsMap.get(userId);
+    if (!entry) {
+      entry = { modes: new Set<string>(), destinations: new Set<string>() };
+      candidateTripSignalsMap.set(userId, entry);
+    }
+    return entry;
+  };
+  for (const trip of ownedTrips) {
+    const entry = getOrCreateSignals(trip.ownerId);
+    entry.modes.add(trip.travelMode);
+    entry.destinations.add(trip.destination.toLowerCase());
+  }
+  for (const membership of joinedTrips) {
+    const entry = getOrCreateSignals(membership.userId);
+    entry.modes.add(membership.group.trip.travelMode);
+    entry.destinations.add(membership.group.trip.destination.toLowerCase());
+  }
 
-      const rawScore =
-        sharedInterests.length * 15 +
-        sharedModesCount * 10 +
-        (locationMatch ? 15 : 0) +
-        Math.min(sharedTripModes, 3) * 10 +
-        Math.min(sharedDestinations, 3) * 10;
+  const scored = candidates.map((c) => {
+    const sharedInterests = viewer.interests.filter((i) => c.interests.includes(i));
+    const sharedModesCount = overlapCount(viewer.preferredModes, c.preferredModes);
+    const locationMatch =
+      !!viewer.location &&
+      !!c.location &&
+      (viewer.location.toLowerCase().includes(c.location.toLowerCase()) ||
+        c.location.toLowerCase().includes(viewer.location.toLowerCase()));
+    const candidateTripSignals = candidateTripSignalsMap.get(c.id) ?? {
+      modes: new Set<string>(),
+      destinations: new Set<string>(),
+    };
+    const sharedTripModes = overlapCount([...viewerTripSignals.modes], [...candidateTripSignals.modes]);
+    const sharedDestinations = overlapCount(
+      [...viewerTripSignals.destinations],
+      [...candidateTripSignals.destinations]
+    );
 
-      const hasStrongSignal = sharedInterests.length > 0 || sharedModesCount > 0;
+    const rawScore =
+      sharedInterests.length * 15 +
+      sharedModesCount * 10 +
+      (locationMatch ? 15 : 0) +
+      Math.min(sharedTripModes, 3) * 10 +
+      Math.min(sharedDestinations, 3) * 10;
 
-      return {
-        ...c,
-        sharedInterests,
-        sharedModesCount,
-        locationMatch,
-        compatibilityPercent: hasStrongSignal ? Math.min(100, rawScore) : null,
-        score: rawScore,
-      };
-    })
-  );
+    const hasStrongSignal = sharedInterests.length > 0 || sharedModesCount > 0;
+
+    return {
+      ...c,
+      sharedInterests,
+      sharedModesCount,
+      locationMatch,
+      compatibilityPercent: hasStrongSignal ? Math.min(100, rawScore) : null,
+      score: rawScore,
+    };
+  });
 
   scored.sort((a, b) => b.score - a.score);
   const total = scored.length;

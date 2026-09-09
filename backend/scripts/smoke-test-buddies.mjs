@@ -75,11 +75,13 @@ async function main() {
 
   const aliceAfterSend = await requestOk("GET", "/buddies/matches", { token: alice.token });
   const bobFromAlice = aliceAfterSend.items.find((m) => m.id === bob.user.id);
-  assert(!bobFromAlice, "bob should no longer appear as a fresh match once a request is pending (excluded from candidate pool)");
+  assert(!!bobFromAlice, "bob should still appear in alice's matches while a request is pending (only REJECTED connections are excluded from the pool)");
+  assert(bobFromAlice.connectionState === "pending_sent", "alice's view of bob should show connectionState 'pending_sent'");
+  assert(bobFromAlice.connectionRequestId === requestId, "bob's match should carry the pending request's id as connectionRequestId");
 
   const bobPending = await requestOk("GET", "/buddies/requests/pending", { token: bob.token });
   assert(bobPending.some((r) => r.id === requestId), "bob should see alice's request in pending");
-  console.log("✓ sending a request removes the pair from each other's fresh match pool and shows up as pending for the recipient");
+  console.log("✓ sending a request keeps the pair visible in each other's matches with connectionState 'pending_sent' and shows up as pending for the recipient");
 
   // --- Duplicate request rejected ---
   const dup = await request("POST", `/buddies/${bob.user.id}/connect`, { token: alice.token });
@@ -95,6 +97,14 @@ async function main() {
   const accepted = await requestOk("POST", `/buddies/requests/${requestId}/accept`, { token: bob.token });
   assert(accepted.status === "ACCEPTED", "accepted request should have status ACCEPTED");
   console.log("✓ accepting a request updates its status");
+
+  // --- Accepted connections stay visible in matches with connectionState: "connected" ---
+  const aliceAfterAccept = await requestOk("GET", "/buddies/matches", { token: alice.token });
+  const bobAfterAccept = aliceAfterAccept.items.find((m) => m.id === bob.user.id);
+  assert(!!bobAfterAccept, "bob should still appear in alice's matches after the request is accepted");
+  assert(bobAfterAccept.connectionState === "connected", "bob's match should show connectionState 'connected' after acceptance");
+  assert(bobAfterAccept.connectionRequestId === requestId, "the connected match should carry the original request's id");
+  console.log("✓ accepted connections remain visible in matches with connectionState 'connected'");
 
   console.log("All Travel Buddies smoke tests passed.");
 }

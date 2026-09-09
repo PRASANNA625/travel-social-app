@@ -37,6 +37,7 @@ import { getUpcomingWeekendRange } from "../utils/weekendRange";
 import { useBuddyMatches, useSendBuddyRequest } from "../api/buddies";
 import { BuddyCard } from "../components/BuddyCard";
 import { BuddyCardSkeleton } from "../components/BuddyCardSkeleton";
+import { Alert } from "../utils/alert";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -96,6 +97,13 @@ export function DiscoverScreen({ navigation }: Props) {
   const sendBuddyRequest = useSendBuddyRequest();
 
   const onSectionTripPress = (trip: { id: string }) => navigation.navigate("TripDetail", { tripId: trip.id });
+
+  const onConnectBuddy = (userId: string) => {
+    sendBuddyRequest.mutate(userId, {
+      onSuccess: () => Alert.alert("Request sent", "We'll let you know when they respond."),
+      onError: (err: any) => Alert.alert("Couldn't send request", err?.response?.data?.error ?? "Please try again."),
+    });
+  };
 
   const { data, isLoading, isFetching } = useTrips({
     search: search || undefined,
@@ -333,7 +341,7 @@ export function DiscoverScreen({ navigation }: Props) {
                     <BuddyCard
                       buddy={item}
                       onViewProfile={() => navigation.navigate("UserProfile", { userId: item.id })}
-                      onConnect={() => sendBuddyRequest.mutate(item.id)}
+                      onConnect={() => onConnectBuddy(item.id)}
                       onRespond={() => navigation.navigate("ConnectionRequests")}
                     />
                   )}

@@ -12,6 +12,7 @@ import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { RADIUS } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
+import { Alert } from "../utils/alert";
 
 type Props = NativeStackScreenProps<AppStackParamList, "TravelBuddies">;
 type SortMode = "best" | "newest";
@@ -42,6 +43,13 @@ export function TravelBuddiesScreen({ navigation }: Props) {
   const { data, isLoading, isFetching } = useBuddyMatches(filters);
   const { data: pendingRequests } = usePendingBuddyRequests();
   const sendBuddyRequest = useSendBuddyRequest();
+
+  const onConnectBuddy = (userId: string) => {
+    sendBuddyRequest.mutate(userId, {
+      onSuccess: () => Alert.alert("Request sent", "We'll let you know when they respond."),
+      onError: (err: any) => Alert.alert("Couldn't send request", err?.response?.data?.error ?? "Please try again."),
+    });
+  };
 
   // Reset to page 1 and clear accumulated items in the same tick as the filter
   // change itself (rather than via a useEffect reacting afterward), so `filters`
@@ -200,7 +208,7 @@ export function TravelBuddiesScreen({ navigation }: Props) {
               <BuddyCard
                 buddy={item}
                 onViewProfile={() => navigation.navigate("UserProfile", { userId: item.id })}
-                onConnect={() => sendBuddyRequest.mutate(item.id)}
+                onConnect={() => onConnectBuddy(item.id)}
                 onRespond={() => navigation.navigate("ConnectionRequests")}
               />
             </View>
