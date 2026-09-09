@@ -68,6 +68,51 @@ async function main() {
   }
   console.log("✓ zero-signal candidates get compatibilityPercent: null instead of a fabricated score");
 
+  // --- Age proximity: closer age should score higher than a large age gap, all else equal ---
+  const agePivot = await registerUser("age-pivot-buddies");
+  const closeAge = await registerUser("close-age-buddies");
+  const farAge = await registerUser("far-age-buddies");
+
+  await requestOk("PATCH", "/users/me", {
+    token: agePivot.token,
+    body: { interests: ["Photography"], preferredModes: ["TREK"], age: 30 },
+  });
+  await requestOk("PATCH", "/users/me", {
+    token: closeAge.token,
+    body: { interests: ["Photography"], preferredModes: ["TREK"], age: 30 },
+  });
+  await requestOk("PATCH", "/users/me", {
+    token: farAge.token,
+    body: { interests: ["Photography"], preferredModes: ["TREK"], age: 55 },
+  });
+
+  const agePivotMatches = await requestOk("GET", "/buddies/matches", { token: agePivot.token });
+  const closeAgeMatch = agePivotMatches.items.find((m) => m.id === closeAge.user.id);
+  const farAgeMatch = agePivotMatches.items.find((m) => m.id === farAge.user.id);
+  assert(!!closeAgeMatch, "closeAge should appear in agePivot's matches given the shared interest/mode");
+  assert(!!farAgeMatch, "farAge should appear in agePivot's matches given the shared interest/mode");
+  assert(
+    closeAgeMatch.compatibilityPercent > farAgeMatch.compatibilityPercent,
+    `same shared interest/mode, but a 0-year age gap should score higher than a 25-year gap: got ${closeAgeMatch.compatibilityPercent} vs ${farAgeMatch.compatibilityPercent}`
+  );
+  console.log("✓ age proximity boosts compatibility score when real shared-interest/mode signal already exists");
+
+  // --- Age alone (with zero shared interests/modes) must never unlock a compatibility % ---
+  const ageOnlyViewer = await registerUser("age-only-viewer-buddies");
+  const ageOnlyMatch = await registerUser("age-only-match-buddies");
+  await requestOk("PATCH", "/users/me", { token: ageOnlyViewer.token, body: { age: 30 } });
+  await requestOk("PATCH", "/users/me", { token: ageOnlyMatch.token, body: { age: 30 } });
+
+  const ageOnlyMatches = await requestOk("GET", "/buddies/matches", { token: ageOnlyViewer.token });
+  const ageOnlyResult = ageOnlyMatches.items.find((m) => m.id === ageOnlyMatch.user.id);
+  if (ageOnlyResult) {
+    assert(
+      ageOnlyResult.compatibilityPercent === null,
+      "two users with the same age but zero shared interests/modes must still get compatibilityPercent: null - age alone must never unlock a score"
+    );
+  }
+  console.log("✓ age proximity alone (zero shared interests/modes) never unlocks a compatibility %");
+
   // --- Connect flow: send -> pending states on both sides -> accept -> connected both sides ---
   const sendResult = await request("POST", `/buddies/${bob.user.id}/connect`, { token: alice.token });
   assert(sendResult.status === 201, `connect should return 201, got ${sendResult.status}`);
