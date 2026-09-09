@@ -61,10 +61,12 @@ async function attachViewerFlags<T extends { id: string }>(trips: T[], viewerId?
 const TRENDING_CANDIDATE_LIMIT = 100;
 const SECTION_RESULT_LIMIT = 10;
 
-const upcomingOpenWhere: Prisma.TripWhereInput = {
-  status: { in: ["PLANNING", "OPEN", "ALMOST_FULL"] },
-  startDate: { gte: new Date() },
-};
+function upcomingOpenWhere(): Prisma.TripWhereInput {
+  return {
+    status: { in: ["PLANNING", "OPEN", "ALMOST_FULL"] },
+    startDate: { gte: new Date() },
+  };
+}
 
 function daysSince(date: Date): number {
   return (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
@@ -80,7 +82,7 @@ function engagementScore(trip: {
 
 export async function getTrendingTrips(viewerId?: string, limit = SECTION_RESULT_LIMIT) {
   const candidates = await prisma.trip.findMany({
-    where: upcomingOpenWhere,
+    where: upcomingOpenWhere(),
     include: cardInclude,
     orderBy: { createdAt: "desc" },
     take: TRENDING_CANDIDATE_LIMIT,
@@ -139,7 +141,7 @@ export async function getRecommendedTrips(userId: string, limit = SECTION_RESULT
   const excludeIds = [...new Set([...ownTripIds, ...joinedTripIds, ...bookmarkedTripIds])];
 
   const candidates = await prisma.trip.findMany({
-    where: { ...upcomingOpenWhere, id: { notIn: excludeIds } },
+    where: { ...upcomingOpenWhere(), id: { notIn: excludeIds } },
     include: cardInclude,
     orderBy: { createdAt: "desc" },
     take: TRENDING_CANDIDATE_LIMIT,

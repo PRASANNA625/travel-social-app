@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
   FlatList,
@@ -54,6 +55,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const [profileMenuVisible, setProfileMenuVisible] = useState(false);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState<ProfileMenuAnchor | null>(null);
   const avatarWrapRef = useRef<View>(null);
+  const queryClient = useQueryClient();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -90,7 +92,7 @@ export function DiscoverScreen({ navigation }: Props) {
 
   const onSectionTripPress = (trip: { id: string }) => navigation.navigate("TripDetail", { tripId: trip.id });
 
-  const { data, isLoading, isFetching, refetch } = useTrips({
+  const { data, isLoading, isFetching } = useTrips({
     search: search || undefined,
     travelMode: travelModes,
     lat: nearMe?.lat,
@@ -152,7 +154,12 @@ export function DiscoverScreen({ navigation }: Props) {
         contentContainerStyle={styles.listContent}
         data={data?.items ?? []}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={() => queryClient.invalidateQueries({ queryKey: ["trips"] })}
+          />
+        }
         ListHeaderComponent={
           <>
             <GradientBackground style={styles.header}>

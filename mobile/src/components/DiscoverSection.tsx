@@ -62,7 +62,7 @@ function createStyles(colors: Palette) {
   return StyleSheet.create({
     section: { marginTop: 18 },
     sectionTitle: { fontSize: 16, fontWeight: "700", color: colors.ink, marginBottom: 10, marginHorizontal: 16 },
-    row: { paddingHorizontal: 16, gap: 12 },
+    row: { flexDirection: "row", paddingHorizontal: 16, gap: 12 },
     cardWrap: { width: CARD_WIDTH },
   });
 }
