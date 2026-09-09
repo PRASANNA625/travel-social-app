@@ -98,6 +98,14 @@ export function TripCard({
             <Text style={[styles.meta, { color: colors.muted }]}>{trip._count.comments}</Text>
             <MaterialCommunityIcons name="hand-front-right" size={14} color={colors.muted} style={styles.metaIconSpacer} />
             <Text style={[styles.meta, { color: colors.muted }]}>{trip._count.joinRequests}</Text>
+            {trip.reviewCount > 0 && (
+              <>
+                <MaterialCommunityIcons name="star" size={14} color={colors.warningText} style={styles.metaIconSpacer} />
+                <Text style={[styles.meta, { color: colors.muted }]}>
+                  {trip.avgRating!.toFixed(1)} ({trip.reviewCount})
+                </Text>
+              </>
+            )}
           </View>
         </View>
       </View>
