@@ -25,9 +25,12 @@ import { useAuthStore } from "../store/authStore";
 import {
   useAddComment,
   useBookmarkTrip,
+  useDeleteReview,
   useLikeTrip,
+  useSubmitReview,
   useTrip,
   useTripComments,
+  useTripReviews,
   useUpdateTripImages,
   useUploadTripImages,
 } from "../api/trips";
@@ -37,6 +40,7 @@ import { Alert } from "../utils/alert";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
+import { StarRating } from "../components/StarRating";
 import { Skeleton } from "../components/theme/Skeleton";
 import { RADIUS } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
@@ -66,6 +70,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const me = useAuthStore((s) => s.user);
   const { data: trip, isLoading, isFetching, refetch: refetchTrip } = useTrip(tripId);
   const { data: comments, refetch: refetchComments } = useTripComments(tripId);
+  const { data: reviewsData, refetch: refetchReviews } = useTripReviews(tripId);
   const { data: myRequest, refetch: refetchMyRequest } = useMyJoinRequestForTrip(tripId);
   const { data: group, refetch: refetchGroup } = useGroupByTrip(tripId);
   const [commentText, setCommentText] = useState("");
@@ -75,6 +80,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [editingReview, setEditingReview] = useState(false);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
@@ -122,6 +130,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const bookmarkTrip = useBookmarkTrip();
   const expressInterest = useExpressInterest(tripId);
   const addComment = useAddComment(tripId);
+  const submitReview = useSubmitReview(tripId);
+  const deleteReview = useDeleteReview(tripId);
   const uploadImages = useUploadTripImages();
   const updateTripImages = useUpdateTripImages();
 
@@ -218,9 +228,38 @@ export function TripDetailScreen({ route, navigation }: Props) {
     addComment.mutate(commentText.trim(), { onSuccess: () => setCommentText("") });
   };
 
+  const startEditingReview = () => {
+    setReviewRating(reviewsData?.viewerReview?.rating ?? 0);
+    setReviewComment(reviewsData?.viewerReview?.comment ?? "");
+    setEditingReview(true);
+  };
+
+  const onSubmitReview = () => {
+    if (reviewRating < 1) return;
+    submitReview.mutate(
+      { rating: reviewRating, comment: reviewComment.trim() || undefined },
+      {
+        onSuccess: () => {
+          setEditingReview(false);
+          setReviewRating(0);
+          setReviewComment("");
+        },
+        onError: (err: any) => Alert.alert("Couldn't save review", err?.response?.data?.error ?? "Try again"),
+      }
+    );
+  };
+
+  const onDeleteReview = () => {
+    Alert.alert("Delete your review?", "This can't be undone.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteReview.mutate() },
+    ]);
+  };
+
   const onRefresh = () => {
     refetchTrip();
     refetchComments();
+    refetchReviews();
     refetchMyRequest();
     refetchGroup();
   };
@@ -610,6 +649,90 @@ export function TripDetailScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           </View>
         </View>
+
+        <View style={styles.section}>
+          <View style={styles.blockHeaderRow}>
+            <MaterialCommunityIcons name="star-outline" size={16} color={colors.ink} />
+            <Text style={styles.blockTitle}>Reviews ({reviewsData?.reviewCount ?? 0})</Text>
+            {reviewsData?.avgRating != null && (
+              <StarRating rating={reviewsData.avgRating} readOnly size={14} />
+            )}
+          </View>
+
+          {!reviewsData || reviewsData.items.length === 0 ? (
+            <View style={styles.emptyComments}>
+              <MaterialCommunityIcons name="star-outline" size={32} color={colors.mutedLight} />
+              <Text style={styles.emptyCommentsText}>No reviews yet.</Text>
+            </View>
+          ) : (
+            <View style={styles.commentsListContent}>
+              {reviewsData.items.map((r) => (
+                <View key={`${r.tripId}-${r.userId}`} style={styles.commentCard}>
+                  {r.user.photoUrl ? (
+                    <Image source={{ uri: optimizedImageUrl(r.user.photoUrl, 34) }} style={styles.commentAvatar} />
+                  ) : (
+                    <View style={[styles.commentAvatar, styles.commentAvatarPlaceholder]}>
+                      <Text style={styles.commentAvatarInitial}>{r.user.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={styles.commentBody}>
+                    <View style={styles.commentHeaderRow}>
+                      <Text style={styles.commentAuthor}>{r.user.name}</Text>
+                      <Text style={styles.commentTime}>{formatRelativeTime(r.createdAt)}</Text>
+                    </View>
+                    <StarRating rating={r.rating} readOnly size={13} />
+                    {r.comment && <Text style={styles.commentText}>{r.comment}</Text>}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {reviewsData?.viewerReview && !editingReview && (
+            <View style={styles.reviewOwnCard}>
+              <Text style={styles.reviewOwnLabel}>Your review</Text>
+              <View style={styles.reviewOwnActions}>
+                <TouchableOpacity onPress={startEditingReview}>
+                  <Text style={styles.reviewActionText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onDeleteReview}>
+                  <Text style={[styles.reviewActionText, { color: colors.danger }]}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {(editingReview || (reviewsData?.viewerCanReview && !reviewsData.viewerReview)) && (
+            <View style={styles.reviewFormPanel}>
+              <StarRating rating={reviewRating} onChange={setReviewRating} readOnly={false} size={22} />
+              <TextInput
+                style={styles.reviewCommentInput}
+                placeholder="Add a comment (optional)"
+                placeholderTextColor={colors.mutedLight}
+                value={reviewComment}
+                onChangeText={setReviewComment}
+                multiline
+              />
+              <View style={styles.reviewFormActions}>
+                {editingReview && (
+                  <PrimaryButton
+                    variant="outline"
+                    style={styles.stickyFlex}
+                    label="Cancel"
+                    onPress={() => setEditingReview(false)}
+                  />
+                )}
+                <PrimaryButton
+                  style={styles.stickyFlex}
+                  label="Submit review"
+                  onPress={onSubmitReview}
+                  disabled={reviewRating < 1 || submitReview.isPending}
+                  loading={submitReview.isPending}
+                />
+              </View>
+            </View>
+          )}
+        </View>
       </View>
       </ScrollView>
 
@@ -834,5 +957,30 @@ function createStyles(colors: Palette) {
     alignItems: "center",
     justifyContent: "center",
   },
+  reviewOwnCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 14,
+    padding: 12,
+    borderRadius: RADIUS.field,
+    backgroundColor: colors.fieldBg,
+  },
+  reviewOwnLabel: { fontSize: 13, fontWeight: "600", color: colors.ink },
+  reviewOwnActions: { flexDirection: "row", gap: 16 },
+  reviewActionText: { fontSize: 13, fontWeight: "700", color: colors.primary },
+  reviewFormPanel: { marginTop: 14, gap: 10 },
+  reviewCommentInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: RADIUS.field,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.ink,
+    minHeight: 44,
+    backgroundColor: colors.fieldBg,
+  },
+  reviewFormActions: { flexDirection: "row", gap: 10 },
   });
 }
