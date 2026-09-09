@@ -36,6 +36,8 @@ const NOTIFICATION_COPY: Record<string, (payload: Record<string, unknown>) => st
   GROUP_MESSAGE: (p) => `${p.senderName} in "${p.tripTitle}": ${messagePreview(p)}`,
   MESSAGE_REACTION: (p) => `${p.reactorName} reacted ${p.emoji} to your message in "${p.tripTitle}": ${messagePreview(p)}`,
   TRIP_COMMENT: (p) => `${p.commenterName} commented on "${p.tripTitle}": ${messagePreview(p)}`,
+  BUDDY_REQUEST: () => `Someone wants to be travel buddies`,
+  BUDDY_REQUEST_ACCEPTED: () => `Your travel buddy request was accepted`,
 };
 
 function describe(notification: AppNotification): string {
@@ -55,6 +57,8 @@ function notificationIconMap(colors: Palette): Record<string, { icon: IconName; 
     GROUP_MESSAGE: { icon: "chat-processing-outline", bg: colors.successBg, color: colors.primary },
     MESSAGE_REACTION: { icon: "heart-outline", bg: colors.successBg, color: colors.primary },
     TRIP_COMMENT: { icon: "comment-text-outline", bg: colors.fieldBg, color: colors.primary },
+    BUDDY_REQUEST: { icon: "account-heart-outline", bg: colors.fieldBg, color: colors.primary },
+    BUDDY_REQUEST_ACCEPTED: { icon: "check-circle", bg: colors.successBg, color: colors.primary },
   };
 }
 
@@ -117,6 +121,17 @@ export function NotificationsScreen({ navigation }: Props) {
             tripId,
             highlightCommentId: typeof commentId === "string" ? commentId : undefined,
           });
+        }
+        break;
+      }
+      case "BUDDY_REQUEST": {
+        navigation.navigate("ConnectionRequests");
+        break;
+      }
+      case "BUDDY_REQUEST_ACCEPTED": {
+        const { toUserId } = payload;
+        if (typeof toUserId === "string") {
+          navigation.navigate("UserProfile", { userId: toUserId });
         }
         break;
       }

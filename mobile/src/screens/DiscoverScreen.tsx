@@ -37,6 +37,10 @@ import { optimizedImageUrl } from "../utils/optimizedImage";
 import { getUpcomingWeekendRange } from "../utils/weekendRange";
 import { ExploreMap, type ExploreMapPanTarget, type ExploreMapPin } from "../components/ExploreMap";
 import { TripMapPreviewCard } from "../components/TripMapPreviewCard";
+import { useBuddyMatches, useSendBuddyRequest } from "../api/buddies";
+import { BuddyCard } from "../components/BuddyCard";
+import { BuddyCardSkeleton } from "../components/BuddyCardSkeleton";
+import { Alert } from "../utils/alert";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -119,8 +123,17 @@ export function DiscoverScreen({ navigation }: Props) {
     { dateFrom: weekendRange.dateFrom, dateTo: weekendRange.dateTo },
     { enabled: true }
   );
+  const { data: buddyMatches, isLoading: buddiesLoading } = useBuddyMatches({ pageSize: 6 });
+  const sendBuddyRequest = useSendBuddyRequest();
 
   const onSectionTripPress = (trip: { id: string }) => navigation.navigate("TripDetail", { tripId: trip.id });
+
+  const onConnectBuddy = (userId: string) => {
+    sendBuddyRequest.mutate(userId, {
+      onSuccess: () => Alert.alert("Request sent", "We'll let you know when they respond."),
+      onError: (err: any) => Alert.alert("Couldn't send request", err?.response?.data?.error ?? "Please try again."),
+    });
+  };
 
   const { data, isLoading, isFetching } = useTrips({
     search: search || undefined,
@@ -432,6 +445,40 @@ export function DiscoverScreen({ navigation }: Props) {
               onTripPress={onSectionTripPress}
             />
 
+            {(buddiesLoading || (buddyMatches?.items.length ?? 0) > 0) && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>👥 Travel Buddies</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate("TravelBuddies")}>
+                    <Text style={styles.seeAllLink}>See All</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.buddyRow}
+                  data={buddiesLoading ? [] : buddyMatches?.items}
+                  keyExtractor={(item) => item.id}
+                  ListEmptyComponent={
+                    buddiesLoading ? (
+                      <View style={styles.buddyRow}>
+                        <BuddyCardSkeleton />
+                        <BuddyCardSkeleton />
+                      </View>
+                    ) : null
+                  }
+                  renderItem={({ item }) => (
+                    <BuddyCard
+                      buddy={item}
+                      onViewProfile={() => navigation.navigate("UserProfile", { userId: item.id })}
+                      onConnect={() => onConnectBuddy(item.id)}
+                      onRespond={() => navigation.navigate("ConnectionRequests")}
+                    />
+                  )}
+                />
+              </View>
+            )}
+
             {viewMode === "list" && isLoading && (
               <View style={styles.horizontalInset}>
                 <TripCardSkeleton />
@@ -671,6 +718,17 @@ function createStyles(colors: Palette) {
       borderColor: colors.dangerBorderLight,
     },
     clearAllChipText: { fontSize: 12.5, color: colors.danger, fontWeight: "700", includeFontPadding: false },
+    section: { marginTop: 18 },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginHorizontal: 16,
+      marginBottom: 10,
+    },
+    sectionTitle: { fontSize: 16, fontWeight: "700", color: colors.ink },
+    seeAllLink: { fontSize: 13, fontWeight: "700", color: colors.primary },
+    buddyRow: { flexDirection: "row", paddingHorizontal: 16, gap: 12 },
     listContent: { paddingBottom: 110 },
     horizontalInset: { paddingHorizontal: 16 },
     emptyWrap: { alignItems: "center", marginTop: 48, gap: 10, paddingHorizontal: 16 },
