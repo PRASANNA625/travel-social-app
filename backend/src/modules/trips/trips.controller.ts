@@ -97,6 +97,27 @@ export async function listComments(req: AuthedRequest, res: Response) {
   res.json(comments);
 }
 
+const reviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(2000).optional(),
+});
+
+export async function listReviews(req: AuthedRequest, res: Response) {
+  const result = await service.listReviews(req.params.id, req.userId);
+  res.json(result);
+}
+
+export async function submitReview(req: AuthedRequest, res: Response) {
+  const input = reviewSchema.parse(req.body);
+  const review = await service.submitReview(req.params.id, req.userId!, input);
+  res.status(201).json(review);
+}
+
+export async function deleteReview(req: AuthedRequest, res: Response) {
+  await service.deleteReview(req.params.id, req.userId!);
+  res.json({ ok: true });
+}
+
 export async function uploadImages(req: AuthedRequest, res: Response) {
   const files = req.files as Express.Multer.File[] | undefined;
   if (!files?.length) throw new HttpError(400, "No files uploaded");

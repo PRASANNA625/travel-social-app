@@ -16,6 +16,7 @@ tripsRouter.get("/recommended", requireAuth, asyncHandler(controller.recommended
 tripsRouter.post("/images", requireAuth, upload.array("images", 8), asyncHandler(controller.uploadImages));
 tripsRouter.get("/:id", optionalAuth, asyncHandler(controller.getById));
 tripsRouter.get("/:id/comments", asyncHandler(controller.listComments));
+tripsRouter.get("/:id/reviews", optionalAuth, asyncHandler(controller.listReviews));
 
 tripsRouter.post("/", requireAuth, asyncHandler(controller.create));
 tripsRouter.patch("/:id", requireAuth, asyncHandler(controller.update));
@@ -26,3 +27,5 @@ tripsRouter.delete("/:id/like", requireAuth, asyncHandler(controller.unlike));
 tripsRouter.post("/:id/bookmark", requireAuth, asyncHandler(controller.bookmark));
 tripsRouter.delete("/:id/bookmark", requireAuth, asyncHandler(controller.unbookmark));
 tripsRouter.post("/:id/comments", requireAuth, asyncHandler(controller.addComment));
+tripsRouter.post("/:id/reviews", requireAuth, asyncHandler(controller.submitReview));
+tripsRouter.delete("/:id/reviews", requireAuth, asyncHandler(controller.deleteReview));
