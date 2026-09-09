@@ -58,6 +58,12 @@ enum MessageType {
   IMAGE
 }
 
+enum BuddyConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id             String   @id @default(cuid())
   email          String?  @unique
@@ -87,6 +93,23 @@ model User {
   notifications   Notification[]
   reactions       MessageReaction[]
   reads           MessageRead[]
+  buddyRequestsSent     BuddyConnection[] @relation("BuddyRequestsSent")
+  buddyRequestsReceived BuddyConnection[] @relation("BuddyRequestsReceived")
+}
+
+model BuddyConnection {
+  id         String                @id @default(cuid())
+  fromUserId String
+  fromUser   User                  @relation("BuddyRequestsSent", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User                  @relation("BuddyRequestsReceived", fields: [toUserId], references: [id])
+  status     BuddyConnectionStatus @default(PENDING)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId, status])
+  @@index([fromUserId, status])
 }
 
 model Trip {

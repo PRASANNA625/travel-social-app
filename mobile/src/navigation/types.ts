@@ -16,6 +16,8 @@ export type AppStackParamList = {
   UserProfile: { userId: string; groupRole?: "OWNER" | "MEMBER" };
   Assistant: undefined;
   Settings: undefined;
+  TravelBuddies: undefined;
+  ConnectionRequests: undefined;
 };
 
 export type AppTabParamList = {
