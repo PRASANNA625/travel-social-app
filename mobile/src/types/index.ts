@@ -95,6 +95,8 @@ export interface Trip {
   isBookmarked: boolean;
   distanceKm?: number;
   _count: { likes: number; comments: number; joinRequests: number };
+  avgRating: number | null;
+  reviewCount: number;
 }
 
 export interface TripComment {
@@ -103,6 +105,24 @@ export interface TripComment {
   text: string;
   createdAt: string;
   user: TripOwnerSummary;
+}
+
+export interface TripReview {
+  tripId: string;
+  userId: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: TripOwnerSummary;
+}
+
+export interface TripReviewsResponse {
+  items: TripReview[];
+  avgRating: number | null;
+  reviewCount: number;
+  viewerCanReview: boolean;
+  viewerReview: TripReview | null;
 }
 
 export interface JoinRequest {

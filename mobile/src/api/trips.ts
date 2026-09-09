@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ImagePickerAsset } from "expo-image-picker";
 import { apiClient } from "./client";
 import { appendImageAsset } from "../utils/formDataImage";
-import type { JoinType, Paginated, Trip, TripComment, TravelMode } from "../types";
+import type { JoinType, Paginated, Trip, TripComment, TripReview, TripReviewsResponse, TravelMode } from "../types";
 import { useAuthStore } from "../store/authStore";
 
 export interface TripFilters {
@@ -172,6 +172,39 @@ export function useAddComment(tripId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trips", tripId, "comments"] });
       queryClient.invalidateQueries({ queryKey: ["trips", tripId] });
+    },
+  });
+}
+
+export function useTripReviews(tripId?: string) {
+  return useQuery({
+    queryKey: ["trips", tripId, "reviews"],
+    queryFn: async () => (await apiClient.get<TripReviewsResponse>(`/trips/${tripId}/reviews`)).data,
+    enabled: !!tripId,
+  });
+}
+
+export function useSubmitReview(tripId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { rating: number; comment?: string }) =>
+      (await apiClient.post<TripReview>(`/trips/${tripId}/reviews`, input)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips", tripId, "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["trips", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+    },
+  });
+}
+
+export function useDeleteReview(tripId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => apiClient.delete(`/trips/${tripId}/reviews`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips", tripId, "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["trips", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
     },
   });
 }
