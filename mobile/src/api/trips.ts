@@ -18,6 +18,7 @@ export interface TripFilters {
   radiusKm?: number;
   sortOrder?: "asc" | "desc";
   page?: number;
+  pageSize?: number;
 }
 
 export function useTrips(filters: TripFilters, options?: { enabled?: boolean }) {
@@ -35,6 +36,21 @@ export function useTrendingTrips() {
   return useQuery({
     queryKey: ["trips", "trending"],
     queryFn: async () => (await apiClient.get<{ items: Trip[] }>("/trips/trending")).data.items,
+  });
+}
+
+export interface TrendingDestination {
+  destination: string;
+  tripCount: number;
+  lat: number;
+  lng: number;
+}
+
+export function useTrendingDestinations() {
+  return useQuery({
+    queryKey: ["trips", "trending-destinations"],
+    queryFn: async () =>
+      (await apiClient.get<{ items: TrendingDestination[] }>("/trips/trending-destinations")).data.items,
   });
 }
 

@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -18,7 +19,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
-import { useTrips, useTrendingTrips, useRecommendedTrips } from "../api/trips";
+import { useTrips, useTrendingTrips, useRecommendedTrips, useTrendingDestinations } from "../api/trips";
 import { useMe } from "../api/users";
 import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
@@ -34,6 +35,8 @@ import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 import { getUpcomingWeekendRange } from "../utils/weekendRange";
+import { ExploreMap, type ExploreMapPanTarget, type ExploreMapPin } from "../components/ExploreMap";
+import { TripMapPreviewCard } from "../components/TripMapPreviewCard";
 import { useBuddyMatches, useSendBuddyRequest } from "../api/buddies";
 import { BuddyCard } from "../components/BuddyCard";
 import { BuddyCardSkeleton } from "../components/BuddyCardSkeleton";
@@ -62,6 +65,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { height: windowHeight } = useWindowDimensions();
 
   const { data: me } = useMe();
 
@@ -80,6 +84,32 @@ export function DiscoverScreen({ navigation }: Props) {
       cancelled = true;
     };
   }, []);
+
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [mapUserLocation, setMapUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [previewTripId, setPreviewTripId] = useState<string | null>(null);
+  const [panTarget, setPanTarget] = useState<ExploreMapPanTarget | null>(null);
+  const mapLocationRequested = useRef(false);
+
+  useEffect(() => {
+    if (viewMode !== "map" || mapLocationRequested.current) return;
+    mapLocationRequested.current = true;
+    if (nearYouCoords) {
+      setMapUserLocation(nearYouCoords);
+      return;
+    }
+    let cancelled = false;
+    getCurrentLocationOrThrow()
+      .then((coords) => {
+        if (!cancelled) setMapUserLocation(coords);
+      })
+      .catch(() => {
+        // Silent - the map just opens centered on the default region if location isn't available.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode, nearYouCoords]);
 
   const weekendRange = useMemo(() => getUpcomingWeekendRange(), []);
 
@@ -113,6 +143,32 @@ export function DiscoverScreen({ navigation }: Props) {
     radiusKm: nearMe ? radiusKm : undefined,
     sortOrder,
   });
+
+  const mapFilters = {
+    search: search || undefined,
+    travelMode: travelModes,
+    lat: nearMe?.lat ?? mapUserLocation?.lat,
+    lng: nearMe?.lng ?? mapUserLocation?.lng,
+    radiusKm: nearMe ? radiusKm : undefined,
+    sortOrder,
+    // pageSize: 200 fetches full Trip records (images, description, etc.) just to
+    // plot lat/lng pins - a deliberate MVP tradeoff (the plan explicitly chose
+    // reusing GET /trips over building a new viewport/pins-only endpoint). A v2
+    // could add a lighter projection (e.g. ?fields=pins) or fetch the tapped
+    // trip's full detail lazily via useTrip(tripId) instead of prefetching all 200.
+    pageSize: 200,
+  };
+  const { data: mapData, isLoading: mapLoading } = useTrips(mapFilters, { enabled: viewMode === "map" });
+  const { data: trendingDestinations } = useTrendingDestinations();
+
+  const mapPins: ExploreMapPin[] = useMemo(
+    () =>
+      (mapData?.items ?? [])
+        .filter((t) => typeof t.startLat === "number" && typeof t.startLng === "number")
+        .map((t) => ({ id: t.id, lat: t.startLat as number, lng: t.startLng as number })),
+    [mapData]
+  );
+  const previewTrip = mapData?.items.find((t) => t.id === previewTripId) ?? null;
 
   const activeFilterCount = travelModes.length + (nearMe ? 1 : 0);
 
@@ -165,7 +221,7 @@ export function DiscoverScreen({ navigation }: Props) {
     <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.listContent}
-        data={data?.items ?? []}
+        data={viewMode === "list" ? (data?.items ?? []) : []}
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
@@ -206,6 +262,35 @@ export function DiscoverScreen({ navigation }: Props) {
                 value={search}
                 onChangeText={setSearch}
               />
+            </View>
+
+            <View style={styles.viewModeRow}>
+              <TouchableOpacity
+                style={[styles.viewModeButton, viewMode === "list" && styles.viewModeButtonActive]}
+                onPress={() => {
+                  setViewMode("list");
+                  setPanTarget(null);
+                  setPreviewTripId(null);
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="view-list"
+                  size={15}
+                  color={viewMode === "list" ? colors.white : colors.ink}
+                />
+                <Text style={[styles.viewModeButtonText, viewMode === "list" && styles.viewModeButtonTextActive]}>
+                  List
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.viewModeButton, viewMode === "map" && styles.viewModeButtonActive]}
+                onPress={() => setViewMode("map")}
+              >
+                <MaterialCommunityIcons name="map" size={15} color={viewMode === "map" ? colors.white : colors.ink} />
+                <Text style={[styles.viewModeButtonText, viewMode === "map" && styles.viewModeButtonTextActive]}>
+                  Map
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <FlatList
@@ -286,6 +371,51 @@ export function DiscoverScreen({ navigation }: Props) {
               }}
             />
 
+            {viewMode === "map" && (
+              <View style={styles.mapSection}>
+                {trendingDestinations && trendingDestinations.length > 0 && (
+                  <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.trendingChipsRow}
+                    contentContainerStyle={styles.trendingChipsRowContent}
+                    data={trendingDestinations}
+                    keyExtractor={(item) => item.destination}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.trendingChip}
+                        onPress={() => setPanTarget({ lat: item.lat, lng: item.lng, zoom: 9 })}
+                      >
+                        <Text style={styles.trendingChipText}>
+                          🔥 {item.destination} · {item.tripCount}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                )}
+                <View style={[styles.mapAreaWrap, { height: windowHeight * 0.6 }]}>
+                  <ExploreMap
+                    pins={mapPins}
+                    userLocation={mapUserLocation}
+                    panTarget={panTarget}
+                    onMarkerPress={setPreviewTripId}
+                  />
+                  {mapData !== undefined && mapPins.length === 0 && (
+                    <View style={styles.mapEmptyOverlay} pointerEvents="none">
+                      <Text style={styles.mapEmptyText}>No trips with a location match your filters yet.</Text>
+                    </View>
+                  )}
+                  {previewTrip && (
+                    <TripMapPreviewCard
+                      trip={previewTrip}
+                      onPress={() => navigation.navigate("TripDetail", { tripId: previewTrip.id })}
+                      onClose={() => setPreviewTripId(null)}
+                    />
+                  )}
+                </View>
+              </View>
+            )}
+
             <DiscoverSection
               title="Recommended For You"
               emoji="✨"
@@ -349,7 +479,7 @@ export function DiscoverScreen({ navigation }: Props) {
               </View>
             )}
 
-            {isLoading && (
+            {viewMode === "list" && isLoading && (
               <View style={styles.horizontalInset}>
                 <TripCardSkeleton />
                 <TripCardSkeleton />
@@ -359,7 +489,7 @@ export function DiscoverScreen({ navigation }: Props) {
           </>
         }
         ListEmptyComponent={
-          isLoading ? null : (
+          isLoading || viewMode === "map" ? null : (
             <View style={styles.emptyWrap}>
               <MaterialCommunityIcons
                 name={nearMe ? "map-marker-radius-outline" : "compass-outline"}
@@ -506,6 +636,57 @@ function createStyles(colors: Palette) {
     search: { flex: 1, paddingVertical: 12, fontSize: 14, color: colors.ink },
     filterRow: { minHeight: 46, marginTop: 12, flexGrow: 0 },
     filterRowContent: { paddingHorizontal: 16, paddingRight: 24, paddingVertical: 4, alignItems: "center", gap: 8 },
+    viewModeRow: {
+      flexDirection: "row",
+      marginHorizontal: 16,
+      marginTop: 10,
+      backgroundColor: colors.fieldBg,
+      borderRadius: RADIUS.pill,
+      padding: 3,
+      gap: 3,
+    },
+    viewModeButton: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 5,
+      paddingVertical: 8,
+      borderRadius: RADIUS.pill,
+    },
+    viewModeButtonActive: { backgroundColor: colors.primary },
+    viewModeButtonText: { fontSize: 12.5, fontWeight: "700", color: colors.ink },
+    viewModeButtonTextActive: { color: colors.white },
+    mapSection: { marginTop: 4 },
+    trendingChipsRow: { minHeight: 40, marginTop: 10, flexGrow: 0 },
+    trendingChipsRowContent: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
+    trendingChip: {
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    trendingChipText: { fontSize: 12, fontWeight: "600", color: colors.ink },
+    mapAreaWrap: {
+      marginHorizontal: 16,
+      marginTop: 10,
+      borderRadius: 16,
+      overflow: "hidden",
+      position: "relative",
+    },
+    mapEmptyOverlay: {
+      position: "absolute",
+      top: 12,
+      left: 12,
+      right: 12,
+      backgroundColor: colors.overlay,
+      borderRadius: 12,
+      padding: 10,
+      alignItems: "center",
+    },
+    mapEmptyText: { color: colors.white, fontSize: 12, textAlign: "center" },
     chip: {
       flexDirection: "row",
       alignItems: "center",
