@@ -3,6 +3,7 @@ import type { ImagePickerAsset } from "expo-image-picker";
 import { apiClient } from "./client";
 import { appendImageAsset } from "../utils/formDataImage";
 import type { JoinType, Paginated, Trip, TripComment, TravelMode } from "../types";
+import { useAuthStore } from "../store/authStore";
 
 export interface TripFilters {
   search?: string;
@@ -19,13 +20,30 @@ export interface TripFilters {
   page?: number;
 }
 
-export function useTrips(filters: TripFilters) {
+export function useTrips(filters: TripFilters, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["trips", filters],
     queryFn: async () => {
       const params = { ...filters, travelMode: filters.travelMode?.length ? filters.travelMode.join(",") : undefined };
       return (await apiClient.get<Paginated<Trip>>("/trips", { params })).data;
     },
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useTrendingTrips() {
+  return useQuery({
+    queryKey: ["trips", "trending"],
+    queryFn: async () => (await apiClient.get<{ items: Trip[] }>("/trips/trending")).data.items,
+  });
+}
+
+export function useRecommendedTrips() {
+  const token = useAuthStore((s) => s.token);
+  return useQuery({
+    queryKey: ["trips", "recommended"],
+    queryFn: async () => (await apiClient.get<{ items: Trip[] }>("/trips/recommended")).data.items,
+    enabled: !!token,
   });
 }
 
