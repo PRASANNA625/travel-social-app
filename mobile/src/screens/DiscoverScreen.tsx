@@ -149,7 +149,7 @@ export function DiscoverScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <FlatList
-        contentContainerStyle={styles.list}
+        contentContainerStyle={styles.listContent}
         data={data?.items ?? []}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
@@ -296,7 +296,7 @@ export function DiscoverScreen({ navigation }: Props) {
             />
 
             {isLoading && (
-              <View style={styles.list}>
+              <View style={styles.horizontalInset}>
                 <TripCardSkeleton />
                 <TripCardSkeleton />
                 <TripCardSkeleton />
@@ -327,7 +327,9 @@ export function DiscoverScreen({ navigation }: Props) {
         }
         renderItem={({ item }) =>
           isLoading ? null : (
-            <TripCard trip={item} onPress={() => navigation.navigate("TripDetail", { tripId: item.id })} />
+            <View style={styles.horizontalInset}>
+              <TripCard trip={item} onPress={() => navigation.navigate("TripDetail", { tripId: item.id })} />
+            </View>
           )
         }
       />
@@ -481,8 +483,9 @@ function createStyles(colors: Palette) {
       borderColor: colors.dangerBorderLight,
     },
     clearAllChipText: { fontSize: 12.5, color: colors.danger, fontWeight: "700", includeFontPadding: false },
-    list: { padding: 16, paddingBottom: 110 },
-    emptyWrap: { alignItems: "center", marginTop: 48, gap: 10 },
+    listContent: { paddingBottom: 110 },
+    horizontalInset: { paddingHorizontal: 16 },
+    emptyWrap: { alignItems: "center", marginTop: 48, gap: 10, paddingHorizontal: 16 },
     empty: { textAlign: "center", color: colors.mutedLight, fontSize: 13, paddingHorizontal: 32 },
     emptyClearLink: { color: colors.primary, fontSize: 13, fontWeight: "700", marginTop: 2 },
     backdrop: {
