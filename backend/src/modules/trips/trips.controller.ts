@@ -23,6 +23,11 @@ export async function trending(req: AuthedRequest, res: Response) {
   res.json({ items });
 }
 
+export async function trendingDestinations(_req: AuthedRequest, res: Response) {
+  const items = await service.getTrendingDestinations();
+  res.json({ items });
+}
+
 export async function recommended(req: AuthedRequest, res: Response) {
   const items = await service.getRecommendedTrips(req.userId!);
   res.json({ items });

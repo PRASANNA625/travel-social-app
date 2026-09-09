@@ -97,6 +97,52 @@ export async function getTrendingTrips(viewerId?: string, limit = SECTION_RESULT
   return attachViewerFlags(ranked, viewerId);
 }
 
+export interface TrendingDestination {
+  destination: string;
+  tripCount: number;
+  lat: number;
+  lng: number;
+}
+
+const TRENDING_DESTINATIONS_LIMIT = 8;
+
+export async function getTrendingDestinations(): Promise<TrendingDestination[]> {
+  const candidates = await prisma.trip.findMany({
+    where: { ...upcomingOpenWhere(), startLat: { not: null }, startLng: { not: null } },
+    include: cardInclude,
+    orderBy: { createdAt: "desc" },
+    take: TRENDING_CANDIDATE_LIMIT,
+  });
+
+  const byDestination = new Map<
+    string,
+    { tripCount: number; score: number; latSum: number; lngSum: number }
+  >();
+
+  for (const trip of candidates) {
+    const key = trip.destination;
+    const score = engagementScore(trip);
+    const entry = byDestination.get(key) ?? { tripCount: 0, score: 0, latSum: 0, lngSum: 0 };
+    entry.tripCount += 1;
+    entry.score += score;
+    entry.latSum += trip.startLat!;
+    entry.lngSum += trip.startLng!;
+    byDestination.set(key, entry);
+  }
+
+  return Array.from(byDestination.entries())
+    .map(([destination, agg]) => ({
+      destination,
+      tripCount: agg.tripCount,
+      score: agg.score,
+      lat: agg.latSum / agg.tripCount,
+      lng: agg.lngSum / agg.tripCount,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, TRENDING_DESTINATIONS_LIMIT)
+    .map(({ score, ...rest }) => rest);
+}
+
 export async function getRecommendedTrips(userId: string, limit = SECTION_RESULT_LIMIT) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { preferredModes: true } });
 
@@ -176,7 +222,7 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
   // rows a viewer cares about within a single request, so serializing them
   // only adds a redundant round-trip to every list load for no benefit.
   const closeExpiredPromise = closeExpiredTrips();
-  const pageParams = parsePageParams(filters as unknown as Record<string, unknown>);
+  const pageParams = parsePageParams(filters as unknown as Record<string, unknown>, 20, 200);
 
   const where: Prisma.TripWhereInput = {
     status: { notIn: ["CANCELLED"] },
