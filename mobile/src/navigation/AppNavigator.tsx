@@ -9,6 +9,7 @@ import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { UserProfileScreen } from "../screens/UserProfileScreen";
 import { AssistantScreen } from "../screens/AssistantScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
+import { TravelBuddiesScreen } from "../screens/TravelBuddiesScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -32,6 +33,7 @@ export function AppNavigator() {
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: "Profile" }} />
       <Stack.Screen name="Assistant" component={AssistantScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TravelBuddies" component={TravelBuddiesScreen} options={{ title: "Travel Buddies" }} />
     </Stack.Navigator>
   );
 }
