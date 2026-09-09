@@ -68,6 +68,70 @@ async function main() {
   }
   console.log("✓ zero-signal candidates get compatibilityPercent: null instead of a fabricated score");
 
+  // --- Age proximity: closer age should score higher than a large age gap, all else equal ---
+  // Fixtures are scoped to this run's own unique interest tag (via the /buddies/matches
+  // ?interest= filter) so that leftover fixtures from prior runs against a shared,
+  // non-reset dev DB can never crowd this run's top-N candidate pool.
+  const ageTag = `AgeProximity-${rand()}`;
+  const agePivot = await registerUser("age-pivot-buddies");
+  const closeAge = await registerUser("close-age-buddies");
+  const midAge = await registerUser("mid-age-buddies");
+  const farAge = await registerUser("far-age-buddies");
+
+  await requestOk("PATCH", "/users/me", {
+    token: agePivot.token,
+    body: { interests: [ageTag], preferredModes: ["TREK"], age: 30 },
+  });
+  await requestOk("PATCH", "/users/me", {
+    token: closeAge.token,
+    body: { interests: [ageTag], preferredModes: ["TREK"], age: 31 }, // 1-year gap -> <=1yr "+10" tier
+  });
+  await requestOk("PATCH", "/users/me", {
+    token: midAge.token,
+    body: { interests: [ageTag], preferredModes: ["TREK"], age: 34 }, // 4-year gap -> 2-5yr "+5" tier
+  });
+  await requestOk("PATCH", "/users/me", {
+    token: farAge.token,
+    body: { interests: [ageTag], preferredModes: ["TREK"], age: 55 }, // 25-year gap -> >5yr "+0" tier
+  });
+
+  const agePivotMatches = await requestOk(
+    "GET",
+    `/buddies/matches?interest=${encodeURIComponent(ageTag)}`,
+    { token: agePivot.token }
+  );
+  const closeAgeMatch = agePivotMatches.items.find((m) => m.id === closeAge.user.id);
+  const midAgeMatch = agePivotMatches.items.find((m) => m.id === midAge.user.id);
+  const farAgeMatch = agePivotMatches.items.find((m) => m.id === farAge.user.id);
+  assert(!!closeAgeMatch, "closeAge should appear in agePivot's matches given the shared interest tag");
+  assert(!!midAgeMatch, "midAge should appear in agePivot's matches given the shared interest tag");
+  assert(!!farAgeMatch, "farAge should appear in agePivot's matches given the shared interest tag");
+  assert(
+    closeAgeMatch.compatibilityPercent > midAgeMatch.compatibilityPercent,
+    `a 1-year age gap (+10 tier) should score higher than a 4-year gap (+5 tier): got ${closeAgeMatch.compatibilityPercent} vs ${midAgeMatch.compatibilityPercent}`
+  );
+  assert(
+    midAgeMatch.compatibilityPercent > farAgeMatch.compatibilityPercent,
+    `a 4-year age gap (+5 tier) should score higher than a 25-year gap (+0 tier): got ${midAgeMatch.compatibilityPercent} vs ${farAgeMatch.compatibilityPercent}`
+  );
+  console.log("✓ age proximity boosts compatibility score across all three tiers (<=1yr > 2-5yr > >5yr) when real shared-interest signal already exists");
+
+  // --- Age alone (with zero shared interests/modes) must never unlock a compatibility % ---
+  const ageOnlyViewer = await registerUser("age-only-viewer-buddies");
+  const ageOnlyMatch = await registerUser("age-only-match-buddies");
+  await requestOk("PATCH", "/users/me", { token: ageOnlyViewer.token, body: { age: 30 } });
+  await requestOk("PATCH", "/users/me", { token: ageOnlyMatch.token, body: { age: 30 } });
+
+  const ageOnlyMatches = await requestOk("GET", "/buddies/matches", { token: ageOnlyViewer.token });
+  const ageOnlyResult = ageOnlyMatches.items.find((m) => m.id === ageOnlyMatch.user.id);
+  if (ageOnlyResult) {
+    assert(
+      ageOnlyResult.compatibilityPercent === null,
+      "two users with the same age but zero shared interests/modes must still get compatibilityPercent: null - age alone must never unlock a score"
+    );
+  }
+  console.log("✓ age proximity alone (zero shared interests/modes) never unlocks a compatibility %");
+
   // --- Connect flow: send -> pending states on both sides -> accept -> connected both sides ---
   const sendResult = await request("POST", `/buddies/${bob.user.id}/connect`, { token: alice.token });
   assert(sendResult.status === 201, `connect should return 201, got ${sendResult.status}`);

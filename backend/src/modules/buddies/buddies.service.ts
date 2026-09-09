@@ -51,6 +51,14 @@ async function excludedUserIds(viewerId: string): Promise<Set<string>> {
   return excluded;
 }
 
+function ageProximityBonus(ageA: number | null, ageB: number | null): number {
+  if (ageA === null || ageB === null) return 0;
+  const diff = Math.abs(ageA - ageB);
+  if (diff <= 1) return 10;
+  if (diff <= 5) return 5;
+  return 0;
+}
+
 function overlapCount<T>(a: T[], b: T[]): number {
   const setB = new Set(b);
   return a.filter((x) => setB.has(x)).length;
@@ -77,7 +85,7 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
 
   const viewer = await prisma.user.findUniqueOrThrow({
     where: { id: viewerId },
-    select: { interests: true, preferredModes: true, location: true },
+    select: { interests: true, preferredModes: true, location: true, age: true },
   });
   const viewerTripSignals = await tripSignals(viewerId);
   const excluded = await excludedUserIds(viewerId);
@@ -151,12 +159,15 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
       [...candidateTripSignals.destinations]
     );
 
+    const ageBonus = ageProximityBonus(viewer.age, c.age);
+
     const rawScore =
       sharedInterests.length * 15 +
       sharedModesCount * 10 +
       (locationMatch ? 15 : 0) +
       Math.min(sharedTripModes, 3) * 10 +
-      Math.min(sharedDestinations, 3) * 10;
+      Math.min(sharedDestinations, 3) * 10 +
+      ageBonus;
 
     const hasStrongSignal = sharedInterests.length > 0 || sharedModesCount > 0;
 
