@@ -18,6 +18,16 @@ export async function list(req: AuthedRequest, res: Response) {
   res.json(result);
 }
 
+export async function trending(req: AuthedRequest, res: Response) {
+  const items = await service.getTrendingTrips(req.userId);
+  res.json({ items });
+}
+
+export async function recommended(req: AuthedRequest, res: Response) {
+  const items = await service.getRecommendedTrips(req.userId!);
+  res.json({ items });
+}
+
 export async function getById(req: AuthedRequest, res: Response) {
   const trip = await service.getTripById(req.params.id, req.userId);
   res.json(trip);

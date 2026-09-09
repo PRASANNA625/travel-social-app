@@ -58,6 +58,105 @@ async function attachViewerFlags<T extends { id: string }>(trips: T[], viewerId?
   return trips.map((t) => ({ ...t, isLiked: likedSet.has(t.id), isBookmarked: bookmarkedSet.has(t.id) }));
 }
 
+const TRENDING_CANDIDATE_LIMIT = 100;
+const SECTION_RESULT_LIMIT = 10;
+
+const upcomingOpenWhere: Prisma.TripWhereInput = {
+  status: { in: ["PLANNING", "OPEN", "ALMOST_FULL"] },
+  startDate: { gte: new Date() },
+};
+
+function daysSince(date: Date): number {
+  return (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+}
+
+function engagementScore(trip: {
+  _count: { likes: number; comments: number; joinRequests: number };
+  createdAt: Date;
+}): number {
+  const recencyBoost = Math.max(0, 5 - daysSince(trip.createdAt) * 0.5);
+  return trip._count.likes * 2 + trip._count.comments * 1.5 + trip._count.joinRequests * 3 + recencyBoost;
+}
+
+export async function getTrendingTrips(viewerId?: string, limit = SECTION_RESULT_LIMIT) {
+  const candidates = await prisma.trip.findMany({
+    where: upcomingOpenWhere,
+    include: cardInclude,
+    orderBy: { createdAt: "desc" },
+    take: TRENDING_CANDIDATE_LIMIT,
+  });
+
+  const ranked = candidates
+    .map((t) => ({ ...t, score: engagementScore(t) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  return attachViewerFlags(ranked, viewerId);
+}
+
+export async function getRecommendedTrips(userId: string, limit = SECTION_RESULT_LIMIT) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { preferredModes: true } });
+
+  const [joinedGroups, likes, bookmarks] = await Promise.all([
+    prisma.groupMember.findMany({
+      where: { userId },
+      include: { group: { include: { trip: { select: { travelMode: true, destination: true } } } } },
+      orderBy: { joinedAt: "desc" },
+      take: 20,
+    }),
+    prisma.tripLike.findMany({
+      where: { userId },
+      include: { trip: { select: { travelMode: true, destination: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    prisma.tripBookmark.findMany({
+      where: { userId },
+      include: { trip: { select: { travelMode: true, destination: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+  ]);
+
+  const historyTrips = [
+    ...joinedGroups.map((g) => g.group.trip),
+    ...likes.map((l) => l.trip),
+    ...bookmarks.map((b) => b.trip),
+  ];
+  const preferredModes = new Set<string>([...(user?.preferredModes ?? []), ...historyTrips.map((t) => t.travelMode)]);
+  const preferredDestinations = new Set(historyTrips.map((t) => t.destination.toLowerCase()));
+
+  if (preferredModes.size === 0 && preferredDestinations.size === 0) {
+    return getTrendingTrips(userId, limit);
+  }
+
+  const ownTripIds = (await prisma.trip.findMany({ where: { ownerId: userId }, select: { id: true } })).map(
+    (t) => t.id
+  );
+  const joinedTripIds = joinedGroups.map((g) => g.group.tripId);
+  const bookmarkedTripIds = bookmarks.map((b) => b.tripId);
+  const excludeIds = [...new Set([...ownTripIds, ...joinedTripIds, ...bookmarkedTripIds])];
+
+  const candidates = await prisma.trip.findMany({
+    where: { ...upcomingOpenWhere, id: { notIn: excludeIds } },
+    include: cardInclude,
+    orderBy: { createdAt: "desc" },
+    take: TRENDING_CANDIDATE_LIMIT,
+  });
+
+  const ranked = candidates
+    .map((t) => {
+      let score = engagementScore(t) * 0.3;
+      if (preferredModes.has(t.travelMode)) score += 10;
+      if (preferredDestinations.has(t.destination.toLowerCase())) score += 6;
+      return { ...t, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  return attachViewerFlags(ranked, userId);
+}
+
 export async function createTrip(ownerId: string, input: CreateTripInput) {
   assertValidTripDates(input.startDate, input.endDate);
   const trip = await prisma.trip.create({

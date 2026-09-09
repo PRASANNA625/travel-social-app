@@ -10,6 +10,8 @@ export const tripsRouter = Router();
 tripsRouter.get("/", optionalAuth, asyncHandler(controller.list));
 tripsRouter.get("/mine", requireAuth, asyncHandler(controller.mine));
 tripsRouter.get("/bookmarked", requireAuth, asyncHandler(controller.bookmarked));
+tripsRouter.get("/trending", optionalAuth, asyncHandler(controller.trending));
+tripsRouter.get("/recommended", requireAuth, asyncHandler(controller.recommended));
 tripsRouter.post("/images", requireAuth, upload.array("images", 8), asyncHandler(controller.uploadImages));
 tripsRouter.get("/:id", optionalAuth, asyncHandler(controller.getById));
 tripsRouter.get("/:id/comments", asyncHandler(controller.listComments));
