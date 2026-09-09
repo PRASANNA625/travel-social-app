@@ -341,6 +341,51 @@ export async function getBookmarkedTrips(userId: string) {
   return bookmarks.map((b) => b.trip);
 }
 
+const REVIEW_ELIGIBILITY_REASONS = {
+  TRIP_NOT_ENDED: "You can review this trip once it has ended",
+  OWNER_CANNOT_REVIEW: "Trip owners can't review their own trip",
+  NOT_A_MEMBER: "Only trip participants can leave a review",
+  TRIP_CANCELLED: "Cancelled trips can't be reviewed",
+} as const;
+
+async function canReviewTrip(
+  tripId: string,
+  userId: string
+): Promise<{ allowed: boolean; reason?: string }> {
+  const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+  if (!trip) throw new HttpError(404, "Trip not found");
+  if (trip.status === "CANCELLED") {
+    return { allowed: false, reason: REVIEW_ELIGIBILITY_REASONS.TRIP_CANCELLED };
+  }
+  if (trip.endDate.getTime() >= Date.now()) {
+    return { allowed: false, reason: REVIEW_ELIGIBILITY_REASONS.TRIP_NOT_ENDED };
+  }
+  if (trip.ownerId === userId) {
+    return { allowed: false, reason: REVIEW_ELIGIBILITY_REASONS.OWNER_CANNOT_REVIEW };
+  }
+
+  const group = await prisma.group.findUnique({ where: { tripId } });
+  if (!group) return { allowed: false, reason: REVIEW_ELIGIBILITY_REASONS.NOT_A_MEMBER };
+  const membership = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId: group.id, userId } },
+  });
+  if (!membership) return { allowed: false, reason: REVIEW_ELIGIBILITY_REASONS.NOT_A_MEMBER };
+
+  return { allowed: true };
+}
+
+async function recomputeTripRatingAggregate(tx: Prisma.TransactionClient, tripId: string) {
+  const agg = await tx.tripReview.aggregate({
+    where: { tripId },
+    _avg: { rating: true },
+    _count: true,
+  });
+  await tx.trip.update({
+    where: { id: tripId },
+    data: { avgRating: agg._avg.rating, reviewCount: agg._count },
+  });
+}
+
 export async function addComment(tripId: string, userId: string, text: string) {
   const trip = await prisma.trip.findUnique({ where: { id: tripId } });
   if (!trip) throw new HttpError(404, "Trip not found");
@@ -376,5 +421,66 @@ export async function listComments(tripId: string) {
     where: { tripId },
     include: { user: { select: { id: true, name: true, photoUrl: true } } },
     orderBy: { createdAt: "asc" },
+  });
+}
+
+const reviewInclude = { user: { select: { id: true, name: true, photoUrl: true } } } satisfies Prisma.TripReviewInclude;
+
+export async function listReviews(tripId: string, viewerId?: string) {
+  const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+  if (!trip) throw new HttpError(404, "Trip not found");
+
+  const items = await prisma.tripReview.findMany({
+    where: { tripId },
+    include: reviewInclude,
+    orderBy: { createdAt: "desc" },
+  });
+
+  let viewerCanReview = false;
+  let viewerReview = null as (typeof items)[number] | null;
+  if (viewerId) {
+    viewerReview = items.find((r) => r.userId === viewerId) ?? null;
+    if (!viewerReview) {
+      const eligibility = await canReviewTrip(tripId, viewerId);
+      viewerCanReview = eligibility.allowed;
+    }
+  }
+
+  return {
+    items,
+    avgRating: trip.avgRating,
+    reviewCount: trip.reviewCount,
+    viewerCanReview,
+    viewerReview,
+  };
+}
+
+export async function submitReview(
+  tripId: string,
+  userId: string,
+  input: { rating: number; comment?: string }
+) {
+  const eligibility = await canReviewTrip(tripId, userId);
+  if (!eligibility.allowed) throw new HttpError(403, eligibility.reason!);
+
+  return prisma.$transaction(async (tx) => {
+    const row = await tx.tripReview.upsert({
+      where: { tripId_userId: { tripId, userId } },
+      update: { rating: input.rating, comment: input.comment ?? null },
+      create: { tripId, userId, rating: input.rating, comment: input.comment ?? null },
+      include: reviewInclude,
+    });
+    await recomputeTripRatingAggregate(tx, tripId);
+    return row;
+  });
+}
+
+export async function deleteReview(tripId: string, userId: string) {
+  const existing = await prisma.tripReview.findUnique({ where: { tripId_userId: { tripId, userId } } });
+  if (!existing) throw new HttpError(404, "You haven't reviewed this trip");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.tripReview.delete({ where: { tripId_userId: { tripId, userId } } });
+    await recomputeTripRatingAggregate(tx, tripId);
   });
 }

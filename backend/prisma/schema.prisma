@@ -82,6 +82,7 @@ model User {
   tripLikes       TripLike[]
   tripBookmarks   TripBookmark[]
   tripComments    TripComment[]
+  tripReviews     TripReview[]
   groupMemberships GroupMember[]
   messages        Message[]
   notifications   Notification[]
@@ -113,6 +114,8 @@ model Trip {
   notes              String?
   joinType           JoinType   @default(APPROVAL)
   status             TripStatus @default(OPEN)
+  avgRating          Float?
+  reviewCount        Int        @default(0)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -120,6 +123,7 @@ model Trip {
   likes        TripLike[]
   bookmarks    TripBookmark[]
   comments     TripComment[]
+  reviews      TripReview[]
   group        Group?
 
   @@index([destination])
@@ -172,6 +176,19 @@ model TripComment {
   createdAt DateTime @default(now())
 
   @@index([tripId])
+}
+
+model TripReview {
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([tripId, userId])
 }
 
 model Group {
