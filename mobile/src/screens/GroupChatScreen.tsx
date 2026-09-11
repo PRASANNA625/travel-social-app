@@ -31,6 +31,8 @@ import { ChatWallpaper } from "../components/ChatWallpaper";
 import { GroupMembersModal } from "../components/GroupMembersModal";
 import { ReactionPickerModal } from "../components/ReactionPickerModal";
 import { SeenByModal } from "../components/SeenByModal";
+import { VoiceMessageBubble } from "../components/VoiceMessageBubble";
+import { VoicePlaybackProvider } from "../contexts/VoicePlaybackContext";
 import { TYPE } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
@@ -225,6 +227,8 @@ export function GroupChatScreen({ route, navigation }: Props) {
             {!isMine && <Text style={styles.senderName}>{item.sender.name}</Text>}
             {item.type === "IMAGE" && item.mediaUrl ? (
               <Image source={{ uri: optimizedImageUrl(item.mediaUrl, 190) }} style={styles.messageImage} />
+            ) : item.type === "AUDIO" && item.mediaUrl ? (
+              <VoiceMessageBubble messageId={item.id} mediaUrl={item.mediaUrl} durationMs={item.durationMs ?? 0} isMine={isMine} />
             ) : (
               <Text style={[styles.messageText, isMine && styles.messageTextMine]}>{item.content}</Text>
             )}
@@ -266,6 +270,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
   };
 
   return (
+    <VoicePlaybackProvider>
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
@@ -430,6 +435,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
         readBy={seenByTargetMessage?.readBy ?? []}
       />
     </KeyboardAvoidingView>
+    </VoicePlaybackProvider>
   );
 }
 
