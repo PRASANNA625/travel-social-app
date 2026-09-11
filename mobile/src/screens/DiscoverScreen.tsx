@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Image,
   Modal,
@@ -79,7 +80,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   const { data: me } = useMe();
 
@@ -181,6 +182,31 @@ export function DiscoverScreen({ navigation }: Props) {
     sortOrder,
   });
 
+  const rowSize = viewLayout === "list" ? 1 : windowWidth < 360 ? 1 : 2;
+
+  const rows = useMemo(() => {
+    const items = viewMode === "list" ? (data?.items ?? []) : [];
+    const grouped: (typeof items)[number][][] = [];
+    for (let i = 0; i < items.length; i += rowSize) {
+      grouped.push(items.slice(i, i + rowSize));
+    }
+    return grouped;
+  }, [data, viewMode, rowSize]);
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const isFirstLayoutRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstLayoutRender.current) {
+      isFirstLayoutRender.current = false;
+      return;
+    }
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+  }, [viewLayout, fadeAnim]);
+
   const mapFilters = {
     search: search || undefined,
     travelMode: travelModes,
@@ -258,8 +284,8 @@ export function DiscoverScreen({ navigation }: Props) {
     <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.listContent}
-        data={viewMode === "list" ? (data?.items ?? []) : []}
-        keyExtractor={(item) => item.id}
+        data={rows}
+        keyExtractor={(row) => row.map((t) => t.id).join("-")}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
@@ -499,11 +525,30 @@ export function DiscoverScreen({ navigation }: Props) {
             )}
 
             {viewMode === "list" && isLoading && (
-              <View style={styles.horizontalInset}>
-                <TripCardSkeleton />
-                <TripCardSkeleton />
-                <TripCardSkeleton />
-              </View>
+              viewLayout === "grid" ? (
+                <>
+                  <View style={styles.gridRow}>
+                    <View style={styles.gridCell}>
+                      <TripCardSkeleton layout="grid" />
+                    </View>
+                    <View style={styles.gridCell}>
+                      <TripCardSkeleton layout="grid" />
+                    </View>
+                  </View>
+                  <View style={styles.gridRow}>
+                    <View style={styles.gridCell}>
+                      <TripCardSkeleton layout="grid" />
+                    </View>
+                    <View style={styles.gridCell} />
+                  </View>
+                </>
+              ) : (
+                <View style={styles.horizontalInset}>
+                  <TripCardSkeleton layout="list" />
+                  <TripCardSkeleton layout="list" />
+                  <TripCardSkeleton layout="list" />
+                </View>
+              )
             )}
           </>
         }
@@ -528,11 +573,22 @@ export function DiscoverScreen({ navigation }: Props) {
             </View>
           )
         }
-        renderItem={({ item }) =>
+        renderItem={({ item: row }) =>
           isLoading ? null : (
-            <View style={styles.horizontalInset}>
-              <TripCard trip={item} onPress={() => navigation.navigate("TripDetail", { tripId: item.id })} />
-            </View>
+            <Animated.View
+              style={[viewLayout === "grid" ? styles.gridRow : styles.horizontalInset, { opacity: fadeAnim }]}
+            >
+              {row.map((trip) => (
+                <View key={trip.id} style={viewLayout === "grid" ? styles.gridCell : styles.listCell}>
+                  <TripCard
+                    trip={trip}
+                    layout={viewLayout}
+                    onPress={() => navigation.navigate("TripDetail", { tripId: trip.id })}
+                  />
+                </View>
+              ))}
+              {viewLayout === "grid" && row.length === 1 && <View style={styles.gridCell} />}
+            </Animated.View>
           )
         }
       />
@@ -731,6 +787,9 @@ function createStyles(colors: Palette) {
     buddyRow: { flexDirection: "row", paddingHorizontal: 16, gap: 12 },
     listContent: { paddingBottom: 110 },
     horizontalInset: { paddingHorizontal: 16 },
+    gridRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16 },
+    gridCell: { flex: 1 },
+    listCell: { flex: 1 },
     emptyWrap: { alignItems: "center", marginTop: 48, gap: 10, paddingHorizontal: 16 },
     empty: { textAlign: "center", color: colors.mutedLight, fontSize: 13, paddingHorizontal: 32 },
     emptyClearLink: { color: colors.primary, fontSize: 13, fontWeight: "700", marginTop: 2 },
