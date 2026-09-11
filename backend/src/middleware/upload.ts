@@ -24,15 +24,31 @@ export const upload = multer({
   },
 });
 
-export function uploadToCloudinary(file: Express.Multer.File): Promise<string> {
+const ALLOWED_AUDIO_MIME_TYPES = ["audio/m4a", "audio/mp4", "audio/aac", "audio/webm", "audio/ogg", "audio/mpeg"];
+
+export const uploadAudio = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_AUDIO_MIME_TYPES.includes(file.mimetype)) {
+      return cb(new Error("Only audio uploads are allowed"));
+    }
+    cb(null, true);
+  },
+});
+
+export function uploadToCloudinary(
+  file: Express.Multer.File,
+  resourceType: "image" | "video" = "image"
+): Promise<string> {
   if (!cloudinaryConfigured) {
     return Promise.reject(
-      new HttpError(500, "Image uploads are not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.")
+      new HttpError(500, "Uploads are not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.")
     );
   }
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: "travel-social", resource_type: "image" },
+      { folder: "travel-social", resource_type: resourceType },
       (err, result) => {
         if (err || !result) return reject(err ?? new Error("Cloudinary upload failed"));
         resolve(result.secure_url);

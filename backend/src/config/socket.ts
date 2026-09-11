@@ -98,7 +98,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       socket.leave(`group:${groupId}`);
     });
 
-    socket.on("message:send", async (data: { groupId: string; type?: "TEXT" | "IMAGE"; content?: string; mediaUrl?: string }) => {
+    socket.on("message:send", async (data: { groupId: string; type?: "TEXT" | "IMAGE" | "AUDIO"; content?: string; mediaUrl?: string; durationMs?: number }) => {
       const membership = await prisma.groupMember.findUnique({
         where: { groupId_userId: { groupId: data.groupId, userId } },
         include: { group: { select: { trip: { select: { id: true, title: true, status: true } } } } },
@@ -113,6 +113,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
           type: data.type ?? "TEXT",
           content: data.content,
           mediaUrl: data.mediaUrl,
+          durationMs: data.durationMs,
         },
         include: { sender: { select: { id: true, name: true, photoUrl: true } } },
       });
