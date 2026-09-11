@@ -14,17 +14,19 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
+import { useAudioRecorder, useAudioRecorderState, RecordingPresets, AudioModule, setAudioModeAsync } from "expo-audio";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useAuthStore } from "../store/authStore";
 import { useGroup } from "../api/groups";
-import { useLiveGroupChat, useMessageHistory, useUploadChatImage } from "../api/messages";
+import { useLiveGroupChat, useMessageHistory, useUploadChatAudio, useUploadChatImage } from "../api/messages";
 import { useMarkGroupNotificationsRead } from "../api/notifications";
 import type { ChatMessage } from "../types";
 import { Alert } from "../utils/alert";
 import { optimizedImageUrl } from "../utils/optimizedImage";
+import { formatDuration } from "../utils/duration";
 import { Skeleton } from "../components/theme/Skeleton";
 import { AttachmentSheet } from "../components/AttachmentSheet";
 import { ChatWallpaper } from "../components/ChatWallpaper";
@@ -32,6 +34,7 @@ import { GroupMembersModal } from "../components/GroupMembersModal";
 import { ReactionPickerModal } from "../components/ReactionPickerModal";
 import { SeenByModal } from "../components/SeenByModal";
 import { VoiceMessageBubble } from "../components/VoiceMessageBubble";
+import { VoiceRecordingPreview } from "../components/VoiceRecordingPreview";
 import { VoicePlaybackProvider } from "../contexts/VoicePlaybackContext";
 import { TYPE } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
@@ -55,9 +58,14 @@ export function GroupChatScreen({ route, navigation }: Props) {
     memberIds
   );
   const uploadImage = useUploadChatImage();
+  const uploadAudio = useUploadChatAudio();
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder, 100);
   const [text, setText] = useState("");
   const [pendingPhoto, setPendingPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [sendingPhoto, setSendingPhoto] = useState(false);
+  const [pendingRecording, setPendingRecording] = useState<{ uri: string; durationMs: number } | null>(null);
+  const [sendingVoiceNote, setSendingVoiceNote] = useState(false);
   const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
   const [membersModalVisible, setMembersModalVisible] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
@@ -112,10 +120,64 @@ export function GroupChatScreen({ route, navigation }: Props) {
     return () => sub.remove();
   }, []);
 
+  useEffect(() => {
+    if (recorderState.isRecording && recorderState.durationMillis >= MAX_RECORDING_MS) {
+      onStopRecording();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorderState.isRecording, recorderState.durationMillis]);
+
   const onSend = () => {
     if (!text.trim() || isClosed) return;
     sendMessage({ type: "TEXT", content: text.trim() });
     setText("");
+  };
+
+  const MAX_RECORDING_MS = 5 * 60 * 1000;
+
+  const onStartRecording = async () => {
+    if (isClosed) return;
+    const permission = await AudioModule.requestRecordingPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Microphone access needed", "Please allow microphone access to record a voice note.");
+      return;
+    }
+    try {
+      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+    } catch {
+      Alert.alert("Couldn't start recording", "Please try again");
+    }
+  };
+
+  const onStopRecording = async () => {
+    if (!recorderState.isRecording) return;
+    const finishedDurationMs = recorderState.durationMillis;
+    await audioRecorder.stop();
+    await setAudioModeAsync({ allowsRecording: false });
+    const uri = audioRecorder.uri;
+    if (uri) {
+      setPendingRecording({ uri, durationMs: finishedDurationMs });
+    }
+  };
+
+  const onCancelRecording = () => {
+    setPendingRecording(null);
+  };
+
+  const onConfirmSendVoiceNote = async () => {
+    if (!pendingRecording) return;
+    setSendingVoiceNote(true);
+    try {
+      const url = await uploadAudio.mutateAsync(pendingRecording);
+      sendMessage({ type: "AUDIO", mediaUrl: url, durationMs: pendingRecording.durationMs });
+      setPendingRecording(null);
+    } catch {
+      Alert.alert("Couldn't send voice note", "Please try again");
+    } finally {
+      setSendingVoiceNote(false);
+    }
   };
 
   const onOpenCamera = async () => {
@@ -338,7 +400,34 @@ export function GroupChatScreen({ route, navigation }: Props) {
           )}
         </View>
 
-        {pendingPhoto ? (
+        {recorderState.isRecording ? (
+          <View style={[styles.recordingBar, { paddingBottom: insets.bottom + 12 }]}>
+            <View style={styles.recordingIndicatorWrap}>
+              <View style={styles.recordingDot} />
+              <Text style={styles.recordingLabel}>Recording…</Text>
+            </View>
+            <Text style={styles.recordingDuration}>{formatDuration(recorderState.durationMillis)}</Text>
+          </View>
+        ) : pendingRecording ? (
+          <View style={[styles.previewBar, { paddingBottom: insets.bottom + 12 }]}>
+            <VoiceRecordingPreview uri={pendingRecording.uri} durationMs={pendingRecording.durationMs} />
+            <View style={styles.previewActions}>
+              <TouchableOpacity style={styles.previewIconButton} onPress={onCancelRecording} disabled={sendingVoiceNote}>
+                <MaterialCommunityIcons name="delete-outline" size={18} color={colors.danger} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.previewSendButton} onPress={onConfirmSendVoiceNote} disabled={sendingVoiceNote}>
+                {sendingVoiceNote ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="send" size={16} color={colors.white} />
+                    <Text style={styles.previewSendText}>Send</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : pendingPhoto ? (
           <View style={[styles.previewBar, { paddingBottom: insets.bottom + 12 }]}>
             <Image source={{ uri: pendingPhoto.uri }} style={styles.previewThumb} />
             <Text style={styles.previewLabel} numberOfLines={1}>
@@ -393,9 +482,20 @@ export function GroupChatScreen({ route, navigation }: Props) {
                 editable={!isClosed}
                 multiline
               />
-              <TouchableOpacity onPress={onSend} style={styles.sendButton} disabled={!text.trim() || isClosed}>
-                <MaterialCommunityIcons name="send" size={18} color={colors.white} />
-              </TouchableOpacity>
+              {text.trim() ? (
+                <TouchableOpacity onPress={onSend} style={styles.sendButton} disabled={isClosed}>
+                  <MaterialCommunityIcons name="send" size={18} color={colors.white} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.sendButton, isClosed && styles.micButtonDisabled]}
+                  onPressIn={onStartRecording}
+                  onPressOut={onStopRecording}
+                  disabled={isClosed}
+                >
+                  <MaterialCommunityIcons name="microphone" size={18} color={isClosed ? colors.mutedLight : colors.white} />
+                </TouchableOpacity>
+              )}
             </View>
           </>
         )}
@@ -574,6 +674,20 @@ function createStyles(colors: Palette) {
     alignItems: "center",
     justifyContent: "center",
   },
+  micButtonDisabled: { backgroundColor: colors.fieldBg },
+  recordingBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    backgroundColor: colors.surfaceElevated,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  recordingIndicatorWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
+  recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.danger },
+  recordingLabel: { fontSize: 13.5, fontWeight: "600", color: colors.ink },
+  recordingDuration: { fontSize: 13.5, fontWeight: "700", color: colors.ink, fontVariant: ["tabular-nums"] },
   previewBar: {
     padding: 14,
     gap: 10,
