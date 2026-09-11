@@ -46,11 +46,9 @@ export function UserSafetyMenu({
     }
   }, [visible, progress]);
 
-  if (!visible || !anchor) return null;
-
   const screenWidth = Dimensions.get("window").width;
-  const right = Math.max(SCREEN_MARGIN, screenWidth - (anchor.x + anchor.width));
-  const top = anchor.y + anchor.height + 8;
+  const top = anchor ? anchor.y + anchor.height + 8 : 0;
+  const right = anchor ? Math.max(SCREEN_MARGIN, screenWidth - (anchor.x + anchor.width)) : SCREEN_MARGIN;
 
   const onSelectReportItem = () => {
     onClose();
@@ -73,7 +71,7 @@ export function UserSafetyMenu({
 
   return (
     <>
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Modal visible={visible && !!anchor} transparent animationType="fade" onRequestClose={onClose}>
         <Pressable style={styles.backdrop} onPress={onClose}>
           <Animated.View
             style={[

@@ -13,7 +13,7 @@ import type { Palette } from "../theme/palettes";
 
 type Props = NativeStackScreenProps<AppStackParamList, "BlockedUsers">;
 
-function BlockedUserRow({ user, styles, colors }: { user: User; styles: ReturnType<typeof createStyles>; colors: Palette }) {
+function BlockedUserRow({ user, styles }: { user: User; styles: ReturnType<typeof createStyles> }) {
   const unblockUser = useUnblockUser(user.id);
   return (
     <View style={styles.card}>
@@ -66,7 +66,7 @@ export function BlockedUsersScreen(_props: Props) {
             <Text style={styles.empty}>You haven't blocked anyone.</Text>
           </View>
         }
-        renderItem={({ item }) => <BlockedUserRow user={item} styles={styles} colors={colors} />}
+        renderItem={({ item }) => <BlockedUserRow user={item} styles={styles} />}
       />
     </View>
   );

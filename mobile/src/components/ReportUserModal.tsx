@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { RADIUS, SHADOW } from "../theme/tokens";
@@ -32,6 +32,13 @@ export function ReportUserModal({
   const [details, setDetails] = useState("");
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  useEffect(() => {
+    if (!visible) {
+      setReason(null);
+      setDetails("");
+    }
+  }, [visible]);
 
   const requiresDetails = reason === "OTHER";
   const canSubmit = !!reason && (!requiresDetails || details.trim().length > 0);

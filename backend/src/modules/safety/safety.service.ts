@@ -5,7 +5,7 @@ import { publicUserSelect } from "../users/users.service";
 import type { ReportReason } from "./safety.types";
 
 async function assertUserExists(userId: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) throw new HttpError(404, "User not found");
 }
 
@@ -24,22 +24,23 @@ export async function blockUser(blockerId: string, blockedId: string) {
   if (blockerId === blockedId) throw new HttpError(400, "You can't block yourself");
   await assertUserExists(blockedId);
 
-  await prisma.userBlock.upsert({
-    where: { blockerId_blockedId: { blockerId, blockedId } },
-    update: {},
-    create: { blockerId, blockedId },
-  });
-
-  await prisma.buddyConnection.updateMany({
-    where: {
-      status: "PENDING",
-      OR: [
-        { fromUserId: blockerId, toUserId: blockedId },
-        { fromUserId: blockedId, toUserId: blockerId },
-      ],
-    },
-    data: { status: "REJECTED" },
-  });
+  await prisma.$transaction([
+    prisma.userBlock.upsert({
+      where: { blockerId_blockedId: { blockerId, blockedId } },
+      update: {},
+      create: { blockerId, blockedId },
+    }),
+    prisma.buddyConnection.updateMany({
+      where: {
+        status: "PENDING",
+        OR: [
+          { fromUserId: blockerId, toUserId: blockedId },
+          { fromUserId: blockedId, toUserId: blockerId },
+        ],
+      },
+      data: { status: "REJECTED" },
+    }),
+  ]);
 }
 
 export async function unblockUser(blockerId: string, blockedId: string) {

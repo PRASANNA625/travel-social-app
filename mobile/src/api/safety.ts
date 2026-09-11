@@ -3,9 +3,13 @@ import { apiClient } from "./client";
 import type { ReportReason, User } from "../types";
 
 export function useReportUser(userId: string) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { reason: ReportReason; details?: string }) =>
       (await apiClient.post(`/safety/users/${userId}/report`, input)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 }
 
