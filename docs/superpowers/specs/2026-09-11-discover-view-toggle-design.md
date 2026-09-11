@@ -17,8 +17,8 @@ trip-card logic or disturbing any existing Discover functionality.
   control is additive and only visible when List/Map is set to "List".
 - No backend/API involvement — the view preference is a device-local
   setting only.
-- No new list-rendering library. `FlatList`'s built-in `numColumns`
-  support is used as-is.
+- No new list-rendering library, and no use of `FlatList`'s built-in
+  `numColumns` — see "FlatList Integration & Transition" below for why.
 - No live/animated reflow between column counts — see "Transition"
   below for why, and what "smooth" means here instead.
 
@@ -72,8 +72,14 @@ trip-card logic or disturbing any existing Discover functionality.
   uses `useWindowDimensions()` to size the map area). This feature
   follows the same inline-responsive convention.
 - **RN `FlatList` constraint**: changing `numColumns` on a mounted
-  `FlatList` is unsupported — the list must remount (new `key`) when
-  the column count changes. This shapes the Transition section below.
+  `FlatList` is unsupported without remounting the list (new `key`).
+  That would be safe for a standalone list, but this screen's single
+  outer `FlatList` carries its entire page — hero carousel, search,
+  toggles, filter chips, and all four horizontal sections — inside
+  `ListHeaderComponent`. Forcing a remount via `key` would remount all
+  of that too: scroll position reset to the top, hero carousel
+  restarted, search focus lost. So this design does not use
+  `numColumns` at all — see "FlatList Integration & Transition" below.
 
 ## Architecture Overview
 
@@ -181,46 +187,71 @@ loading states match.
 
 ## Grid Column Behavior
 
-Grid mode uses `numColumns={2}` on both Web and Mobile — "2-column
-layout on Web" and "responsive layout on Mobile" are treated as the
-same behavior, since 2 columns is the compact-card identity the
+Grid mode targets 2 columns on both Web and Mobile — "2-column layout
+on Web" and "responsive layout on Mobile" are treated as the same
+behavior, since 2 columns is the compact-card identity the
 requirements describe. A `useWindowDimensions()` width safeguard drops
-to `numColumns={1}` only below a narrow-width threshold (360px) as a
+to 1 column only below a narrow-width threshold (360px) as a
 defensive fallback for unusually small viewports; real devices rarely
 cross this threshold, so in practice grid mode is 2 columns almost
-everywhere. List mode is always `numColumns={1}`, full width.
+everywhere. List mode is always 1 column, full width. This column
+count is called `rowSize` below — it determines how many `Trip`s each
+rendered row groups together, not a `FlatList` prop.
 
 ## FlatList Integration & Transition
 
+The outer `FlatList`'s `data`/`renderItem` operate on **rows**, not
+individual trips, so column count changes without touching
+`numColumns` or the list's `key` — no remount, so the header content
+inside `ListHeaderComponent` (hero carousel, search, toggles, filter
+chips, all four sections) is completely unaffected by a Grid/List
+toggle: scroll position, hero carousel state, and search focus are
+all preserved.
+
 ```ts
-const numColumns = viewLayout === "list" ? 1 : windowWidth < 360 ? 1 : 2;
+const rowSize = viewLayout === "list" ? 1 : windowWidth < 360 ? 1 : 2;
+
+const rows = useMemo(() => {
+  const items = viewMode === "list" ? (data?.items ?? []) : [];
+  const grouped: Trip[][] = [];
+  for (let i = 0; i < items.length; i += rowSize) {
+    grouped.push(items.slice(i, i + rowSize));
+  }
+  return grouped;
+}, [data, viewMode, rowSize]);
 ```
 
 ```tsx
-<Animated.View style={{ opacity: fadeAnim }}>
-  <FlatList
-    key={`${viewLayout}-${numColumns}`}
-    data={trips}
-    numColumns={numColumns}
-    columnWrapperStyle={numColumns === 2 ? styles.gridRow : undefined}
-    renderItem={({ item }) => (
-      <TripCard trip={item} layout={viewLayout} onPress={...} onDelete={...} />
-    )}
-    ListHeaderComponent={...}
-    ...
-  />
-</Animated.View>
+<FlatList
+  data={rows}
+  keyExtractor={(row) => row.map((t) => t.id).join("-")}
+  renderItem={({ item: row }) => (
+    <Animated.View
+      style={[viewLayout === "grid" ? styles.gridRow : styles.horizontalInset, { opacity: fadeAnim }]}
+    >
+      {row.map((trip) => (
+        <View key={trip.id} style={viewLayout === "grid" ? styles.gridCell : styles.listCell}>
+          <TripCard trip={trip} layout={viewLayout} onPress={...} onDelete={...} />
+        </View>
+      ))}
+      {viewLayout === "grid" && row.length === 1 && <View style={styles.gridCell} />}
+    </Animated.View>
+  )}
+  ListHeaderComponent={...}
+  ...
+/>
 ```
 
-`key={`${viewLayout}-${numColumns}`}` forces the required remount
-whenever the effective column count changes (view-mode switch, or the
-narrow-width safeguard crossing its threshold). Since `FlatList`
-cannot animate a live column-count change, "smooth transition" is
-implemented as a fade around the remount: a `useEffect` on
-`viewLayout` drives `fadeAnim` (React Native `Animated.Value`) through
-a ~150ms fade-out, then ~150ms fade-in after the remount commits. This
-reads as an intentional transition rather than a hard cut, without a
-new animation dependency.
+The odd-trailing-item spacer (`row.length === 1` in grid mode) keeps
+the last row's lone card at half width instead of stretching to fill
+the row, matching a conventional grid's trailing-item look.
+
+Since there's no remount to mask, "smooth transition" is a plain
+opacity fade applied only to the row content (not the header): a
+shared `fadeAnim` (`Animated.Value`, `useNativeDriver: true`) fades to
+0 over ~150ms when `viewLayout` changes, then back to 1 over ~150ms —
+driven by a `useEffect` on `viewLayout`, scoped to `renderItem`'s
+wrapper so the header never visually flashes.
 
 ## Interaction with Filters, Sections, and Closed Trips
 
