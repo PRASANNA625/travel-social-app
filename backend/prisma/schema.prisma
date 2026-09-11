@@ -56,6 +56,7 @@ enum GroupRole {
 enum MessageType {
   TEXT
   IMAGE
+  AUDIO
 }
 
 enum BuddyConnectionStatus {
@@ -236,15 +237,16 @@ model GroupMember {
 }
 
 model Message {
-  id        String      @id @default(cuid())
-  groupId   String
-  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  senderId  String
-  sender    User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  type      MessageType @default(TEXT)
-  content   String?
-  mediaUrl  String?
-  createdAt DateTime    @default(now())
+  id         String      @id @default(cuid())
+  groupId    String
+  group      Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  type       MessageType @default(TEXT)
+  content    String?
+  mediaUrl   String?
+  durationMs Int?
+  createdAt  DateTime    @default(now())
 
   reactions MessageReaction[]
   reads     MessageRead[]
