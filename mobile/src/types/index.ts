@@ -58,6 +58,7 @@ export interface User {
   phone?: string | null;
   phoneVerified?: boolean;
   createdAt: string;
+  isBlocked?: boolean;
 }
 
 export interface TripOwnerSummary {
@@ -137,6 +138,8 @@ export interface JoinRequest {
 }
 
 export type BuddyConnectionState = "none" | "pending_sent" | "pending_received" | "connected";
+
+export type ReportReason = "SPAM" | "HARASSMENT" | "FAKE_PROFILE" | "INAPPROPRIATE_CONTENT" | "SAFETY_CONCERN" | "OTHER";
 
 export interface BuddyMatch extends Omit<User, "email" | "phone" | "phoneVerified"> {
   sharedInterests: string[];
