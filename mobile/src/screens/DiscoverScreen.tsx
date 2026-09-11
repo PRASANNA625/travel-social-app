@@ -587,7 +587,7 @@ export function DiscoverScreen({ navigation }: Props) {
                   />
                 </View>
               ))}
-              {viewLayout === "grid" && row.length === 1 && <View style={styles.gridCell} />}
+              {viewLayout === "grid" && rowSize === 2 && row.length === 1 && <View style={styles.gridCell} />}
             </Animated.View>
           )
         }
