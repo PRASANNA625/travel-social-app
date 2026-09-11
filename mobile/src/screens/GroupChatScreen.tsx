@@ -523,7 +523,9 @@ export function GroupChatScreen({ route, navigation }: Props) {
                 <TouchableOpacity
                   style={[styles.sendButton, isClosed && styles.micButtonDisabled, recorderState.isRecording && styles.micButtonRecording]}
                   onPressIn={onStartRecording}
-                  onPressOut={onStopRecording}
+                  onPressOut={() => {
+                    onStopRecording().catch(() => {});
+                  }}
                   disabled={isClosed}
                 >
                   <MaterialCommunityIcons name="microphone" size={18} color={isClosed ? colors.mutedLight : colors.white} />

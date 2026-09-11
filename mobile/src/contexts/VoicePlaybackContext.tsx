@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
 interface VoicePlaybackContextValue {
   activeKey: string | null;
@@ -16,24 +16,32 @@ export function VoicePlaybackProvider({ children }: { children: ReactNode }) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const stopHandlers = useRef<Map<string, () => void>>(new Map());
 
-  const requestPlay = (key: string, onForceStop: () => void) => {
-    if (activeKey && activeKey !== key) {
-      stopHandlers.current.get(activeKey)?.();
-    }
-    stopHandlers.current.set(key, onForceStop);
-    setActiveKey(key);
-  };
+  const requestPlay = useCallback(
+    (key: string, onForceStop: () => void) => {
+      if (activeKey && activeKey !== key) {
+        stopHandlers.current.get(activeKey)?.();
+      }
+      stopHandlers.current.set(key, onForceStop);
+      setActiveKey(key);
+    },
+    [activeKey]
+  );
 
-  const notifyStopped = (key: string) => {
+  const notifyStopped = useCallback((key: string) => {
     stopHandlers.current.delete(key);
     setActiveKey((current) => (current === key ? null : current));
-  };
+  }, []);
 
-  return (
-    <VoicePlaybackContext.Provider value={{ activeKey, requestPlay, notifyStopped }}>
-      {children}
-    </VoicePlaybackContext.Provider>
+  // Stabilizes the context value across re-renders that don't actually
+  // change playback state, so mounted VoiceMessageBubbles don't re-render
+  // every time the screen re-renders for an unrelated reason (new text
+  // typed, a new message arriving).
+  const value = useMemo(
+    () => ({ activeKey, requestPlay, notifyStopped }),
+    [activeKey, requestPlay, notifyStopped]
   );
+
+  return <VoicePlaybackContext.Provider value={value}>{children}</VoicePlaybackContext.Provider>;
 }
 
 export function useVoicePlaybackCoordinator(): VoicePlaybackContextValue {
