@@ -55,6 +55,17 @@ export function SettingsScreen({ navigation }: Props) {
             );
           })}
         </View>
+
+        <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Privacy & Safety</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate("BlockedUsers")}>
+            <View style={styles.iconWrap}>
+              <MaterialCommunityIcons name="account-off-outline" size={18} color={colors.muted} />
+            </View>
+            <Text style={styles.rowLabel}>Blocked Users</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedLight} />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -84,6 +95,7 @@ function createStyles(colors: Palette) {
     headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.ink },
     body: { padding: 16 },
     sectionTitle: { fontSize: 13, fontWeight: "700", color: colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.4 },
+    sectionTitleSpaced: { marginTop: 24 },
     card: {
       backgroundColor: colors.surfaceElevated,
       borderRadius: RADIUS.card,

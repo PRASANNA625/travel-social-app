@@ -11,6 +11,7 @@ import { AssistantScreen } from "../screens/AssistantScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { TravelBuddiesScreen } from "../screens/TravelBuddiesScreen";
 import { ConnectionRequestsScreen } from "../screens/ConnectionRequestsScreen";
+import { BlockedUsersScreen } from "../screens/BlockedUsersScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -36,6 +37,7 @@ export function AppNavigator() {
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TravelBuddies" component={TravelBuddiesScreen} options={{ title: "Travel Buddies" }} />
       <Stack.Screen name="ConnectionRequests" component={ConnectionRequestsScreen} options={{ title: "Connection Requests" }} />
+      <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={{ title: "Blocked Users" }} />
     </Stack.Navigator>
   );
 }
