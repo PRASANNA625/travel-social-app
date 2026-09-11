@@ -24,6 +24,7 @@ import { useMe } from "../api/users";
 import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
 import { TripCardSkeleton } from "../components/TripCardSkeleton";
+import { ViewModeToggle, type ViewModeToggleOption } from "../components/ViewModeToggle";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 import { GradientBackground } from "../components/theme/GradientBackground";
@@ -49,6 +50,11 @@ type Props = CompositeScreenProps<
 
 const RADIUS_OPTIONS_KM = [10, 25, 50, 100];
 const DEFAULT_RADIUS_KM = 50;
+
+const LIST_MAP_OPTIONS: [ViewModeToggleOption<"list" | "map">, ViewModeToggleOption<"list" | "map">] = [
+  { value: "list", icon: "view-list", label: "List" },
+  { value: "map", icon: "map", label: "Map" },
+];
 
 export function DiscoverScreen({ navigation }: Props) {
   const [search, setSearch] = useState("");
@@ -90,6 +96,14 @@ export function DiscoverScreen({ navigation }: Props) {
   const [previewTripId, setPreviewTripId] = useState<string | null>(null);
   const [panTarget, setPanTarget] = useState<ExploreMapPanTarget | null>(null);
   const mapLocationRequested = useRef(false);
+
+  const onViewModeChange = (next: "list" | "map") => {
+    setViewMode(next);
+    if (next === "list") {
+      setPanTarget(null);
+      setPreviewTripId(null);
+    }
+  };
 
   useEffect(() => {
     if (viewMode !== "map" || mapLocationRequested.current) return;
@@ -264,33 +278,10 @@ export function DiscoverScreen({ navigation }: Props) {
               />
             </View>
 
-            <View style={styles.viewModeRow}>
-              <TouchableOpacity
-                style={[styles.viewModeButton, viewMode === "list" && styles.viewModeButtonActive]}
-                onPress={() => {
-                  setViewMode("list");
-                  setPanTarget(null);
-                  setPreviewTripId(null);
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="view-list"
-                  size={15}
-                  color={viewMode === "list" ? colors.white : colors.ink}
-                />
-                <Text style={[styles.viewModeButtonText, viewMode === "list" && styles.viewModeButtonTextActive]}>
-                  List
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.viewModeButton, viewMode === "map" && styles.viewModeButtonActive]}
-                onPress={() => setViewMode("map")}
-              >
-                <MaterialCommunityIcons name="map" size={15} color={viewMode === "map" ? colors.white : colors.ink} />
-                <Text style={[styles.viewModeButtonText, viewMode === "map" && styles.viewModeButtonTextActive]}>
-                  Map
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleFlexItem}>
+                <ViewModeToggle options={LIST_MAP_OPTIONS} value={viewMode} onChange={onViewModeChange} />
+              </View>
             </View>
 
             <FlatList
@@ -636,27 +627,8 @@ function createStyles(colors: Palette) {
     search: { flex: 1, paddingVertical: 12, fontSize: 14, color: colors.ink },
     filterRow: { minHeight: 46, marginTop: 12, flexGrow: 0 },
     filterRowContent: { paddingHorizontal: 16, paddingRight: 24, paddingVertical: 4, alignItems: "center", gap: 8 },
-    viewModeRow: {
-      flexDirection: "row",
-      marginHorizontal: 16,
-      marginTop: 10,
-      backgroundColor: colors.fieldBg,
-      borderRadius: RADIUS.pill,
-      padding: 3,
-      gap: 3,
-    },
-    viewModeButton: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 5,
-      paddingVertical: 8,
-      borderRadius: RADIUS.pill,
-    },
-    viewModeButtonActive: { backgroundColor: colors.primary },
-    viewModeButtonText: { fontSize: 12.5, fontWeight: "700", color: colors.ink },
-    viewModeButtonTextActive: { color: colors.white },
+    toggleRow: { flexDirection: "row", marginHorizontal: 16, marginTop: 10, gap: 8 },
+    toggleFlexItem: { flex: 1 },
     mapSection: { marginTop: 4 },
     trendingChipsRow: { minHeight: 40, marginTop: 10, flexGrow: 0 },
     trendingChipsRowContent: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
