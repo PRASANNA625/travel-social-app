@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps } from "react";
-import { Image, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -14,6 +14,12 @@ import { RADIUS, TYPE } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
+import { useAuthStore } from "../store/authStore";
+import { useBlockUser, useReportUser, useUnblockUser } from "../api/safety";
+import { UserSafetyMenu, type UserSafetyMenuAnchor } from "../components/UserSafetyMenu";
+import { ReportUserModal } from "../components/ReportUserModal";
+import { Alert } from "../utils/alert";
+import type { ReportReason } from "../types";
 
 type Props = NativeStackScreenProps<AppStackParamList, "UserProfile">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -53,7 +59,7 @@ function UserProfileSkeleton({ styles }: { styles: ReturnType<typeof createStyle
   );
 }
 
-export function UserProfileScreen({ route }: Props) {
+export function UserProfileScreen({ route, navigation }: Props) {
   const { userId, groupRole } = route.params;
   const { data: user, isLoading } = useUser(userId);
   const { data: completedTrips } = useCompletedTrips(userId);
@@ -63,9 +69,66 @@ export function UserProfileScreen({ route }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  const me = useAuthStore((s) => s.user);
+  const isSelf = me?.id === userId;
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<UserSafetyMenuAnchor | null>(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const menuButtonRef = useRef<View>(null);
+  const blockUser = useBlockUser(userId);
+  const unblockUser = useUnblockUser(userId);
+  const reportUser = useReportUser(userId);
+
+  useEffect(() => {
+    if (isSelf) {
+      navigation.setOptions({ headerRight: undefined });
+      return;
+    }
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          ref={menuButtonRef}
+          style={styles.headerMenuButton}
+          onPress={() => {
+            menuButtonRef.current?.measureInWindow((x, y, width, height) => {
+              setMenuAnchor({ x, y, width, height });
+              setMenuVisible(true);
+            });
+          }}
+          hitSlop={8}
+        >
+          <MaterialCommunityIcons name="dots-vertical" size={20} color={colors.ink} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, isSelf, colors]);
+
   if (isLoading || !user) return <UserProfileSkeleton styles={styles} />;
 
+  const onConfirmBlock = () => {
+    blockUser.mutate(undefined, {
+      onError: (err: any) => Alert.alert("Couldn't block user", err?.response?.data?.error ?? "Try again"),
+    });
+  };
+
+  const onConfirmUnblock = () => {
+    unblockUser.mutate(undefined, {
+      onError: (err: any) => Alert.alert("Couldn't unblock user", err?.response?.data?.error ?? "Try again"),
+    });
+  };
+
+  const onSubmitReport = (input: { reason: ReportReason; details?: string }) => {
+    reportUser.mutate(input, {
+      onSuccess: () => {
+        setReportModalVisible(false);
+        Alert.alert("Report submitted", "Thanks for letting us know. Our team will review it.");
+      },
+      onError: (err: any) => Alert.alert("Couldn't submit report", err?.response?.data?.error ?? "Try again"),
+    });
+  };
+
   return (
+    <>
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={[styles.coverWrap, { height: coverHeight }]}>
         {user.coverPhotoUrl ? (
@@ -170,6 +233,24 @@ export function UserProfileScreen({ route }: Props) {
         </View>
       </View>
     </ScrollView>
+      <UserSafetyMenu
+        visible={menuVisible}
+        anchor={menuAnchor}
+        isBlocked={!!user.isBlocked}
+        userName={user.name}
+        onClose={() => setMenuVisible(false)}
+        onSelectReport={() => setReportModalVisible(true)}
+        onConfirmBlock={onConfirmBlock}
+        onConfirmUnblock={onConfirmUnblock}
+      />
+      <ReportUserModal
+        visible={reportModalVisible}
+        userName={user.name}
+        isSubmitting={reportUser.isPending}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={onSubmitReport}
+      />
+    </>
   );
 }
 
@@ -263,5 +344,6 @@ function createStyles(colors: Palette) {
   skeletonAvatar: { width: 104, height: 104, borderRadius: 52, marginTop: -58 },
   skeletonName: { width: 140, height: 18, marginTop: 14 },
   skeletonMeta: { width: 100, height: 12, marginTop: 8 },
+  headerMenuButton: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   });
 }
