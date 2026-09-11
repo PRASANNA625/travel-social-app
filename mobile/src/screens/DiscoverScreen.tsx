@@ -62,7 +62,7 @@ const VIEW_LAYOUT_STORAGE_KEY = "discover_view_layout";
 
 const GRID_LIST_OPTIONS: [ViewModeToggleOption<"grid" | "list">, ViewModeToggleOption<"grid" | "list">] = [
   { value: "grid", icon: "view-grid-outline", label: "Grid" },
-  { value: "list", icon: "view-agenda-outline", label: "List" },
+  { value: "list", icon: "view-agenda-outline", label: "Rows" },
 ];
 
 export function DiscoverScreen({ navigation }: Props) {
@@ -205,6 +205,7 @@ export function DiscoverScreen({ navigation }: Props) {
       Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
       Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
     ]).start();
+    return () => fadeAnim.stopAnimation();
   }, [viewLayout, fadeAnim]);
 
   const mapFilters = {
