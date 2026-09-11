@@ -97,9 +97,11 @@ pill control and reused for both toggles.
 `ViewModeToggle` — a small reusable component:
 
 ```ts
+type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"]; // the codebase's established icon-prop type, from mobile/src/utils/travelModeIcons.ts
+
 type ViewModeToggleOption<T extends string> = {
   value: T;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: IconName;
   label: string;
 };
 
@@ -113,9 +115,10 @@ interface ViewModeToggleProps<T extends string> {
 Rendered as the existing `viewModeRow`/`viewModeButton` styles
 (`colors.fieldBg` pill row, active button `colors.primary` fill with
 white icon). The existing List/Map toggle is refactored to use this
-component with `options=[{value:"list",icon:"view-list-outline",...},
-{value:"map",icon:"map-outline",...}]` — no behavior change, purely
-extracting the existing markup.
+component with its exact current icons and labels
+(`options=[{value:"list",icon:"view-list",label:"List"},
+{value:"map",icon:"map",label:"Map"}]`) — no behavior or visual
+change, purely extracting the existing markup.
 
 The new Grid/List toggle uses the same component:
 `options=[{value:"grid",icon:"view-grid-outline",...},
