@@ -46,6 +46,8 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+const MAX_RECORDING_MS = 5 * 60 * 1000;
+
 export function GroupChatScreen({ route, navigation }: Props) {
   const { groupId, tripTitle, highlightMessageId } = route.params;
   const me = useAuthStore((s) => s.user);
@@ -66,6 +68,8 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const [sendingPhoto, setSendingPhoto] = useState(false);
   const [pendingRecording, setPendingRecording] = useState<{ uri: string; durationMs: number } | null>(null);
   const [sendingVoiceNote, setSendingVoiceNote] = useState(false);
+  const pressActiveRef = useRef(false);
+  const isStoppingRef = useRef(false);
   const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
   const [membersModalVisible, setMembersModalVisible] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
@@ -120,49 +124,73 @@ export function GroupChatScreen({ route, navigation }: Props) {
     return () => sub.remove();
   }, []);
 
-  useEffect(() => {
-    if (recorderState.isRecording && recorderState.durationMillis >= MAX_RECORDING_MS) {
-      onStopRecording();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recorderState.isRecording, recorderState.durationMillis]);
-
   const onSend = () => {
     if (!text.trim() || isClosed) return;
     sendMessage({ type: "TEXT", content: text.trim() });
     setText("");
   };
 
-  const MAX_RECORDING_MS = 5 * 60 * 1000;
-
   const onStartRecording = async () => {
     if (isClosed) return;
+    pressActiveRef.current = true;
     const permission = await AudioModule.requestRecordingPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Microphone access needed", "Please allow microphone access to record a voice note.");
+      pressActiveRef.current = false;
       return;
     }
+    if (!pressActiveRef.current) return;
     try {
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
+      if (!pressActiveRef.current) {
+        await onStopRecording();
+      }
     } catch {
       Alert.alert("Couldn't start recording", "Please try again");
+      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
     }
   };
 
   const onStopRecording = async () => {
-    if (!recorderState.isRecording) return;
-    const finishedDurationMs = recorderState.durationMillis;
-    await audioRecorder.stop();
-    await setAudioModeAsync({ allowsRecording: false });
-    const uri = audioRecorder.uri;
-    if (uri) {
-      setPendingRecording({ uri, durationMs: finishedDurationMs });
+    pressActiveRef.current = false;
+    if (!audioRecorder.isRecording || isStoppingRef.current) return;
+    isStoppingRef.current = true;
+    try {
+      const finishedDurationMs = Math.round(audioRecorder.currentTime * 1000);
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+      if (uri) {
+        setPendingRecording({ uri, durationMs: finishedDurationMs });
+      }
+    } finally {
+      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      isStoppingRef.current = false;
     }
   };
 
+  useEffect(() => {
+    if (recorderState.isRecording && recorderState.durationMillis >= MAX_RECORDING_MS) {
+      onStopRecording().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorderState.isRecording, recorderState.durationMillis]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRecorder.isRecording) {
+        audioRecorder.stop().catch(() => {});
+        setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onCancelRecording = () => {
+    if (Platform.OS === "web" && pendingRecording) {
+      URL.revokeObjectURL(pendingRecording.uri);
+    }
     setPendingRecording(null);
   };
 
@@ -172,6 +200,9 @@ export function GroupChatScreen({ route, navigation }: Props) {
     try {
       const url = await uploadAudio.mutateAsync(pendingRecording);
       sendMessage({ type: "AUDIO", mediaUrl: url, durationMs: pendingRecording.durationMs });
+      if (Platform.OS === "web") {
+        URL.revokeObjectURL(pendingRecording.uri);
+      }
       setPendingRecording(null);
     } catch {
       Alert.alert("Couldn't send voice note", "Please try again");
@@ -400,15 +431,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
           )}
         </View>
 
-        {recorderState.isRecording ? (
-          <View style={[styles.recordingBar, { paddingBottom: insets.bottom + 12 }]}>
-            <View style={styles.recordingIndicatorWrap}>
-              <View style={styles.recordingDot} />
-              <Text style={styles.recordingLabel}>Recording…</Text>
-            </View>
-            <Text style={styles.recordingDuration}>{formatDuration(recorderState.durationMillis)}</Text>
-          </View>
-        ) : pendingRecording ? (
+        {pendingRecording ? (
           <View style={[styles.previewBar, { paddingBottom: insets.bottom + 12 }]}>
             <VoiceRecordingPreview uri={pendingRecording.uri} durationMs={pendingRecording.durationMs} />
             <View style={styles.previewActions}>
@@ -465,30 +488,40 @@ export function GroupChatScreen({ route, navigation }: Props) {
               </View>
             )}
             <View style={[styles.inputRow, { paddingBottom: 10 + insets.bottom }]}>
-              <TouchableOpacity
-                onPress={() => setAttachmentSheetVisible(true)}
-                style={[styles.attachButton, isClosed && styles.attachButtonDisabled]}
-                disabled={isClosed}
-              >
-                <MaterialCommunityIcons name="paperclip" size={22} color={isClosed ? colors.mutedLight : colors.primary} />
-              </TouchableOpacity>
-              <TextInput
-                style={[styles.input, isClosed && styles.inputDisabled]}
-                placeholder={isClosed ? "Chat is read-only" : "Message the group..."}
-                placeholderTextColor={colors.mutedLight}
-                value={text}
-                onChangeText={setText}
-                onSubmitEditing={onSend}
-                editable={!isClosed}
-                multiline
-              />
-              {text.trim() ? (
+              {recorderState.isRecording ? (
+                <View style={styles.recordingIndicatorWrap}>
+                  <View style={styles.recordingDot} />
+                  <Text style={styles.recordingLabel}>Recording…</Text>
+                  <Text style={styles.recordingDuration}>{formatDuration(recorderState.durationMillis)}</Text>
+                </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    onPress={() => setAttachmentSheetVisible(true)}
+                    style={[styles.attachButton, isClosed && styles.attachButtonDisabled]}
+                    disabled={isClosed}
+                  >
+                    <MaterialCommunityIcons name="paperclip" size={22} color={isClosed ? colors.mutedLight : colors.primary} />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={[styles.input, isClosed && styles.inputDisabled]}
+                    placeholder={isClosed ? "Chat is read-only" : "Message the group..."}
+                    placeholderTextColor={colors.mutedLight}
+                    value={text}
+                    onChangeText={setText}
+                    onSubmitEditing={onSend}
+                    editable={!isClosed}
+                    multiline
+                  />
+                </>
+              )}
+              {text.trim() && !recorderState.isRecording ? (
                 <TouchableOpacity onPress={onSend} style={styles.sendButton} disabled={isClosed}>
                   <MaterialCommunityIcons name="send" size={18} color={colors.white} />
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  style={[styles.sendButton, isClosed && styles.micButtonDisabled]}
+                  style={[styles.sendButton, isClosed && styles.micButtonDisabled, recorderState.isRecording && styles.micButtonRecording]}
                   onPressIn={onStartRecording}
                   onPressOut={onStopRecording}
                   disabled={isClosed}
@@ -675,18 +708,10 @@ function createStyles(colors: Palette) {
     justifyContent: "center",
   },
   micButtonDisabled: { backgroundColor: colors.fieldBg },
-  recordingBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
-    backgroundColor: colors.surfaceElevated,
-    borderTopWidth: 1,
-    borderTopColor: colors.divider,
-  },
-  recordingIndicatorWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
+  micButtonRecording: { backgroundColor: colors.danger },
+  recordingIndicatorWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 },
   recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.danger },
-  recordingLabel: { fontSize: 13.5, fontWeight: "600", color: colors.ink },
+  recordingLabel: { fontSize: 13.5, fontWeight: "600", color: colors.ink, flex: 1 },
   recordingDuration: { fontSize: 13.5, fontWeight: "700", color: colors.ink, fontVariant: ["tabular-nums"] },
   previewBar: {
     padding: 14,

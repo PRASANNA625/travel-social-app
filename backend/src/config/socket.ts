@@ -113,7 +113,10 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
           type: data.type ?? "TEXT",
           content: data.content,
           mediaUrl: data.mediaUrl,
-          durationMs: data.durationMs,
+          durationMs:
+            typeof data.durationMs === "number" && Number.isInteger(data.durationMs) && data.durationMs >= 0
+              ? data.durationMs
+              : undefined,
         },
         include: { sender: { select: { id: true, name: true, photoUrl: true } } },
       });

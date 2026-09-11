@@ -39,6 +39,9 @@ export function useVoicePlayback(key: string, uri: string | null): VoicePlayback
       player.pause();
       notifyStopped(key);
     } else {
+      if (status.error && uri) {
+        player.replace(uri);
+      }
       requestPlay(key, () => player.pause());
       player.play();
     }
