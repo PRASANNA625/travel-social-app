@@ -42,7 +42,7 @@ export type JoinType = "OPEN" | "APPROVAL" | "INVITE_ONLY";
 export type TripStatus = "PLANNING" | "OPEN" | "ALMOST_FULL" | "FULL" | "STARTED" | "COMPLETED" | "CANCELLED";
 export type JoinRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type GroupRole = "OWNER" | "MEMBER";
-export type MessageType = "TEXT" | "IMAGE";
+export type MessageType = "TEXT" | "IMAGE" | "AUDIO";
 
 export interface User {
   id: string;
@@ -193,6 +193,7 @@ export interface ChatMessage {
   type: MessageType;
   content?: string | null;
   mediaUrl?: string | null;
+  durationMs?: number | null;
   createdAt: string;
   sender: TripOwnerSummary;
   reactions?: MessageReactionSummary[];
