@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
   FlatList,
@@ -56,6 +57,13 @@ const LIST_MAP_OPTIONS: [ViewModeToggleOption<"list" | "map">, ViewModeToggleOpt
   { value: "map", icon: "map", label: "Map" },
 ];
 
+const VIEW_LAYOUT_STORAGE_KEY = "discover_view_layout";
+
+const GRID_LIST_OPTIONS: [ViewModeToggleOption<"grid" | "list">, ViewModeToggleOption<"grid" | "list">] = [
+  { value: "grid", icon: "view-grid-outline", label: "Grid" },
+  { value: "list", icon: "view-agenda-outline", label: "List" },
+];
+
 export function DiscoverScreen({ navigation }: Props) {
   const [search, setSearch] = useState("");
   const [travelModes, setTravelModes] = useState<TravelMode[]>([]);
@@ -103,6 +111,21 @@ export function DiscoverScreen({ navigation }: Props) {
       setPanTarget(null);
       setPreviewTripId(null);
     }
+  };
+
+  const [viewLayout, setViewLayoutState] = useState<"grid" | "list">("grid");
+
+  useEffect(() => {
+    AsyncStorage.getItem(VIEW_LAYOUT_STORAGE_KEY)
+      .then((stored) => {
+        if (stored === "grid" || stored === "list") setViewLayoutState(stored);
+      })
+      .catch(() => {});
+  }, []);
+
+  const setViewLayout = (next: "grid" | "list") => {
+    setViewLayoutState(next);
+    AsyncStorage.setItem(VIEW_LAYOUT_STORAGE_KEY, next).catch(() => {});
   };
 
   useEffect(() => {
@@ -282,6 +305,11 @@ export function DiscoverScreen({ navigation }: Props) {
               <View style={styles.toggleFlexItem}>
                 <ViewModeToggle options={LIST_MAP_OPTIONS} value={viewMode} onChange={onViewModeChange} />
               </View>
+              {viewMode === "list" && (
+                <View style={styles.toggleFlexItem}>
+                  <ViewModeToggle options={GRID_LIST_OPTIONS} value={viewLayout} onChange={setViewLayout} />
+                </View>
+              )}
             </View>
 
             <FlatList
