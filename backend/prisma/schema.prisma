@@ -58,6 +58,15 @@ enum MessageType {
   IMAGE
 }
 
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  FAKE_PROFILE
+  INAPPROPRIATE_CONTENT
+  SAFETY_CONCERN
+  OTHER
+}
+
 enum BuddyConnectionStatus {
   PENDING
   ACCEPTED
@@ -94,6 +103,10 @@ model User {
   notifications   Notification[]
   reactions       MessageReaction[]
   reads           MessageRead[]
+  blocksMade      UserBlock[]  @relation("BlocksMade")
+  blocksReceived  UserBlock[]  @relation("BlocksReceived")
+  reportsMade     UserReport[] @relation("ReportsMade")
+  reportsReceived UserReport[] @relation("ReportsReceived")
   buddyRequestsSent     BuddyConnection[] @relation("BuddyRequestsSent")
   buddyRequestsReceived BuddyConnection[] @relation("BuddyRequestsReceived")
 }
@@ -287,4 +300,29 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, read])
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model UserReport {
+  id         String       @id @default(cuid())
+  reporterId String
+  reporter   User         @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedId String
+  reported   User         @relation("ReportsReceived", fields: [reportedId], references: [id], onDelete: Cascade)
+  reason     ReportReason
+  details    String?
+  createdAt  DateTime     @default(now())
+
+  @@index([reportedId])
 }

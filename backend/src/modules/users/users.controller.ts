@@ -12,7 +12,7 @@ export async function me(req: AuthedRequest, res: Response) {
 }
 
 export async function getById(req: AuthedRequest, res: Response) {
-  const user = await service.getUserById(req.params.id);
+  const user = await service.getUserById(req.params.id, req.userId);
   res.json(user);
 }
 

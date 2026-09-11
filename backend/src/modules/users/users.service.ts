@@ -38,10 +38,19 @@ export async function getMe(id: string) {
   return user;
 }
 
-export async function getUserById(id: string) {
+export async function getUserById(id: string, viewerId?: string) {
   const user = await prisma.user.findUnique({ where: { id }, select: publicUserSelect });
   if (!user) throw new HttpError(404, "User not found");
-  return user;
+
+  let isBlocked = false;
+  if (viewerId) {
+    const block = await prisma.userBlock.findUnique({
+      where: { blockerId_blockedId: { blockerId: viewerId, blockedId: id } },
+    });
+    isBlocked = !!block;
+  }
+
+  return { ...user, isBlocked };
 }
 
 export interface ProfileUpdateInput {
