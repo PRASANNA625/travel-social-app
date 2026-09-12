@@ -17,7 +17,6 @@ import type { AuthStackParamList } from "../navigation/types";
 import { useRegister } from "../api/auth";
 import { Alert } from "../utils/alert";
 import { useLanguage } from "../i18n/LanguageContext";
-import { LanguageSelector } from "../components/LanguageSelector";
 import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
@@ -59,7 +58,6 @@ export function RegisterScreen({ navigation }: Props) {
         style={styles.decorCompass}
       />
 
-      <LanguageSelector style={[styles.languageSelector, { top: insets.top + 16 }]} />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView
