@@ -17,7 +17,7 @@ export interface GroupMessagePayload {
   messageId: string;
   senderId: string;
   senderName: string;
-  messageType: "TEXT" | "IMAGE";
+  messageType: "TEXT" | "IMAGE" | "AUDIO";
   content: string | null;
 }
 
@@ -53,7 +53,7 @@ export interface MessageReactionPayload {
   tripId: string;
   tripTitle: string;
   messageId: string;
-  messageType: "TEXT" | "IMAGE";
+  messageType: "TEXT" | "IMAGE" | "AUDIO";
   content: string | null;
   reactorId: string;
   reactorName: string;

@@ -14,23 +14,28 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
+import { useAudioRecorder, useAudioRecorderState, RecordingPresets, AudioModule, setAudioModeAsync } from "expo-audio";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useAuthStore } from "../store/authStore";
 import { useGroup } from "../api/groups";
-import { useLiveGroupChat, useMessageHistory, useUploadChatImage } from "../api/messages";
+import { useLiveGroupChat, useMessageHistory, useUploadChatAudio, useUploadChatImage } from "../api/messages";
 import { useMarkGroupNotificationsRead } from "../api/notifications";
 import type { ChatMessage } from "../types";
 import { Alert } from "../utils/alert";
 import { optimizedImageUrl } from "../utils/optimizedImage";
+import { formatDuration } from "../utils/duration";
 import { Skeleton } from "../components/theme/Skeleton";
 import { AttachmentSheet } from "../components/AttachmentSheet";
 import { ChatWallpaper } from "../components/ChatWallpaper";
 import { GroupMembersModal } from "../components/GroupMembersModal";
 import { ReactionPickerModal } from "../components/ReactionPickerModal";
 import { SeenByModal } from "../components/SeenByModal";
+import { VoiceMessageBubble } from "../components/VoiceMessageBubble";
+import { VoiceRecordingPreview } from "../components/VoiceRecordingPreview";
+import { VoicePlaybackProvider } from "../contexts/VoicePlaybackContext";
 import { TYPE } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
@@ -40,6 +45,8 @@ type Props = NativeStackScreenProps<AppStackParamList, "GroupChat">;
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
+
+const MAX_RECORDING_MS = 5 * 60 * 1000;
 
 export function GroupChatScreen({ route, navigation }: Props) {
   const { groupId, tripTitle, highlightMessageId } = route.params;
@@ -53,9 +60,16 @@ export function GroupChatScreen({ route, navigation }: Props) {
     memberIds
   );
   const uploadImage = useUploadChatImage();
+  const uploadAudio = useUploadChatAudio();
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder, 100);
   const [text, setText] = useState("");
   const [pendingPhoto, setPendingPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [sendingPhoto, setSendingPhoto] = useState(false);
+  const [pendingRecording, setPendingRecording] = useState<{ uri: string; durationMs: number } | null>(null);
+  const [sendingVoiceNote, setSendingVoiceNote] = useState(false);
+  const pressActiveRef = useRef(false);
+  const isStoppingRef = useRef(false);
   const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
   const [membersModalVisible, setMembersModalVisible] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
@@ -114,6 +128,87 @@ export function GroupChatScreen({ route, navigation }: Props) {
     if (!text.trim() || isClosed) return;
     sendMessage({ type: "TEXT", content: text.trim() });
     setText("");
+  };
+
+  const onStartRecording = async () => {
+    if (isClosed) return;
+    pressActiveRef.current = true;
+    const permission = await AudioModule.requestRecordingPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Microphone access needed", "Please allow microphone access to record a voice note.");
+      pressActiveRef.current = false;
+      return;
+    }
+    if (!pressActiveRef.current) return;
+    try {
+      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+      if (!pressActiveRef.current) {
+        await onStopRecording();
+      }
+    } catch {
+      Alert.alert("Couldn't start recording", "Please try again");
+      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+    }
+  };
+
+  const onStopRecording = async () => {
+    pressActiveRef.current = false;
+    if (!audioRecorder.isRecording || isStoppingRef.current) return;
+    isStoppingRef.current = true;
+    try {
+      const finishedDurationMs = Math.round(audioRecorder.currentTime * 1000);
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+      if (uri) {
+        setPendingRecording({ uri, durationMs: finishedDurationMs });
+      }
+    } finally {
+      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      isStoppingRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (recorderState.isRecording && recorderState.durationMillis >= MAX_RECORDING_MS) {
+      onStopRecording().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorderState.isRecording, recorderState.durationMillis]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRecorder.isRecording) {
+        audioRecorder.stop().catch(() => {});
+        setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onCancelRecording = () => {
+    if (Platform.OS === "web" && pendingRecording) {
+      URL.revokeObjectURL(pendingRecording.uri);
+    }
+    setPendingRecording(null);
+  };
+
+  const onConfirmSendVoiceNote = async () => {
+    if (!pendingRecording) return;
+    setSendingVoiceNote(true);
+    try {
+      const url = await uploadAudio.mutateAsync(pendingRecording);
+      sendMessage({ type: "AUDIO", mediaUrl: url, durationMs: pendingRecording.durationMs });
+      if (Platform.OS === "web") {
+        URL.revokeObjectURL(pendingRecording.uri);
+      }
+      setPendingRecording(null);
+    } catch {
+      Alert.alert("Couldn't send voice note", "Please try again");
+    } finally {
+      setSendingVoiceNote(false);
+    }
   };
 
   const onOpenCamera = async () => {
@@ -225,6 +320,8 @@ export function GroupChatScreen({ route, navigation }: Props) {
             {!isMine && <Text style={styles.senderName}>{item.sender.name}</Text>}
             {item.type === "IMAGE" && item.mediaUrl ? (
               <Image source={{ uri: optimizedImageUrl(item.mediaUrl, 190) }} style={styles.messageImage} />
+            ) : item.type === "AUDIO" && item.mediaUrl ? (
+              <VoiceMessageBubble messageId={item.id} mediaUrl={item.mediaUrl} durationMs={item.durationMs ?? 0} isMine={isMine} />
             ) : (
               <Text style={[styles.messageText, isMine && styles.messageTextMine]}>{item.content}</Text>
             )}
@@ -266,6 +363,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
   };
 
   return (
+    <VoicePlaybackProvider>
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
@@ -333,7 +431,26 @@ export function GroupChatScreen({ route, navigation }: Props) {
           )}
         </View>
 
-        {pendingPhoto ? (
+        {pendingRecording ? (
+          <View style={[styles.previewBar, { paddingBottom: insets.bottom + 12 }]}>
+            <VoiceRecordingPreview uri={pendingRecording.uri} durationMs={pendingRecording.durationMs} />
+            <View style={styles.previewActions}>
+              <TouchableOpacity style={styles.previewIconButton} onPress={onCancelRecording} disabled={sendingVoiceNote}>
+                <MaterialCommunityIcons name="delete-outline" size={18} color={colors.danger} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.previewSendButton} onPress={onConfirmSendVoiceNote} disabled={sendingVoiceNote}>
+                {sendingVoiceNote ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="send" size={16} color={colors.white} />
+                    <Text style={styles.previewSendText}>Send</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : pendingPhoto ? (
           <View style={[styles.previewBar, { paddingBottom: insets.bottom + 12 }]}>
             <Image source={{ uri: pendingPhoto.uri }} style={styles.previewThumb} />
             <Text style={styles.previewLabel} numberOfLines={1}>
@@ -371,26 +488,49 @@ export function GroupChatScreen({ route, navigation }: Props) {
               </View>
             )}
             <View style={[styles.inputRow, { paddingBottom: 10 + insets.bottom }]}>
-              <TouchableOpacity
-                onPress={() => setAttachmentSheetVisible(true)}
-                style={[styles.attachButton, isClosed && styles.attachButtonDisabled]}
-                disabled={isClosed}
-              >
-                <MaterialCommunityIcons name="paperclip" size={22} color={isClosed ? colors.mutedLight : colors.primary} />
-              </TouchableOpacity>
-              <TextInput
-                style={[styles.input, isClosed && styles.inputDisabled]}
-                placeholder={isClosed ? "Chat is read-only" : "Message the group..."}
-                placeholderTextColor={colors.mutedLight}
-                value={text}
-                onChangeText={setText}
-                onSubmitEditing={onSend}
-                editable={!isClosed}
-                multiline
-              />
-              <TouchableOpacity onPress={onSend} style={styles.sendButton} disabled={!text.trim() || isClosed}>
-                <MaterialCommunityIcons name="send" size={18} color={colors.white} />
-              </TouchableOpacity>
+              {recorderState.isRecording ? (
+                <View style={styles.recordingIndicatorWrap}>
+                  <View style={styles.recordingDot} />
+                  <Text style={styles.recordingLabel}>Recording…</Text>
+                  <Text style={styles.recordingDuration}>{formatDuration(recorderState.durationMillis)}</Text>
+                </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    onPress={() => setAttachmentSheetVisible(true)}
+                    style={[styles.attachButton, isClosed && styles.attachButtonDisabled]}
+                    disabled={isClosed}
+                  >
+                    <MaterialCommunityIcons name="paperclip" size={22} color={isClosed ? colors.mutedLight : colors.primary} />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={[styles.input, isClosed && styles.inputDisabled]}
+                    placeholder={isClosed ? "Chat is read-only" : "Message the group..."}
+                    placeholderTextColor={colors.mutedLight}
+                    value={text}
+                    onChangeText={setText}
+                    onSubmitEditing={onSend}
+                    editable={!isClosed}
+                    multiline
+                  />
+                </>
+              )}
+              {text.trim() && !recorderState.isRecording ? (
+                <TouchableOpacity onPress={onSend} style={styles.sendButton} disabled={isClosed}>
+                  <MaterialCommunityIcons name="send" size={18} color={colors.white} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.sendButton, isClosed && styles.micButtonDisabled, recorderState.isRecording && styles.micButtonRecording]}
+                  onPressIn={onStartRecording}
+                  onPressOut={() => {
+                    onStopRecording().catch(() => {});
+                  }}
+                  disabled={isClosed}
+                >
+                  <MaterialCommunityIcons name="microphone" size={18} color={isClosed ? colors.mutedLight : colors.white} />
+                </TouchableOpacity>
+              )}
             </View>
           </>
         )}
@@ -430,6 +570,7 @@ export function GroupChatScreen({ route, navigation }: Props) {
         readBy={seenByTargetMessage?.readBy ?? []}
       />
     </KeyboardAvoidingView>
+    </VoicePlaybackProvider>
   );
 }
 
@@ -568,6 +709,12 @@ function createStyles(colors: Palette) {
     alignItems: "center",
     justifyContent: "center",
   },
+  micButtonDisabled: { backgroundColor: colors.fieldBg },
+  micButtonRecording: { backgroundColor: colors.danger },
+  recordingIndicatorWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 },
+  recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.danger },
+  recordingLabel: { fontSize: 13.5, fontWeight: "600", color: colors.ink, flex: 1 },
+  recordingDuration: { fontSize: 13.5, fontWeight: "700", color: colors.ink, fontVariant: ["tabular-nums"] },
   previewBar: {
     padding: 14,
     gap: 10,

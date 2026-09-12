@@ -14,7 +14,8 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Used to show trips and distances near you.",
         "NSPhotoLibraryUsageDescription": "Used to attach photos to your profile, trips, and chat.",
-        "NSCameraUsageDescription": "Used to take photos to share in trip group chats."
+        "NSCameraUsageDescription": "Used to take photos to share in trip group chats.",
+        "NSMicrophoneUsageDescription": "Used to record voice notes to share in trip group chats."
       }
     },
     "android": {
@@ -22,7 +23,8 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "CAMERA"
+        "CAMERA",
+        "RECORD_AUDIO"
       ]
     },
     "extra": {
@@ -33,7 +35,8 @@
       }
     },
     "plugins": [
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-audio"
     ],
     "owner": "prasanna8675"
   }

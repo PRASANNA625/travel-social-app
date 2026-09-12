@@ -14,3 +14,9 @@ export async function uploadImage(req: AuthedRequest, res: Response) {
   const url = await uploadToCloudinary(req.file);
   res.json({ url });
 }
+
+export async function uploadAudioMessage(req: AuthedRequest, res: Response) {
+  if (!req.file) throw new HttpError(400, "No file uploaded");
+  const url = await uploadToCloudinary(req.file, "video");
+  res.json({ url });
+}

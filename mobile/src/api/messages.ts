@@ -4,6 +4,7 @@ import type { ImagePickerAsset } from "expo-image-picker";
 import { apiClient } from "./client";
 import { getSocket } from "./socket";
 import { appendImageAsset } from "../utils/formDataImage";
+import { appendAudioAsset } from "../utils/formDataAudio";
 import type { ChatMessage, MessageReactionSummary, MessageReadEntry, Paginated, PresenceInfo } from "../types";
 
 export function useMessageHistory(groupId?: string) {
@@ -20,6 +21,17 @@ export function useUploadChatImage() {
       const form = new FormData();
       appendImageAsset(form, "image", asset, "chat.jpg");
       const { data } = await apiClient.post<{ url: string }>("/messages/images", form);
+      return data.url;
+    },
+  });
+}
+
+export function useUploadChatAudio() {
+  return useMutation({
+    mutationFn: async (recording: { uri: string; durationMs: number }) => {
+      const form = new FormData();
+      await appendAudioAsset(form, "audio", recording.uri, "voice-note.m4a");
+      const { data } = await apiClient.post<{ url: string }>("/messages/audio", form);
       return data.url;
     },
   });
@@ -94,7 +106,7 @@ export function useLiveGroupChat(
     };
   }, [groupId, memberIdsKey]);
 
-  const sendMessage = (input: { content?: string; type?: "TEXT" | "IMAGE"; mediaUrl?: string }) => {
+  const sendMessage = (input: { content?: string; type?: "TEXT" | "IMAGE" | "AUDIO"; mediaUrl?: string; durationMs?: number }) => {
     if (!groupId) return;
     getSocket().emit("message:send", { groupId, ...input });
   };

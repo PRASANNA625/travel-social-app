@@ -25,6 +25,7 @@ type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 function messagePreview(payload: Record<string, unknown>): string {
   if (payload.messageType === "IMAGE") return "📷 Photo";
+  if (payload.messageType === "AUDIO") return "🎙️ Voice message";
   const content = typeof payload.content === "string" ? payload.content : "";
   return content.length > 60 ? `${content.slice(0, 60)}…` : content;
 }
