@@ -7,14 +7,14 @@ export const createFeedbackSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("REPORT"),
     type: z.enum(REPORT_TYPES),
-    description: z.string().trim().min(1, "Description is required"),
+    description: z.string().trim().min(1, "Description is required").max(2000),
     appVersion: z.string().max(50),
     platform: z.enum(["ios", "android", "web"]),
   }),
   z.object({
     kind: z.literal("FEEDBACK"),
     type: z.enum(FEEDBACK_TYPES),
-    description: z.string().trim().min(1, "Description is required"),
+    description: z.string().trim().min(1, "Description is required").max(2000),
     appVersion: z.string().max(50),
     platform: z.enum(["ios", "android", "web"]),
   }),

@@ -74,8 +74,8 @@ export function FeedbackModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={justSubmitted ? undefined : onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={isSubmitting || justSubmitted ? () => {} : onClose}>
+      <Pressable style={styles.backdrop} onPress={isSubmitting || justSubmitted ? undefined : onClose}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           {justSubmitted ? (
             <>

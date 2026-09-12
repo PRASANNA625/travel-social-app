@@ -113,6 +113,11 @@ export function ProfileScreen({ navigation }: Props) {
     setFeedbackJustSubmitted(false);
   };
 
+  const openFeedbackModal = (mode: "report" | "feedback") => {
+    setFeedbackJustSubmitted(false);
+    setFeedbackMode(mode);
+  };
+
   const onChangePhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") return;
@@ -273,7 +278,7 @@ export function ProfileScreen({ navigation }: Props) {
 
         <Card style={styles.section}>
           <SectionHeader icon="help-circle-outline" title="Help & Feedback" styles={styles} colors={colors} />
-          <TouchableOpacity style={styles.tripRow} onPress={() => setFeedbackMode("report")}>
+          <TouchableOpacity style={styles.tripRow} onPress={() => openFeedbackModal("report")}>
             <View style={[styles.tripDot, { backgroundColor: colors.danger }]} />
             <View style={styles.tripTextWrap}>
               <Text style={styles.tripTitle}>🐛 Report a Problem</Text>
@@ -281,7 +286,7 @@ export function ProfileScreen({ navigation }: Props) {
             </View>
             <MaterialCommunityIcons name="chevron-right" size={18} color={colors.mutedLight} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tripRow} onPress={() => setFeedbackMode("feedback")}>
+          <TouchableOpacity style={styles.tripRow} onPress={() => openFeedbackModal("feedback")}>
             <View style={styles.tripDot} />
             <View style={styles.tripTextWrap}>
               <Text style={styles.tripTitle}>💡 Send Feedback</Text>
