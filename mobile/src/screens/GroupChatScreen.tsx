@@ -179,12 +179,8 @@ export function GroupChatScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     return () => {
-      if (audioRecorder.isRecording) {
-        audioRecorder.stop().catch(() => {});
-        setAudioModeAsync({ allowsRecording: false }).catch(() => {});
-      }
+      setAudioModeAsync({ allowsRecording: false }).catch(() => {});
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onCancelRecording = () => {
