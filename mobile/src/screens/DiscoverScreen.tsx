@@ -62,7 +62,7 @@ const VIEW_LAYOUT_STORAGE_KEY = "discover_view_layout";
 
 const GRID_LIST_OPTIONS: [ViewModeToggleOption<"grid" | "list">, ViewModeToggleOption<"grid" | "list">] = [
   { value: "grid", icon: "view-grid-outline", label: "Grid" },
-  { value: "list", icon: "view-agenda-outline", label: "Rows" },
+  { value: "list", icon: "view-agenda-outline", label: "List" },
 ];
 
 export function DiscoverScreen({ navigation }: Props) {
@@ -333,9 +333,7 @@ export function DiscoverScreen({ navigation }: Props) {
                 <ViewModeToggle options={LIST_MAP_OPTIONS} value={viewMode} onChange={onViewModeChange} />
               </View>
               {viewMode === "list" && (
-                <View style={styles.toggleFlexItem}>
-                  <ViewModeToggle options={GRID_LIST_OPTIONS} value={viewLayout} onChange={setViewLayout} />
-                </View>
+                <ViewModeToggle options={GRID_LIST_OPTIONS} value={viewLayout} onChange={setViewLayout} size="compact" />
               )}
             </View>
 
