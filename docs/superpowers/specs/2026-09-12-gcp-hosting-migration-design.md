@@ -46,7 +46,7 @@ From `render.yaml`:
 
 - New Cloud SQL for PostgreSQL instance, tier `db-f1-micro`, region `asia-south1`, single zone (no HA needed at this scale — matches Render free-tier's lack of HA).
 - One database (`travel_social`) and one application user, created via `gcloud sql` commands.
-- **Data migration:** dump the existing Render Postgres with `pg_dump` (using its external connection string) and restore into the new Cloud SQL instance with `pg_restore`/`psql`, run *before* cutting the backend over. Schema is already defined by Prisma migrations — `npx prisma migrate deploy` against the new instance also works if starting from empty (no existing data to preserve), which is the simpler path if the current Render data is disposable dev/test data rather than real user data the user needs kept.
+- **Data migration:** none needed — the user confirmed the current Render Postgres holds only disposable dev/test data. The new Cloud SQL instance starts empty; schema is created by running `npx prisma migrate deploy` against it (applies all existing Prisma migrations from scratch).
 - Prisma migrations run automatically at deploy time via a Cloud Build step (`npx prisma migrate deploy`) before the new container revision receives traffic, mirroring `render.yaml`'s `buildCommand`.
 
 ### Web — Firebase Hosting
