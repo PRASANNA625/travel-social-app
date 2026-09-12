@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Image,
   Modal,
@@ -24,6 +26,7 @@ import { useMe } from "../api/users";
 import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TripCard } from "../components/TripCard";
 import { TripCardSkeleton } from "../components/TripCardSkeleton";
+import { ViewModeToggle, type ViewModeToggleOption } from "../components/ViewModeToggle";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { getCurrentLocationOrThrow } from "../utils/currentLocation";
 import { GradientBackground } from "../components/theme/GradientBackground";
@@ -50,6 +53,18 @@ type Props = CompositeScreenProps<
 const RADIUS_OPTIONS_KM = [10, 25, 50, 100];
 const DEFAULT_RADIUS_KM = 50;
 
+const LIST_MAP_OPTIONS: [ViewModeToggleOption<"list" | "map">, ViewModeToggleOption<"list" | "map">] = [
+  { value: "list", icon: "view-list", label: "List" },
+  { value: "map", icon: "map", label: "Map" },
+];
+
+const VIEW_LAYOUT_STORAGE_KEY = "discover_view_layout";
+
+const GRID_LIST_OPTIONS: [ViewModeToggleOption<"grid" | "list">, ViewModeToggleOption<"grid" | "list">] = [
+  { value: "grid", icon: "view-grid-outline", label: "Grid" },
+  { value: "list", icon: "view-agenda-outline", label: "List" },
+];
+
 export function DiscoverScreen({ navigation }: Props) {
   const [search, setSearch] = useState("");
   const [travelModes, setTravelModes] = useState<TravelMode[]>([]);
@@ -65,7 +80,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   const { data: me } = useMe();
 
@@ -90,6 +105,29 @@ export function DiscoverScreen({ navigation }: Props) {
   const [previewTripId, setPreviewTripId] = useState<string | null>(null);
   const [panTarget, setPanTarget] = useState<ExploreMapPanTarget | null>(null);
   const mapLocationRequested = useRef(false);
+
+  const onViewModeChange = (next: "list" | "map") => {
+    setViewMode(next);
+    if (next === "list") {
+      setPanTarget(null);
+      setPreviewTripId(null);
+    }
+  };
+
+  const [viewLayout, setViewLayoutState] = useState<"grid" | "list">("grid");
+
+  useEffect(() => {
+    AsyncStorage.getItem(VIEW_LAYOUT_STORAGE_KEY)
+      .then((stored) => {
+        if (stored === "grid" || stored === "list") setViewLayoutState(stored);
+      })
+      .catch(() => {});
+  }, []);
+
+  const setViewLayout = (next: "grid" | "list") => {
+    setViewLayoutState(next);
+    AsyncStorage.setItem(VIEW_LAYOUT_STORAGE_KEY, next).catch(() => {});
+  };
 
   useEffect(() => {
     if (viewMode !== "map" || mapLocationRequested.current) return;
@@ -143,6 +181,32 @@ export function DiscoverScreen({ navigation }: Props) {
     radiusKm: nearMe ? radiusKm : undefined,
     sortOrder,
   });
+
+  const rowSize = viewLayout === "list" ? 1 : windowWidth < 360 ? 1 : 2;
+
+  const rows = useMemo(() => {
+    const items = viewMode === "list" ? (data?.items ?? []) : [];
+    const grouped: (typeof items)[number][][] = [];
+    for (let i = 0; i < items.length; i += rowSize) {
+      grouped.push(items.slice(i, i + rowSize));
+    }
+    return grouped;
+  }, [data, viewMode, rowSize]);
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const isFirstLayoutRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstLayoutRender.current) {
+      isFirstLayoutRender.current = false;
+      return;
+    }
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+    return () => fadeAnim.stopAnimation();
+  }, [viewLayout, fadeAnim]);
 
   const mapFilters = {
     search: search || undefined,
@@ -221,8 +285,8 @@ export function DiscoverScreen({ navigation }: Props) {
     <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.listContent}
-        data={viewMode === "list" ? (data?.items ?? []) : []}
-        keyExtractor={(item) => item.id}
+        data={rows}
+        keyExtractor={(row) => row.map((t) => t.id).join("-")}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
@@ -264,33 +328,13 @@ export function DiscoverScreen({ navigation }: Props) {
               />
             </View>
 
-            <View style={styles.viewModeRow}>
-              <TouchableOpacity
-                style={[styles.viewModeButton, viewMode === "list" && styles.viewModeButtonActive]}
-                onPress={() => {
-                  setViewMode("list");
-                  setPanTarget(null);
-                  setPreviewTripId(null);
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="view-list"
-                  size={15}
-                  color={viewMode === "list" ? colors.white : colors.ink}
-                />
-                <Text style={[styles.viewModeButtonText, viewMode === "list" && styles.viewModeButtonTextActive]}>
-                  List
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.viewModeButton, viewMode === "map" && styles.viewModeButtonActive]}
-                onPress={() => setViewMode("map")}
-              >
-                <MaterialCommunityIcons name="map" size={15} color={viewMode === "map" ? colors.white : colors.ink} />
-                <Text style={[styles.viewModeButtonText, viewMode === "map" && styles.viewModeButtonTextActive]}>
-                  Map
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleFlexItem}>
+                <ViewModeToggle options={LIST_MAP_OPTIONS} value={viewMode} onChange={onViewModeChange} />
+              </View>
+              {viewMode === "list" && (
+                <ViewModeToggle options={GRID_LIST_OPTIONS} value={viewLayout} onChange={setViewLayout} size="compact" />
+              )}
             </View>
 
             <FlatList
@@ -480,11 +524,30 @@ export function DiscoverScreen({ navigation }: Props) {
             )}
 
             {viewMode === "list" && isLoading && (
-              <View style={styles.horizontalInset}>
-                <TripCardSkeleton />
-                <TripCardSkeleton />
-                <TripCardSkeleton />
-              </View>
+              viewLayout === "grid" ? (
+                <>
+                  <View style={styles.gridRow}>
+                    <View style={styles.gridCell}>
+                      <TripCardSkeleton layout="grid" />
+                    </View>
+                    <View style={styles.gridCell}>
+                      <TripCardSkeleton layout="grid" />
+                    </View>
+                  </View>
+                  <View style={styles.gridRow}>
+                    <View style={styles.gridCell}>
+                      <TripCardSkeleton layout="grid" />
+                    </View>
+                    <View style={styles.gridCell} />
+                  </View>
+                </>
+              ) : (
+                <View style={styles.horizontalInset}>
+                  <TripCardSkeleton layout="list" />
+                  <TripCardSkeleton layout="list" />
+                  <TripCardSkeleton layout="list" />
+                </View>
+              )
             )}
           </>
         }
@@ -509,11 +572,22 @@ export function DiscoverScreen({ navigation }: Props) {
             </View>
           )
         }
-        renderItem={({ item }) =>
+        renderItem={({ item: row }) =>
           isLoading ? null : (
-            <View style={styles.horizontalInset}>
-              <TripCard trip={item} onPress={() => navigation.navigate("TripDetail", { tripId: item.id })} />
-            </View>
+            <Animated.View
+              style={[viewLayout === "grid" ? styles.gridRow : styles.horizontalInset, { opacity: fadeAnim }]}
+            >
+              {row.map((trip) => (
+                <View key={trip.id} style={viewLayout === "grid" ? styles.gridCell : styles.listCell}>
+                  <TripCard
+                    trip={trip}
+                    layout={viewLayout}
+                    onPress={() => navigation.navigate("TripDetail", { tripId: trip.id })}
+                  />
+                </View>
+              ))}
+              {viewLayout === "grid" && rowSize === 2 && row.length === 1 && <View style={styles.gridCell} />}
+            </Animated.View>
           )
         }
       />
@@ -636,27 +710,8 @@ function createStyles(colors: Palette) {
     search: { flex: 1, paddingVertical: 12, fontSize: 14, color: colors.ink },
     filterRow: { minHeight: 46, marginTop: 12, flexGrow: 0 },
     filterRowContent: { paddingHorizontal: 16, paddingRight: 24, paddingVertical: 4, alignItems: "center", gap: 8 },
-    viewModeRow: {
-      flexDirection: "row",
-      marginHorizontal: 16,
-      marginTop: 10,
-      backgroundColor: colors.fieldBg,
-      borderRadius: RADIUS.pill,
-      padding: 3,
-      gap: 3,
-    },
-    viewModeButton: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 5,
-      paddingVertical: 8,
-      borderRadius: RADIUS.pill,
-    },
-    viewModeButtonActive: { backgroundColor: colors.primary },
-    viewModeButtonText: { fontSize: 12.5, fontWeight: "700", color: colors.ink },
-    viewModeButtonTextActive: { color: colors.white },
+    toggleRow: { flexDirection: "row", marginHorizontal: 16, marginTop: 10, gap: 8 },
+    toggleFlexItem: { flex: 1 },
     mapSection: { marginTop: 4 },
     trendingChipsRow: { minHeight: 40, marginTop: 10, flexGrow: 0 },
     trendingChipsRowContent: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
@@ -731,6 +786,9 @@ function createStyles(colors: Palette) {
     buddyRow: { flexDirection: "row", paddingHorizontal: 16, gap: 12 },
     listContent: { paddingBottom: 110 },
     horizontalInset: { paddingHorizontal: 16 },
+    gridRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16 },
+    gridCell: { flex: 1 },
+    listCell: { flex: 1 },
     emptyWrap: { alignItems: "center", marginTop: 48, gap: 10, paddingHorizontal: 16 },
     empty: { textAlign: "center", color: colors.mutedLight, fontSize: 13, paddingHorizontal: 32 },
     emptyClearLink: { color: colors.primary, fontSize: 13, fontWeight: "700", marginTop: 2 },
