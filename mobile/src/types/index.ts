@@ -1,3 +1,5 @@
+import type { LanguageCode } from "../i18n/languages";
+
 export const TRAVEL_MODES = [
   "BIKE",
   "CAR",
@@ -54,6 +56,7 @@ export interface User {
   bio?: string | null;
   interests: string[];
   preferredModes: TravelMode[];
+  preferredLanguage?: LanguageCode;
   email?: string | null;
   phone?: string | null;
   phoneVerified?: boolean;

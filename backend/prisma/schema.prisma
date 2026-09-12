@@ -89,6 +89,7 @@ model User {
   bio            String?
   interests      String[] @default([])
   preferredModes TravelMode[] @default([])
+  preferredLanguage String @default("en")
   lastSeenAt     DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

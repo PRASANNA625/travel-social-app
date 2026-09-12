@@ -13,6 +13,7 @@ const privateUserSelect = {
   bio: true,
   interests: true,
   preferredModes: true,
+  preferredLanguage: true,
   email: true,
   phone: true,
   phoneVerified: true,
@@ -60,6 +61,7 @@ export interface ProfileUpdateInput {
   bio?: string | null;
   interests?: string[];
   preferredModes?: TravelMode[];
+  preferredLanguage?: string;
 }
 
 export async function updateProfile(userId: string, data: ProfileUpdateInput) {
