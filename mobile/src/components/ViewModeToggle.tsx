@@ -29,13 +29,16 @@ export function ViewModeToggle<T extends string>({
   const compact = size === "compact";
 
   return (
-    <View style={[styles.row, compact && styles.rowCompact]}>
+    <View style={compact ? styles.rowCompact : styles.row}>
       {options.map((option) => {
         const active = option.value === value;
         return (
           <TouchableOpacity
             key={option.value}
-            style={[styles.button, compact && styles.buttonCompact, active && styles.buttonActive]}
+            style={[
+              compact ? styles.buttonCompact : styles.button,
+              active && (compact ? styles.buttonCompactActive : styles.buttonActive),
+            ]}
             onPress={() => onChange(option.value)}
             activeOpacity={0.75}
           >
@@ -44,7 +47,7 @@ export function ViewModeToggle<T extends string>({
               size={compact ? 13 : 15}
               color={active ? colors.white : colors.ink}
             />
-            <Text style={[styles.buttonText, compact && styles.buttonTextCompact, active && styles.buttonTextActive]}>
+            <Text style={[compact ? styles.buttonTextCompact : styles.buttonText, active && styles.buttonTextActive]}>
               {option.label}
             </Text>
           </TouchableOpacity>
@@ -64,9 +67,14 @@ function createStyles(colors: Palette) {
       gap: 3,
     },
     rowCompact: {
+      flexDirection: "row",
       alignSelf: "flex-start",
+      backgroundColor: colors.fieldBg,
+      borderRadius: RADIUS.pill,
       borderWidth: 1,
       borderColor: colors.border,
+      padding: 3,
+      gap: 3,
     },
     button: {
       flex: 1,
@@ -78,14 +86,19 @@ function createStyles(colors: Palette) {
       borderRadius: RADIUS.pill,
     },
     buttonCompact: {
-      flex: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       gap: 4,
       paddingVertical: 6,
       paddingHorizontal: 10,
+      borderRadius: RADIUS.pill,
+      backgroundColor: "transparent",
     },
     buttonActive: { backgroundColor: colors.primary },
+    buttonCompactActive: { backgroundColor: colors.primary },
     buttonText: { fontSize: 12.5, fontWeight: "700", color: colors.ink },
-    buttonTextCompact: { fontSize: 11.5 },
+    buttonTextCompact: { fontSize: 11.5, fontWeight: "700", color: colors.ink },
     buttonTextActive: { color: colors.white },
   });
 }
