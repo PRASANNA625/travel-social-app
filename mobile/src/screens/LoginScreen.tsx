@@ -20,7 +20,6 @@ import type { AuthStackParamList } from "../navigation/types";
 import { useLogin } from "../api/auth";
 import { Alert } from "../utils/alert";
 import { useLanguage } from "../i18n/LanguageContext";
-import { LanguageSelector } from "../components/LanguageSelector";
 // Google Sign-In temporarily disabled - see usage below.
 // import { GoogleSignInButton } from "../components/GoogleSignInButton";
 // import { GOOGLE_CLIENT_ID } from "../utils/googleAuth";
@@ -64,7 +63,6 @@ export function LoginScreen({ navigation }: Props) {
         style={styles.decorCompass}
       />
 
-      <LanguageSelector style={[styles.languageSelector, { top: insets.top + 16 }]} />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView

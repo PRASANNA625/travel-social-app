@@ -7,7 +7,6 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useSendPhoneOtp, useVerifyPhoneOtp } from "../api/auth";
 import { useLanguage } from "../i18n/LanguageContext";
-import { LanguageSelector } from "../components/LanguageSelector";
 import { Alert } from "../utils/alert";
 import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
@@ -96,7 +95,6 @@ export function PhoneLoginScreen({ navigation }: Props) {
         style={styles.decorCompass}
       />
 
-      <LanguageSelector style={[styles.languageSelector, { top: insets.top + 16 }]} />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView
