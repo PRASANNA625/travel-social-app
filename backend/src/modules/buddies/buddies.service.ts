@@ -36,10 +36,16 @@ async function connectionStateMap(viewerId: string, candidateIds: string[]) {
 }
 
 async function excludedUserIds(viewerId: string): Promise<Set<string>> {
-  const rows = await prisma.buddyConnection.findMany({
-    where: { OR: [{ fromUserId: viewerId }, { toUserId: viewerId }] },
-    select: { fromUserId: true, toUserId: true, status: true },
-  });
+  const [rows, blocks] = await Promise.all([
+    prisma.buddyConnection.findMany({
+      where: { OR: [{ fromUserId: viewerId }, { toUserId: viewerId }] },
+      select: { fromUserId: true, toUserId: true, status: true },
+    }),
+    prisma.userBlock.findMany({
+      where: { OR: [{ blockerId: viewerId }, { blockedId: viewerId }] },
+      select: { blockerId: true, blockedId: true },
+    }),
+  ]);
   const excluded = new Set<string>([viewerId]);
   for (const row of rows) {
     // Only rejected connections are removed from the candidate pool - pending
@@ -47,6 +53,12 @@ async function excludedUserIds(viewerId: string): Promise<Set<string>> {
     // their real state (pending_sent/pending_received/connected) on the card.
     if (row.status !== "REJECTED") continue;
     excluded.add(row.fromUserId === viewerId ? row.toUserId : row.fromUserId);
+  }
+  for (const block of blocks) {
+    // A block always excludes, regardless of connection state - this is the
+    // one case that overrides "accepted connections stay visible" above,
+    // since a blocked user must vanish even if you were already connected.
+    excluded.add(block.blockerId === viewerId ? block.blockedId : block.blockerId);
   }
   return excluded;
 }
@@ -200,6 +212,16 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
 
 export async function sendBuddyRequest(fromUserId: string, toUserId: string) {
   if (fromUserId === toUserId) throw new HttpError(400, "You can't connect with yourself");
+
+  const blocked = await prisma.userBlock.findFirst({
+    where: {
+      OR: [
+        { blockerId: fromUserId, blockedId: toUserId },
+        { blockerId: toUserId, blockedId: fromUserId },
+      ],
+    },
+  });
+  if (blocked) throw new HttpError(403, "You can't connect with this user");
 
   const existing = await prisma.buddyConnection.findFirst({
     where: {

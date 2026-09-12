@@ -38,6 +38,7 @@ const NOTIFICATION_COPY: Record<string, (payload: Record<string, unknown>) => st
   TRIP_COMMENT: (p) => `${p.commenterName} commented on "${p.tripTitle}": ${messagePreview(p)}`,
   BUDDY_REQUEST: () => `Someone wants to be travel buddies`,
   BUDDY_REQUEST_ACCEPTED: () => `Your travel buddy request was accepted`,
+  REPORT_RECEIVED: () => `Report received — our team will review it`,
 };
 
 function describe(notification: AppNotification): string {
@@ -59,6 +60,7 @@ function notificationIconMap(colors: Palette): Record<string, { icon: IconName; 
     TRIP_COMMENT: { icon: "comment-text-outline", bg: colors.fieldBg, color: colors.primary },
     BUDDY_REQUEST: { icon: "account-heart-outline", bg: colors.fieldBg, color: colors.primary },
     BUDDY_REQUEST_ACCEPTED: { icon: "check-circle", bg: colors.successBg, color: colors.primary },
+    REPORT_RECEIVED: { icon: "flag-outline", bg: colors.fieldBg, color: colors.primary },
   };
 }
 

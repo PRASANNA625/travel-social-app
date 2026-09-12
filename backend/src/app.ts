@@ -12,6 +12,7 @@ import { groupsRouter } from "./modules/groups/groups.routes";
 import { messagesRouter } from "./modules/messages/messages.routes";
 import { notificationsRouter } from "./modules/notifications/notifications.routes";
 import { assistantRouter } from "./modules/assistant/assistant.routes";
+import { safetyRouter } from "./modules/safety/safety.routes";
 
 export const app = express();
 
@@ -30,6 +31,7 @@ app.use("/groups", groupsRouter);
 app.use("/messages", messagesRouter);
 app.use("/notifications", notificationsRouter);
 app.use("/assistant", assistantRouter);
+app.use("/safety", safetyRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -18,6 +18,7 @@ export type AppStackParamList = {
   Settings: undefined;
   TravelBuddies: undefined;
   ConnectionRequests: undefined;
+  BlockedUsers: undefined;
 };
 
 export type AppTabParamList = {
