@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useLanguage } from "../i18n/LanguageContext";
-import { LanguageSelector } from "../components/LanguageSelector";
 import { GRADIENT_PRIMARY } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
@@ -41,7 +40,6 @@ export function WelcomeScreen({ navigation }: Props) {
 
       <View style={[styles.page, isWeb && styles.pageWeb]}>
         <View style={[styles.content, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 24 }]}>
-          <LanguageSelector style={styles.languageSelector} />
 
           <View style={styles.brandRow}>
             <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />

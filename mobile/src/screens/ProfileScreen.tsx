@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ComponentProps } from "react";
 import {
   ActivityIndicator,
@@ -23,6 +23,8 @@ import { useAuthStore } from "../store/authStore";
 import { useCompletedTrips, useMe, useUploadCoverPhoto, useUploadProfilePhoto } from "../api/users";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { Alert } from "../utils/alert";
+import { FeedbackModal } from "../components/FeedbackModal";
+import { useSubmitFeedback } from "../api/feedback";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { Card } from "../components/theme/Card";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
@@ -90,6 +92,31 @@ export function ProfileScreen({ navigation }: Props) {
   const coverHeight = Math.min(Math.max(windowWidth / 2.2, 200), 280);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const [feedbackMode, setFeedbackMode] = useState<"report" | "feedback" | null>(null);
+  const [feedbackJustSubmitted, setFeedbackJustSubmitted] = useState(false);
+  const submitFeedback = useSubmitFeedback();
+
+  const onSubmitFeedback = (input: { type: string; description: string; screenshot?: ImagePicker.ImagePickerAsset }) => {
+    if (!feedbackMode) return;
+    submitFeedback.mutate(
+      { kind: feedbackMode === "report" ? "REPORT" : "FEEDBACK", ...input },
+      {
+        onSuccess: () => setFeedbackJustSubmitted(true),
+        onError: (err: any) => Alert.alert("Couldn't submit", err?.response?.data?.error ?? "Try again"),
+      }
+    );
+  };
+
+  const onCloseFeedbackModal = () => {
+    setFeedbackMode(null);
+    setFeedbackJustSubmitted(false);
+  };
+
+  const openFeedbackModal = (mode: "report" | "feedback") => {
+    setFeedbackJustSubmitted(false);
+    setFeedbackMode(mode);
+  };
 
   const onChangePhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -249,6 +276,26 @@ export function ProfileScreen({ navigation }: Props) {
           )}
         </Card>
 
+        <Card style={styles.section}>
+          <SectionHeader icon="help-circle-outline" title="Help & Feedback" styles={styles} colors={colors} />
+          <TouchableOpacity style={styles.tripRow} onPress={() => openFeedbackModal("report")}>
+            <View style={[styles.tripDot, { backgroundColor: colors.danger }]} />
+            <View style={styles.tripTextWrap}>
+              <Text style={styles.tripTitle}>🐛 Report a Problem</Text>
+              <Text style={styles.tripMeta}>Found something that isn't working correctly?</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={18} color={colors.mutedLight} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.tripRow} onPress={() => openFeedbackModal("feedback")}>
+            <View style={styles.tripDot} />
+            <View style={styles.tripTextWrap}>
+              <Text style={styles.tripTitle}>💡 Send Feedback</Text>
+              <Text style={styles.tripMeta}>Have an idea or suggestion to improve Triply?</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={18} color={colors.mutedLight} />
+          </TouchableOpacity>
+        </Card>
+
         <PrimaryButton
           label="AI Trip Assistant"
           icon="robot-outline"
@@ -268,6 +315,15 @@ export function ProfileScreen({ navigation }: Props) {
             <MaterialCommunityIcons name="logout" size={15} color={colors.danger} />
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
+
+          <FeedbackModal
+            visible={feedbackMode !== null}
+            mode={feedbackMode ?? "report"}
+            isSubmitting={submitFeedback.isPending}
+            justSubmitted={feedbackJustSubmitted}
+            onClose={onCloseFeedbackModal}
+            onSubmit={onSubmitFeedback}
+          />
         </View>
       </View>
     </ScrollView>

@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useLanguage } from "../i18n/LanguageContext";
-import { LanguageSelector } from "../components/LanguageSelector";
 import { COLORS, RADIUS } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Onboarding">;
@@ -93,7 +92,6 @@ export function OnboardingScreen({ navigation }: Props) {
         <Text style={styles.skipText}>{t("onboarding.skip")}</Text>
       </TouchableOpacity>
 
-      <LanguageSelector variant="light" style={[styles.languageSelector, { top: insets.top + 16 }]} />
 
       <View style={[styles.bottomBar, isWeb && styles.bottomBarWeb, { paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.dotsRow}>

@@ -4,6 +4,7 @@ import { apiClient } from "./client";
 import { useAuthStore } from "../store/authStore";
 import { appendImageAsset } from "../utils/formDataImage";
 import type { Trip, TravelMode, User } from "../types";
+import type { LanguageCode } from "../i18n/languages";
 
 export function useMe() {
   const token = useAuthStore((s) => s.token);
@@ -37,6 +38,7 @@ export interface ProfileUpdateInput {
   bio?: string | null;
   interests?: string[];
   preferredModes?: TravelMode[];
+  preferredLanguage?: LanguageCode;
 }
 
 export function useUpdateProfile() {

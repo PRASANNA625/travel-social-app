@@ -6,6 +6,8 @@ import { HttpError } from "../../middleware/error";
 import { travelModes } from "../trips/trips.types";
 import * as service from "./users.service";
 
+export const languageCodes = ["en", "hi", "ta", "te", "kn"] as const;
+
 export async function me(req: AuthedRequest, res: Response) {
   const user = await service.getMe(req.userId!);
   res.json(user);
@@ -23,6 +25,7 @@ const updateSchema = z.object({
   bio: z.string().max(1000).nullable().optional(),
   interests: z.array(z.string()).optional(),
   preferredModes: z.array(z.enum(travelModes)).optional(),
+  preferredLanguage: z.enum(languageCodes).optional(),
 });
 
 export async function updateMe(req: AuthedRequest, res: Response) {
