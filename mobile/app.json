@@ -25,7 +25,11 @@
         "ACCESS_FINE_LOCATION",
         "CAMERA",
         "RECORD_AUDIO"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0e5a8f"
+      }
     },
     "extra": {
       "apiUrl": "https://travel-social-backend-831528339617.asia-south1.run.app",
@@ -36,8 +40,24 @@
     },
     "plugins": [
       "@react-native-google-signin/google-signin",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#0b2a5b"
+        }
+      ]
     ],
-    "owner": "prasanna8675"
+    "owner": "prasanna8675",
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "Triply – Travel Together",
+      "shortName": "Triply",
+      "themeColor": "#0f766e",
+      "backgroundColor": "#0b2a5b"
+    }
   }
 }

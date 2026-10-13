@@ -1,5 +1,5 @@
 import { useMemo, type ComponentProps } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { SIDEBAR_WIDTH } from "../theme/layout";
@@ -22,9 +22,7 @@ export function SideNavBar({
   return (
     <View style={styles.sidebar}>
       <View style={styles.brandRow}>
-        <View style={styles.brandIcon}>
-          <MaterialCommunityIcons name="image-filter-hdr" size={22} color={colors.white} />
-        </View>
+        <Image source={require("../../assets/logo.png")} style={styles.brandIcon} accessibilityIgnoresInvertColors />
         <View>
           <Text style={styles.brandName}>Triply</Text>
           <Text style={styles.brandTagline}>Travel Together</Text>
@@ -93,14 +91,7 @@ function createStyles(colors: Palette) {
       paddingBottom: 24,
     },
     brandRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, marginBottom: 28 },
-    brandIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: colors.primary,
-      alignItems: "center",
-      justifyContent: "center",
-    },
+    brandIcon: { width: 42, height: 42, borderRadius: 12 },
     brandName: { fontSize: 22, fontWeight: "800", color: colors.ink, letterSpacing: -0.3 },
     brandTagline: { fontSize: 12, color: colors.muted },
     items: { gap: 4 },

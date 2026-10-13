@@ -3,11 +3,11 @@ import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ActivityIndicator, View } from "react-native";
 import { useAuthStore } from "./src/store/authStore";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { LanguageProvider } from "./src/i18n/LanguageContext";
 import { ThemeProvider, useTheme } from "./src/theme/ThemeContext";
+import { BrandSplash } from "./src/components/BrandSplash";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,11 +33,7 @@ function AppContent() {
   }, [hydrate]);
 
   if (!isHydrated) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <BrandSplash />;
   }
 
   const navigationTheme = {
@@ -54,7 +50,10 @@ function AppContent() {
 
   return (
     <LanguageProvider>
-      <NavigationContainer theme={navigationTheme}>
+      <NavigationContainer
+        theme={navigationTheme}
+        documentTitle={{ formatter: (options, route) => `${options?.title ?? route?.name ?? "Triply"} · Triply` }}
+      >
         <RootNavigator />
       </NavigationContainer>
     </LanguageProvider>

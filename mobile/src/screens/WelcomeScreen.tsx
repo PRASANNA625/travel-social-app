@@ -42,7 +42,7 @@ export function WelcomeScreen({ navigation }: Props) {
         <View style={[styles.content, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 24 }]}>
 
           <View style={styles.brandRow}>
-            <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />
+            <Image source={require("../../assets/logo.png")} style={styles.logoBadge} />
             <Text style={styles.brandName}>{t("welcome.brand")}</Text>
           </View>
 

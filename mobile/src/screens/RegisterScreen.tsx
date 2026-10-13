@@ -69,7 +69,7 @@ export function RegisterScreen({ navigation }: Props) {
         >
           <View style={[styles.page, isWeb && styles.pageWeb]}>
             <View style={styles.brandRow}>
-              <Image source={require("../../assets/icon.png")} style={styles.logoBadge} />
+              <Image source={require("../../assets/logo.png")} style={styles.logoBadge} />
               <Text style={styles.brandName}>{t("register.brand")}</Text>
             </View>
 
