@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useBuddyMatches, usePendingBuddyRequests, useSendBuddyRequest } from "../api/buddies";
 import { BuddyCard } from "../components/BuddyCard";
@@ -14,10 +15,12 @@ import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { Alert } from "../utils/alert";
 
-type Props = NativeStackScreenProps<AppStackParamList, "TravelBuddies">;
 type SortMode = "best" | "newest";
 
-export function TravelBuddiesScreen({ navigation }: Props) {
+// Rendered both as the TravelBuddies stack screen and as the Meetups tab, so it
+// takes navigation from the hook rather than screen props.
+export function TravelBuddiesScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [search, setSearch] = useState("");
   const [interest, setInterest] = useState<string | undefined>(undefined);
   const [travelMode, setTravelMode] = useState<TravelMode | undefined>(undefined);

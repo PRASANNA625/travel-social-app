@@ -11,3 +11,7 @@ export async function getById(req: AuthedRequest, res: Response) {
   const group = await service.getGroupById(req.params.id, req.userId!);
   res.json(group);
 }
+
+export async function listMine(req: AuthedRequest, res: Response) {
+  res.json({ items: await service.listGroupsForUser(req.userId!) });
+}

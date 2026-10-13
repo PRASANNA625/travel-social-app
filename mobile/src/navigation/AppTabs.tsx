@@ -4,10 +4,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { AppTabParamList } from "./types";
 import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { MyTripsScreen } from "../screens/MyTripsScreen";
+import { TravelBuddiesScreen } from "../screens/TravelBuddiesScreen";
+import { MessagesScreen } from "../screens/MessagesScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { SideNavBar } from "./SideNavBar";
 import { useNotifications } from "../api/notifications";
+import { useMyGroups } from "../api/groups";
 import { useTheme } from "../theme/ThemeContext";
 import { SIDEBAR_WIDTH, useResponsiveLayout } from "../theme/layout";
 
@@ -15,22 +18,29 @@ const Tab = createBottomTabNavigator<AppTabParamList>();
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const ICONS: Record<keyof AppTabParamList, { active: IconName; inactive: IconName }> = {
+export const TAB_ICONS: Record<keyof AppTabParamList, { active: IconName; inactive: IconName }> = {
   Discover: { active: "compass", inactive: "compass-outline" },
   MyTrips: { active: "bag-personal", inactive: "bag-personal-outline" },
+  Meetups: { active: "account-group", inactive: "account-group-outline" },
+  Messages: { active: "message-text", inactive: "message-text-outline" },
   Notifications: { active: "bell", inactive: "bell-outline" },
   Profile: { active: "account-circle", inactive: "account-circle-outline" },
 };
 
+// Sidebar-only routes: the phone bottom bar keeps its four tabs.
+const hiddenOnBottomBar = { tabBarButton: () => null };
+
 export function AppTabs() {
   const { data } = useNotifications();
   const unreadCount = data?.unreadCount ?? 0;
+  const { data: chats } = useMyGroups();
+  const unreadChats = (chats ?? []).reduce((sum, chat) => sum + chat.unreadCount, 0);
   const { colors } = useTheme();
   const { isDesktop } = useResponsiveLayout();
 
   return (
     <Tab.Navigator
-      tabBar={(props) => (isDesktop ? <SideNavBar {...props} icons={ICONS} /> : <BottomTabBar {...props} />)}
+      tabBar={(props) => (isDesktop ? <SideNavBar {...props} icons={TAB_ICONS} /> : <BottomTabBar {...props} />)}
       sceneContainerStyle={isDesktop ? { marginLeft: SIDEBAR_WIDTH } : undefined}
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: colors.primary,
@@ -38,13 +48,23 @@ export function AppTabs() {
         tabBarStyle: { borderTopWidth: 1, borderTopColor: colors.divider, backgroundColor: colors.navBarBg },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         tabBarIcon: ({ focused, color }) => {
-          const icon = ICONS[route.name as keyof AppTabParamList];
+          const icon = TAB_ICONS[route.name as keyof AppTabParamList];
           return <MaterialCommunityIcons name={focused ? icon.active : icon.inactive} size={22} color={color} />;
         },
       })}
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} options={{ title: "Discover", headerShown: false }} />
       <Tab.Screen name="MyTrips" component={MyTripsScreen} options={{ title: "My Trips" }} />
+      <Tab.Screen name="Meetups" component={TravelBuddiesScreen} options={{ title: "Meetups", ...hiddenOnBottomBar }} />
+      <Tab.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{
+          title: "Messages",
+          tabBarBadge: unreadChats > 0 ? unreadChats : undefined,
+          ...hiddenOnBottomBar,
+        }}
+      />
       <Tab.Screen
         name="Notifications"
         component={NotificationsScreen}

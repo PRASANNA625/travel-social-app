@@ -44,6 +44,9 @@ export function useMarkGroupNotificationsRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (groupId: string) => apiClient.post(`/notifications/groups/${groupId}/read`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["groups", "mine"] });
+    },
   });
 }

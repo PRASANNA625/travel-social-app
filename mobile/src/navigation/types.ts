@@ -24,6 +24,8 @@ export type AppStackParamList = {
 export type AppTabParamList = {
   Discover: undefined;
   MyTrips: undefined;
+  Meetups: undefined;
+  Messages: undefined;
   Notifications: undefined;
   Profile: undefined;
 };

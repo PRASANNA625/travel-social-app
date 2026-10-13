@@ -206,6 +206,23 @@ export interface ChatMessage {
   readBy?: MessageReadEntry[];
 }
 
+// One row of the Messages inbox (GET /groups/mine).
+export interface GroupInboxItem {
+  id: string;
+  role: GroupRole;
+  trip: Pick<Trip, "id" | "title" | "destination" | "images" | "travelMode" | "startDate" | "endDate">;
+  memberCount: number;
+  lastMessage: {
+    id: string;
+    type: MessageType;
+    content: string | null;
+    createdAt: string;
+    sender: { id: string; name: string };
+  } | null;
+  unreadCount: number;
+  lastActivityAt: string;
+}
+
 export interface AppNotification {
   id: string;
   userId: string;
