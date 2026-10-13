@@ -4,7 +4,7 @@ import type { TravelMode } from "../types";
 // Bundled CC0 photos (see assets/covers/CREDITS.md). Trips without an uploaded
 // cover show a photo matching their travel type instead of a blank placeholder.
 export const HERO_PHOTO: ImageSourcePropType = require("../../assets/covers/hero.jpg");
-export const HERO_PHOTO_ASPECT = 2600 / 656;
+export const HERO_PHOTO_ASPECT = 2172 / 724;
 
 const P = {
   alpineLake: require("../../assets/covers/alpine_lake.jpg"),

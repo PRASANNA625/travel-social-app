@@ -107,7 +107,7 @@ function createStyles(colors: Palette, dark: boolean) {
       overflow: "hidden",
     },
     brandRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 24, marginBottom: 30 },
-    brandIcon: { width: 46, height: 46, borderRadius: 13 },
+    brandIcon: { width: 46, height: 46, borderRadius: 23 },
     brandName: { fontSize: 25, fontWeight: "800", color: dark ? colors.ink : "#0f2a4a", letterSpacing: -0.4 },
     brandTagline: { fontSize: 12.5, color: colors.mutedLight, marginTop: -1 },
     items: { gap: 6, paddingHorizontal: 14 },

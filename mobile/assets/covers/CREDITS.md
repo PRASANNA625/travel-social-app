@@ -14,7 +14,7 @@ Bundled fallback/hero photos from Wikimedia Commons: CC0 (mostly originally from
 - `cycling.jpg` — [Cycling in the countryside (Unsplash).jpg](https://commons.wikimedia.org/wiki/File:Cycling_in_the_countryside_(Unsplash).jpg) (CC0)
 - `flight.jpg` — [Brian Gaid 2017 (Unsplash).jpg](https://commons.wikimedia.org/wiki/File:Brian_Gaid_2017_(Unsplash).jpg) (CC0)
 - `green_valley.jpg` — [Hike in the green mountains (Unsplash).jpg](https://commons.wikimedia.org/wiki/File:Hike_in_the_green_mountains_(Unsplash).jpg) (CC0)
-- `hero.jpg` — [Lake-sherburne-964855.jpg](https://commons.wikimedia.org/wiki/File:Lake-sherburne-964855.jpg) (Public domain; color-adjusted)
+- `hero.jpg` — Triply Discover banner (mountain lake panorama) supplied by the project owner; not from Wikimedia Commons.
 - `hiker_rock.jpg` — [Omu mountain (Unsplash).jpg](https://commons.wikimedia.org/wiki/File:Omu_mountain_(Unsplash).jpg) (CC0)
 - `himalaya.jpg` — [LEH LADAKH (NORTHERN RANGE TREK N TOUR), Ladakh, India (Unsplash).jpg](https://commons.wikimedia.org/wiki/File:LEH_LADAKH_(NORTHERN_RANGE_TREK_N_TOUR),_Ladakh,_India_(Unsplash).jpg) (CC0)
 - `houseboat.jpg` — [A Houseboat in Backwaters of Kerala.jpg](https://commons.wikimedia.org/wiki/File:A_Houseboat_in_Backwaters_of_Kerala.jpg) (CC0)

@@ -453,8 +453,8 @@ export function DiscoverScreen({ navigation }: Props) {
       ]}
       onLayout={(e) => setHeroSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
     >
-      {/* Panorama sized to cover the banner; if the banner is shorter than the photo, crop from
-          ~45% down at most (keeps the lake), never leaving a gap below. */}
+      {/* Panorama sized to cover the banner; when the banner is shorter than the photo, crop
+          evenly from top and bottom so both the peaks and the lake stay in view. */}
       <Animated.Image
         source={HERO_PHOTO}
         resizeMode="cover"
@@ -462,7 +462,7 @@ export function DiscoverScreen({ navigation }: Props) {
           styles.heroPhoto,
           {
             height: heroPhotoHeight,
-            top: Math.max(heroSize.height - heroPhotoHeight, -0.45 * heroPhotoHeight),
+            top: (heroSize.height - heroPhotoHeight) / 2,
             transform: [{ translateY: heroParallax }, { translateX: heroDriftX }, { scale: 1.04 }],
           },
         ]}

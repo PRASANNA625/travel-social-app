@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   logoBadge: {
     width: 40,
     height: 40,
-    borderRadius: 13,
+    borderRadius: 20,
     overflow: "hidden",
     shadowColor: "#0f172a",
     shadowOpacity: 0.2,
