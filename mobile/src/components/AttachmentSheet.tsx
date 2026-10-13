@@ -75,7 +75,7 @@ function createStyles(colors: Palette) {
       paddingHorizontal: 20,
       paddingTop: 10,
       paddingBottom: 28,
-      ...SHADOW.card,
+      ...SHADOW.raised,
     },
     handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginBottom: 14 },
     row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 13 },

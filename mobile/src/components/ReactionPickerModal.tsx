@@ -53,7 +53,7 @@ function createStyles(colors: Palette) {
       borderRadius: RADIUS.pill,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      ...SHADOW.card,
+      ...SHADOW.raised,
     },
     emojiButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
     emojiButtonActive: { backgroundColor: colors.fieldBg },

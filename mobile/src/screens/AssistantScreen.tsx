@@ -33,8 +33,8 @@ function TypingDots({ styles }: { styles: ReturnType<typeof createStyles> }) {
       Animated.loop(
         Animated.sequence([
           Animated.delay(i * 150),
-          Animated.timing(dot, { toValue: 1, duration: 300, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 1, duration: 300, easing: Easing.out(Easing.quad), useNativeDriver: true, isInteraction: false }),
+          Animated.timing(dot, { toValue: 0, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: true, isInteraction: false }),
           Animated.delay((2 - i) * 150),
         ])
       )

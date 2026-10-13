@@ -169,7 +169,7 @@ function createStyles(colors: Palette) {
       borderRadius: RADIUS.card,
       padding: 22,
       alignItems: "center",
-      ...SHADOW.card,
+      ...SHADOW.raised,
     },
     iconWrap: {
       width: 48,

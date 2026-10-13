@@ -37,6 +37,8 @@ import { DiscoverSection, SECTION_GAP } from "../components/DiscoverSection";
 import { SectionHeader } from "../components/SectionHeader";
 import { Carousel } from "../components/Carousel";
 import { HeroAmbience } from "../components/HeroAmbience";
+import { FAB_CLEARANCE, FloatingActionButton } from "../components/theme/FloatingActionButton";
+import { hexAlpha } from "../utils/color";
 import { useEntrance, useNativeDriver, usePingPong, useReduceMotion } from "../hooks/useReduceMotion";
 import { ProfileMenu, type ProfileMenuAnchor } from "../components/ProfileMenu";
 import { RADIUS } from "../theme/tokens";
@@ -106,6 +108,17 @@ export function DiscoverScreen({ navigation }: Props) {
   const reduceMotion = useReduceMotion();
   const isFocused = useIsFocused();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [fabCollapsed, setFabCollapsed] = useState(false);
+  const lastScrollY = useRef(0);
+  useEffect(() => {
+    const id = scrollY.addListener(({ value }) => {
+      const delta = value - lastScrollY.current;
+      if (Math.abs(delta) < 8) return;
+      lastScrollY.current = value;
+      setFabCollapsed(delta > 0 && value > 120);
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY]);
 
   const pad = isDesktop ? 24 : 16;
   const innerWidth = contentWidth - pad * 2;
@@ -565,48 +578,54 @@ export function DiscoverScreen({ navigation }: Props) {
   );
 
   const chipsRow = (
-    <View style={[styles.chipsBar, { paddingRight: pad }]}>
-      <View style={styles.chipsScroller}>
+    <View style={styles.chipsBar}>
       <FlatList
         ref={chipScroll.ref}
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filterRow}
-        contentContainerStyle={[styles.filterRowContent, { paddingHorizontal: pad, paddingRight: isDesktop ? 56 : 12 }]}
+        contentContainerStyle={[styles.filterRowContent, { paddingHorizontal: pad }]}
         data={chipItems}
         keyExtractor={(item) => item}
         {...chipScroll.listProps}
         renderItem={({ item }) => renderChip(item)}
       />
       {isDesktop && chipScroll.canScrollBack && (
-        <TouchableOpacity
-          style={[styles.chipArrow, { left: pad - 8 }]}
-          onPress={() => chipScroll.scrollBy(-1)}
-          accessibilityLabel="Scroll categories left"
-        >
-          <MaterialCommunityIcons name="chevron-left" size={20} color={colors.ink} />
-        </TouchableOpacity>
+        <View style={[styles.chipEdge, styles.chipEdgeLeft]} pointerEvents="box-none">
+          <LinearGradient
+            colors={[colors.surface, hexAlpha(colors.surface, 0)]}
+            start={{ x: 0.45, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <TouchableOpacity
+            style={[styles.chipArrow, { marginLeft: pad - 8 }]}
+            onPress={() => chipScroll.scrollBy(-1)}
+            accessibilityLabel="Scroll categories left"
+          >
+            <MaterialCommunityIcons name="chevron-left" size={20} color={colors.ink} />
+          </TouchableOpacity>
+        </View>
       )}
       {isDesktop && chipScroll.canScrollForward && (
-        <TouchableOpacity
-          style={[styles.chipArrow, { right: 4 }]}
-          onPress={() => chipScroll.scrollBy(1)}
-          accessibilityLabel="Scroll categories right"
-        >
-          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.ink} />
-        </TouchableOpacity>
+        <View style={[styles.chipEdge, styles.chipEdgeRight]} pointerEvents="box-none">
+          <LinearGradient
+            colors={[hexAlpha(colors.surface, 0), colors.surface]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 0.55, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <TouchableOpacity
+            style={[styles.chipArrow, { marginRight: pad - 8 }]}
+            onPress={() => chipScroll.scrollBy(1)}
+            accessibilityLabel="Scroll categories right"
+          >
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.ink} />
+          </TouchableOpacity>
+        </View>
       )}
-      </View>
-      <TouchableOpacity
-        style={[styles.createButton, !wideHeader && styles.createButtonRound]}
-        onPress={() => navigation.navigate("CreateTrip")}
-        activeOpacity={0.9}
-        accessibilityRole="button"
-        accessibilityLabel="Create Trip"
-      >
-        <MaterialCommunityIcons name="plus" size={18} color={colors.white} />
-        {wideHeader && <Text style={styles.createButtonText}>Create Trip</Text>}
-      </TouchableOpacity>
     </View>
   );
 
@@ -651,9 +670,11 @@ export function DiscoverScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Animated.FlatList
+      <FlatList
         style={styles.list}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver })}
+        // Plain handler (not Animated.event) so the list's own virtualization keeps
+        // receiving scroll events; the value drives the hero parallax and the FAB.
+        onScroll={(e) => scrollY.setValue(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
         contentContainerStyle={styles.listContent}
         data={rows}
@@ -848,6 +869,14 @@ export function DiscoverScreen({ navigation }: Props) {
         }
       />
 
+      <FloatingActionButton
+        icon="plus"
+        label="Create Trip"
+        onPress={() => navigation.navigate("CreateTrip")}
+        collapsed={fabCollapsed}
+        right={pad}
+      />
+
       <Modal
         visible={radiusSheetVisible}
         transparent
@@ -934,7 +963,7 @@ function createStyles(colors: Palette) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.surface },
     list: { flex: 1 },
-    listContent: { width: "100%", maxWidth: CONTENT_MAX_WIDTH, alignSelf: "center", paddingBottom: 40 },
+    listContent: { width: "100%", maxWidth: CONTENT_MAX_WIDTH, alignSelf: "center", paddingBottom: FAB_CLEARANCE },
     hero: {
       overflow: "hidden",
       paddingBottom: 26,
@@ -1006,30 +1035,14 @@ function createStyles(colors: Palette) {
     },
     searchWrapDesktop: { maxWidth: 460, marginTop: 24 },
     search: { flex: 1, minWidth: 0, paddingVertical: 13, fontSize: 14.5, color: "#0f172a" },
-    chipsBar: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 16 },
-    chipsScroller: { flex: 1, minWidth: 0, position: "relative" },
-    createButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6,
-      height: 36,
-      paddingHorizontal: 16,
-      borderRadius: RADIUS.pill,
-      backgroundColor: "#2563eb",
-      shadowColor: "#1d4ed8",
-      shadowOpacity: 0.25,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 3,
-    },
-    createButtonRound: { width: 36, paddingHorizontal: 0 },
-    createButtonText: { color: colors.white, fontWeight: "700", fontSize: 13.5 },
+    chipsBar: { position: "relative", marginTop: 16 },
+    // Edge zones are part of the chip bar, so the arrows can never meet other controls.
+    chipEdge: { position: "absolute", top: 0, bottom: 0, width: 72, justifyContent: "center", zIndex: 1 },
+    chipEdgeLeft: { left: 0, alignItems: "flex-start" },
+    chipEdgeRight: { right: 0, alignItems: "flex-end" },
     filterRow: { flexGrow: 0 },
     filterRowContent: { paddingVertical: 4, alignItems: "center", gap: 8 },
     chipArrow: {
-      position: "absolute",
-      top: 4,
       width: 36,
       height: 36,
       borderRadius: 18,

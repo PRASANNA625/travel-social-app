@@ -144,7 +144,7 @@ function createStyles(colors: Palette) {
       backgroundColor: colors.surfaceElevated,
       borderRadius: RADIUS.field,
       paddingVertical: 6,
-      ...SHADOW.card,
+      ...SHADOW.raised,
     },
     menuItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, paddingHorizontal: 14 },
     menuIconWrap: {
@@ -166,7 +166,7 @@ function createStyles(colors: Palette) {
       borderRadius: RADIUS.card,
       padding: 22,
       alignItems: "center",
-      ...SHADOW.card,
+      ...SHADOW.raised,
     },
     confirmIconWrap: { width: 48, height: 48, borderRadius: 24, marginBottom: 12 },
     confirmTitle: { fontSize: 17, fontWeight: "700", color: colors.ink, marginBottom: 6 },

@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, Platform } from "react-native";
 
 // Native driver where it exists; animations stick to transform/opacity so either driver is cheap.
+// Looping animations pass isInteraction: false: an endless "interaction" would hold
+// InteractionManager forever, and lists (VirtualizedList) wait on it before
+// rendering rows beyond the first batch.
 export const useNativeDriver = Platform.OS !== "web";
 
 // True when the OS / browser asks for reduced motion (prefers-reduced-motion on web).
@@ -27,7 +30,7 @@ export function useLoop(duration: number, delay: number, enabled: boolean, restA
     const anim = Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
-        Animated.timing(value, { toValue: 1, duration, easing: Easing.linear, useNativeDriver }),
+        Animated.timing(value, { toValue: 1, duration, easing: Easing.linear, useNativeDriver, isInteraction: false }),
       ])
     );
     anim.start();
@@ -48,8 +51,8 @@ export function usePingPong(halfDuration: number, enabled: boolean) {
     const ease = Easing.inOut(Easing.sin);
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(value, { toValue: 1, duration: halfDuration, easing: ease, useNativeDriver }),
-        Animated.timing(value, { toValue: 0, duration: halfDuration, easing: ease, useNativeDriver }),
+        Animated.timing(value, { toValue: 1, duration: halfDuration, easing: ease, useNativeDriver, isInteraction: false }),
+        Animated.timing(value, { toValue: 0, duration: halfDuration, easing: ease, useNativeDriver, isInteraction: false }),
       ])
     );
     anim.start();
