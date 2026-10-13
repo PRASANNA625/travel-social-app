@@ -5,7 +5,8 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useBuddyMatches, usePendingBuddyRequests, useSendBuddyRequest } from "../api/buddies";
-import { BuddyCard } from "../components/BuddyCard";
+import { BuddyCard, BUDDY_CARD_WIDTH } from "../components/BuddyCard";
+import { useResponsiveLayout } from "../theme/layout";
 import { BuddyCardSkeleton } from "../components/BuddyCardSkeleton";
 import type { BuddyMatch, TravelMode } from "../types";
 import { TRAVEL_MODES } from "../types";
@@ -17,10 +18,19 @@ import { Alert } from "../utils/alert";
 
 type SortMode = "best" | "newest";
 
+const GRID_GAP = 16;
+const LIST_PADDING = 16;
+const GRID_MAX_WIDTH = 1440;
+
 // Rendered both as the TravelBuddies stack screen and as the Meetups tab, so it
 // takes navigation from the hook rather than screen props.
 export function TravelBuddiesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  // Grid of equal-width cards that fills the screen (sidebar-aware on desktop).
+  const { contentWidth } = useResponsiveLayout();
+  const gridWidth = Math.min(contentWidth, GRID_MAX_WIDTH) - LIST_PADDING * 2;
+  const columns = Math.max(1, Math.min(5, Math.floor((gridWidth + GRID_GAP) / (BUDDY_CARD_WIDTH + GRID_GAP))));
+  const cardWidth = columns === 1 ? Math.min(gridWidth, 420) : (gridWidth - (columns - 1) * GRID_GAP) / columns;
   const [search, setSearch] = useState("");
   const [interest, setInterest] = useState<string | undefined>(undefined);
   const [travelMode, setTravelMode] = useState<TravelMode | undefined>(undefined);
@@ -190,16 +200,20 @@ export function TravelBuddiesScreen() {
       />
 
       {isLoading && page === 1 ? (
-        <View style={styles.skeletonGrid}>
-          <BuddyCardSkeleton />
-          <BuddyCardSkeleton />
+        <View style={[styles.skeletonGrid, { gap: GRID_GAP }]}>
+          {Array.from({ length: Math.max(2, columns) }, (_, i) => (
+            <BuddyCardSkeleton key={i} width={cardWidth} />
+          ))}
         </View>
       ) : (
         <FlatList
-          contentContainerStyle={styles.list}
+          // numColumns can't change on a mounted FlatList; remount when the column count changes.
+          key={`buddies-${columns}`}
+          contentContainerStyle={[styles.list, columns === 1 && styles.listSingle]}
           data={displayedItems}
           keyExtractor={(item) => item.id}
-          numColumns={1}
+          numColumns={columns}
+          columnWrapperStyle={columns > 1 ? { gap: GRID_GAP } : undefined}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <MaterialCommunityIcons name="account-search-outline" size={40} color={colors.mutedLight} />
@@ -210,6 +224,7 @@ export function TravelBuddiesScreen() {
             <View style={styles.cardWrap}>
               <BuddyCard
                 buddy={item}
+                width={cardWidth}
                 onViewProfile={() => navigation.navigate("UserProfile", { userId: item.id })}
                 onConnect={() => onConnectBuddy(item.id)}
                 onRespond={() => navigation.navigate("ConnectionRequests")}
@@ -277,7 +292,8 @@ function createStyles(colors: Palette) {
     chipText: { fontSize: 12.5, color: colors.ink, fontWeight: "500" },
     chipTextActive: { color: colors.white, fontWeight: "700" },
     skeletonGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16 },
-    list: { padding: 16, paddingBottom: 40, alignItems: "center" },
+    list: { padding: LIST_PADDING, paddingBottom: 40, width: "100%", maxWidth: GRID_MAX_WIDTH, alignSelf: "center" },
+    listSingle: { alignItems: "center" },
     cardWrap: { marginBottom: 16 },
     emptyWrap: { alignItems: "center", marginTop: 48, gap: 10, paddingHorizontal: 32 },
     empty: { textAlign: "center", color: colors.mutedLight, fontSize: 13 },

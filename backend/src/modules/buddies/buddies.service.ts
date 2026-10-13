@@ -3,6 +3,7 @@ import { HttpError } from "../../middleware/error";
 import { notify } from "../notifications/notify";
 import { parsePageParams, toSkipTake } from "../../utils/pagination";
 import { publicUserSelect } from "../users/users.service";
+import { isUserOnline } from "../../config/socket";
 import type { BuddyFilters } from "./buddies.types";
 
 const CANDIDATE_POOL_LIMIT = 150;
@@ -126,18 +127,21 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
   const [ownedTrips, joinedTrips] = await Promise.all([
     prisma.trip.findMany({
       where: { ownerId: { in: candidateIds } },
-      select: { ownerId: true, travelMode: true, destination: true },
+      select: { id: true, ownerId: true, travelMode: true, destination: true, avgRating: true, reviewCount: true },
     }),
     prisma.groupMember.findMany({
       where: { userId: { in: candidateIds } },
-      select: { userId: true, group: { select: { trip: { select: { travelMode: true, destination: true } } } } },
+      select: { userId: true, group: { select: { trip: { select: { id: true, travelMode: true, destination: true } } } } },
     }),
   ]);
-  const candidateTripSignalsMap = new Map<string, { modes: Set<string>; destinations: Set<string> }>();
+  const candidateTripSignalsMap = new Map<
+    string,
+    { modes: Set<string>; destinations: Set<string>; tripIds: Set<string>; ratingSum: number; ratingCount: number }
+  >();
   const getOrCreateSignals = (userId: string) => {
     let entry = candidateTripSignalsMap.get(userId);
     if (!entry) {
-      entry = { modes: new Set<string>(), destinations: new Set<string>() };
+      entry = { modes: new Set<string>(), destinations: new Set<string>(), tripIds: new Set<string>(), ratingSum: 0, ratingCount: 0 };
       candidateTripSignalsMap.set(userId, entry);
     }
     return entry;
@@ -146,11 +150,18 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
     const entry = getOrCreateSignals(trip.ownerId);
     entry.modes.add(trip.travelMode);
     entry.destinations.add(trip.destination.toLowerCase());
+    entry.tripIds.add(trip.id);
+    // Host rating: review-weighted average across the trips they own.
+    if (trip.avgRating !== null && trip.reviewCount > 0) {
+      entry.ratingSum += trip.avgRating * trip.reviewCount;
+      entry.ratingCount += trip.reviewCount;
+    }
   }
   for (const membership of joinedTrips) {
     const entry = getOrCreateSignals(membership.userId);
     entry.modes.add(membership.group.trip.travelMode);
     entry.destinations.add(membership.group.trip.destination.toLowerCase());
+    entry.tripIds.add(membership.group.trip.id);
   }
 
   const scored = candidates.map((c) => {
@@ -164,6 +175,9 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
     const candidateTripSignals = candidateTripSignalsMap.get(c.id) ?? {
       modes: new Set<string>(),
       destinations: new Set<string>(),
+      tripIds: new Set<string>(),
+      ratingSum: 0,
+      ratingCount: 0,
     };
     const sharedTripModes = overlapCount([...viewerTripSignals.modes], [...candidateTripSignals.modes]);
     const sharedDestinations = overlapCount(
@@ -189,6 +203,12 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
       sharedModesCount,
       locationMatch,
       compatibilityPercent: hasStrongSignal ? Math.min(100, rawScore) : null,
+      tripCount: candidateTripSignals.tripIds.size,
+      rating:
+        candidateTripSignals.ratingCount > 0
+          ? Math.round((candidateTripSignals.ratingSum / candidateTripSignals.ratingCount) * 10) / 10
+          : null,
+      ratingCount: candidateTripSignals.ratingCount,
       score: rawScore,
     };
   });
@@ -201,11 +221,20 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
     viewerId,
     pageItems.map((c) => c.id)
   );
-  const items = pageItems.map((c) => ({
-    ...c,
-    connectionState: (stateMap.get(c.id)?.state ?? "none") as "none" | "pending_sent" | "pending_received" | "connected",
-    connectionRequestId: stateMap.get(c.id)?.requestId ?? null,
-  }));
+  const items = pageItems.map((c) => {
+    const connectionState = (stateMap.get(c.id)?.state ?? "none") as
+      | "none"
+      | "pending_sent"
+      | "pending_received"
+      | "connected";
+    return {
+      ...c,
+      connectionState,
+      connectionRequestId: stateMap.get(c.id)?.requestId ?? null,
+      // Presence is only shared with accepted buddies (chat already limits it to group members).
+      online: connectionState === "connected" ? isUserOnline(c.id) : false,
+    };
+  });
 
   return { items, total, ...pageParams };
 }

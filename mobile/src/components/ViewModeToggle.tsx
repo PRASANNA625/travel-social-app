@@ -22,32 +22,41 @@ export function ViewModeToggle<T extends string>({
   options: readonly ViewModeToggleOption<T>[];
   value: T;
   onChange: (value: T) => void;
-  size?: "full" | "compact";
+  // "segmented": borderless buttons meant to sit inside a caller-provided pill.
+  size?: "full" | "compact" | "segmented";
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const compact = size === "compact";
+  const segmented = size === "segmented";
 
   return (
-    <View style={compact ? styles.rowCompact : styles.row}>
+    <View style={segmented ? styles.rowSegmented : compact ? styles.rowCompact : styles.row}>
       {options.map((option) => {
         const active = option.value === value;
         return (
           <TouchableOpacity
             key={option.value}
             style={[
-              compact ? styles.buttonCompact : styles.button,
-              active && (compact ? styles.buttonCompactActive : styles.buttonActive),
+              segmented ? styles.buttonSegmented : compact ? styles.buttonCompact : styles.button,
+              active && (compact || segmented ? styles.buttonCompactActive : styles.buttonActive),
             ]}
             onPress={() => onChange(option.value)}
             activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
           >
             <MaterialCommunityIcons
               name={option.icon}
-              size={compact ? 13 : 15}
+              size={segmented ? 16 : compact ? 13 : 15}
               color={active ? colors.white : colors.ink}
             />
-            <Text style={[compact ? styles.buttonTextCompact : styles.buttonText, active && styles.buttonTextActive]}>
+            <Text
+              style={[
+                segmented ? styles.buttonTextSegmented : compact ? styles.buttonTextCompact : styles.buttonText,
+                active && styles.buttonTextActive,
+              ]}
+            >
               {option.label}
             </Text>
           </TouchableOpacity>
@@ -95,6 +104,17 @@ function createStyles(colors: Palette) {
       borderRadius: RADIUS.pill,
       backgroundColor: "transparent",
     },
+    rowSegmented: { flexDirection: "row", gap: 2 },
+    buttonSegmented: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      height: 38,
+      paddingHorizontal: 14,
+      borderRadius: RADIUS.pill,
+    },
+    buttonTextSegmented: { fontSize: 13.5, fontWeight: "700", color: colors.ink },
     buttonActive: { backgroundColor: colors.primary },
     buttonCompactActive: { backgroundColor: colors.primary },
     buttonText: { fontSize: 12.5, fontWeight: "700", color: colors.ink },

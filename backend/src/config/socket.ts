@@ -25,6 +25,10 @@ let io: SocketIOServer | undefined;
 // no Redis anywhere in this stack).
 const onlineSockets = new Map<string, Set<string>>();
 
+export function isUserOnline(userId: string): boolean {
+  return (onlineSockets.get(userId)?.size ?? 0) > 0;
+}
+
 function isAllowedReaction(value: unknown): value is AllowedReaction {
   return typeof value === "string" && (ALLOWED_REACTIONS as readonly string[]).includes(value);
 }

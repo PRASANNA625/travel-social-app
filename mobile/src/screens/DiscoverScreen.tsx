@@ -14,8 +14,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -26,7 +24,7 @@ import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useTrips, useTrendingTrips, useRecommendedTrips, useTrendingDestinations } from "../api/trips";
 import { useMe } from "../api/users";
-import { TRAVEL_MODES, type TravelMode, type Trip } from "../types";
+import { TRAVEL_MODES, type BuddyMatch, type TravelMode, type Trip } from "../types";
 import { TripCard } from "../components/TripCard";
 import { TripCardSkeleton } from "../components/TripCardSkeleton";
 import { ViewModeToggle, type ViewModeToggleOption } from "../components/ViewModeToggle";
@@ -44,7 +42,8 @@ import { getUpcomingWeekendRange } from "../utils/weekendRange";
 import { ExploreMap, type ExploreMapPanTarget, type ExploreMapPin } from "../components/ExploreMap";
 import { TripMapPreviewCard } from "../components/TripMapPreviewCard";
 import { useBuddyMatches, useSendBuddyRequest } from "../api/buddies";
-import { BuddyCard } from "../components/BuddyCard";
+import { BuddyCard, BUDDY_CARD_WIDTH } from "../components/BuddyCard";
+import { useHorizontalScroll } from "../hooks/useHorizontalScroll";
 import { BuddyCardSkeleton } from "../components/BuddyCardSkeleton";
 import { Alert } from "../utils/alert";
 
@@ -86,8 +85,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const heroPhotoHeight = Math.max(heroSize.height, heroSize.width / HERO_PHOTO_ASPECT);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState<ProfileMenuAnchor | null>(null);
   const avatarWrapRef = useRef<View>(null);
-  const chipListRef = useRef<FlatList<string>>(null);
-  const [chipScroll, setChipScroll] = useState({ offset: 0, contentWidth: 0, viewportWidth: 0 });
+  const chipScroll = useHorizontalScroll<string>(CHIP_SCROLL_STEP);
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -216,6 +214,15 @@ export function DiscoverScreen({ navigation }: Props) {
       ? Math.min(innerWidth * 0.86, 340)
       : (innerWidth - (sectionColumns - 1) * SECTION_GAP) / sectionColumns;
 
+  // Buddy cards: as many ~250px+ cards as fit a row on wide screens, a card and a
+  // peek of the next on phones.
+  const buddiesPerRow = Math.max(1, Math.floor((innerWidth + SECTION_GAP) / (250 + SECTION_GAP)));
+  const buddyCardWidth =
+    innerWidth < 560
+      ? Math.min(innerWidth * 0.78, BUDDY_CARD_WIDTH)
+      : Math.min(320, (innerWidth - (buddiesPerRow - 1) * SECTION_GAP) / buddiesPerRow);
+  const buddyScroll = useHorizontalScroll<BuddyMatch>(buddyCardWidth + SECTION_GAP);
+
   const rowSize = viewLayout === "list" ? (innerWidth >= 900 ? 2 : 1) : gridColumnsFor(contentWidth);
 
   const rows = useMemo(() => {
@@ -322,20 +329,6 @@ export function DiscoverScreen({ navigation }: Props) {
     });
   };
 
-  const onChipScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    setChipScroll({ offset: contentOffset.x, contentWidth: contentSize.width, viewportWidth: layoutMeasurement.width });
-  };
-
-  const scrollChips = (direction: 1 | -1) => {
-    chipListRef.current?.scrollToOffset({
-      offset: Math.max(0, chipScroll.offset + direction * CHIP_SCROLL_STEP),
-      animated: true,
-    });
-  };
-
-  const canScrollChipsBack = chipScroll.offset > 4;
-  const canScrollChipsForward = chipScroll.offset + chipScroll.viewportWidth < chipScroll.contentWidth - 4;
   const firstName = me?.name?.split(" ")[0] ?? "there";
 
   const chipItems: string[] = [
@@ -499,35 +492,29 @@ export function DiscoverScreen({ navigation }: Props) {
   const chipsRow = (
     <View style={styles.chipsBar}>
       <FlatList
-        ref={chipListRef}
+        ref={chipScroll.ref}
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filterRow}
         contentContainerStyle={[styles.filterRowContent, { paddingHorizontal: pad, paddingRight: isDesktop ? 64 : pad + 8 }]}
         data={chipItems}
         keyExtractor={(item) => item}
-        onScroll={onChipScroll}
-        onContentSizeChange={(w) => setChipScroll((prev) => ({ ...prev, contentWidth: w }))}
-        onLayout={(e) => {
-          const viewportWidth = e.nativeEvent.layout.width;
-          setChipScroll((prev) => ({ ...prev, viewportWidth }));
-        }}
-        scrollEventThrottle={32}
+        {...chipScroll.listProps}
         renderItem={({ item }) => renderChip(item)}
       />
-      {isDesktop && canScrollChipsBack && (
+      {isDesktop && chipScroll.canScrollBack && (
         <TouchableOpacity
           style={[styles.chipArrow, { left: pad - 8 }]}
-          onPress={() => scrollChips(-1)}
+          onPress={() => chipScroll.scrollBy(-1)}
           accessibilityLabel="Scroll categories left"
         >
           <MaterialCommunityIcons name="chevron-left" size={22} color={colors.ink} />
         </TouchableOpacity>
       )}
-      {isDesktop && canScrollChipsForward && (
+      {isDesktop && chipScroll.canScrollForward && (
         <TouchableOpacity
           style={[styles.chipArrow, { right: pad - 8 }]}
-          onPress={() => scrollChips(1)}
+          onPress={() => chipScroll.scrollBy(1)}
           accessibilityLabel="Scroll categories right"
         >
           <MaterialCommunityIcons name="chevron-right" size={22} color={colors.ink} />
@@ -538,18 +525,25 @@ export function DiscoverScreen({ navigation }: Props) {
 
   const allTripsHeader = (
     <View style={[styles.allTripsHeader, { paddingHorizontal: pad }]}>
-      <View style={styles.allTripsTitleRow}>
-        <MaterialCommunityIcons name="format-list-bulleted" size={22} color={colors.ink} />
-        <Text style={styles.allTripsTitle}>
-          All Trips{data ? ` (${data.total})` : ""}
-        </Text>
-        {isFetching && !isLoading && <ActivityIndicator size="small" color={colors.primary} />}
+      <View style={styles.allTripsHeading}>
+        <View style={styles.allTripsTitleRow}>
+          <MaterialCommunityIcons name="format-list-bulleted" size={24} color={colors.ink} />
+          <Text style={styles.allTripsTitle}>
+            All Trips{data ? ` (${data.total})` : ""}
+          </Text>
+          {isFetching && !isLoading && <ActivityIndicator size="small" color={colors.primary} />}
+        </View>
+        <Text style={styles.allTripsSubtitle}>Discover amazing trips created by our community</Text>
       </View>
-      <View style={styles.allTripsControls}>
-        <ViewModeToggle options={VIEW_OPTIONS} value={activeView} onChange={onViewChange} size="compact" />
-        <View style={styles.sortGroup}>
+      {/* One pill on wide screens; two stacked pills on narrow ones so nothing clips. */}
+      <View style={[styles.allTripsControls, innerWidth >= 640 && styles.allTripsControlsJoined]}>
+        <View style={innerWidth < 640 && styles.controlPill}>
+          <ViewModeToggle options={VIEW_OPTIONS} value={activeView} onChange={onViewChange} size="segmented" />
+        </View>
+        {innerWidth >= 640 && <View style={styles.controlsDivider} />}
+        <View style={[styles.sortGroup, innerWidth < 640 && styles.controlPill]}>
           <Text style={styles.sortLabel}>Sort by</Text>
-          <ViewModeToggle options={SORT_OPTIONS} value={sortOrder} onChange={setSortOrder} size="compact" />
+          <ViewModeToggle options={SORT_OPTIONS} value={sortOrder} onChange={setSortOrder} size="segmented" />
         </View>
       </View>
     </View>
@@ -621,38 +615,69 @@ export function DiscoverScreen({ navigation }: Props) {
             {(buddiesLoading || (buddyMatches?.items.length ?? 0) > 0) && (
               <View style={styles.section}>
                 <View style={[styles.sectionHeaderRow, { paddingHorizontal: pad }]}>
-                  <View style={styles.sectionTitleRow}>
-                    <MaterialCommunityIcons name="account-group" size={20} color={colors.primary} />
-                    <Text style={styles.sectionTitle}>Travel Buddies</Text>
+                  <View style={styles.sectionHeading}>
+                    <View style={styles.sectionTitleRow}>
+                      <MaterialCommunityIcons name="account-group" size={22} color={colors.primary} />
+                      <Text style={styles.sectionTitle}>Travel Buddies</Text>
+                    </View>
+                    <Text style={styles.sectionSubtitle}>Meet fellow travelers and connect with like-minded people</Text>
                   </View>
-                  <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("TravelBuddies")}>
+                  <TouchableOpacity
+                    style={styles.seeAllPill}
+                    onPress={() => navigation.navigate("Meetups")}
+                    accessibilityRole="link"
+                  >
                     <Text style={styles.seeAllLink}>See All</Text>
-                    <MaterialCommunityIcons name="chevron-right" size={16} color={colors.primary} />
+                    <MaterialCommunityIcons name="arrow-right" size={16} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
-                <FlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={[styles.buddyRow, { paddingHorizontal: pad }]}
-                  data={buddiesLoading ? [] : buddyMatches?.items}
-                  keyExtractor={(item) => item.id}
-                  ListEmptyComponent={
-                    buddiesLoading ? (
-                      <View style={styles.buddyRow}>
-                        <BuddyCardSkeleton />
-                        <BuddyCardSkeleton />
-                      </View>
-                    ) : null
-                  }
-                  renderItem={({ item }) => (
-                    <BuddyCard
-                      buddy={item}
-                      onViewProfile={() => navigation.navigate("UserProfile", { userId: item.id })}
-                      onConnect={() => onConnectBuddy(item.id)}
-                      onRespond={() => navigation.navigate("ConnectionRequests")}
-                    />
+                <View style={styles.carousel}>
+                  <FlatList
+                    ref={buddyScroll.ref}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={[styles.buddyRow, { paddingHorizontal: pad }]}
+                    data={buddiesLoading ? [] : buddyMatches?.items}
+                    keyExtractor={(item) => item.id}
+                    {...buddyScroll.listProps}
+                    ListEmptyComponent={
+                      buddiesLoading ? (
+                        <View style={styles.buddyRow}>
+                          {Array.from({ length: Math.max(2, buddiesPerRow) }, (_, i) => (
+                            <BuddyCardSkeleton key={i} width={buddyCardWidth} />
+                          ))}
+                        </View>
+                      ) : null
+                    }
+                    renderItem={({ item }) => (
+                      <BuddyCard
+                        buddy={item}
+                        width={buddyCardWidth}
+                        onViewProfile={() => navigation.navigate("UserProfile", { userId: item.id })}
+                        onConnect={() => onConnectBuddy(item.id)}
+                        onRespond={() => navigation.navigate("ConnectionRequests")}
+                      />
+                    )}
+                  />
+                  {isDesktop && buddyScroll.canScrollBack && (
+                    <TouchableOpacity
+                      style={[styles.carouselArrow, { left: pad - 12 }]}
+                      onPress={() => buddyScroll.scrollBy(-1)}
+                      accessibilityLabel="Previous travel buddies"
+                    >
+                      <MaterialCommunityIcons name="chevron-left" size={24} color={colors.ink} />
+                    </TouchableOpacity>
                   )}
-                />
+                  {isDesktop && buddyScroll.canScrollForward && (
+                    <TouchableOpacity
+                      style={[styles.carouselArrow, { right: pad - 12 }]}
+                      onPress={() => buddyScroll.scrollBy(1)}
+                      accessibilityLabel="More travel buddies"
+                    >
+                      <MaterialCommunityIcons name="chevron-right" size={24} color={colors.ink} />
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             )}
 
@@ -975,27 +1000,76 @@ function createStyles(colors: Palette) {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 12,
+      gap: 12,
+      marginBottom: 14,
     },
+    sectionHeading: { flexShrink: 1 },
     sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    sectionTitle: { fontSize: 18, fontWeight: "700", color: colors.ink },
-    seeAllButton: { flexDirection: "row", alignItems: "center", gap: 2 },
+    sectionTitle: { fontSize: 20, fontWeight: "800", color: colors.ink, letterSpacing: -0.2 },
+    sectionSubtitle: { fontSize: 13.5, color: colors.muted, marginTop: 3, marginLeft: 30 },
+    seeAllPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: RADIUS.pill,
+      backgroundColor: colors.primaryMuted,
+    },
     seeAllLink: { fontSize: 13.5, fontWeight: "700", color: colors.primary },
-    buddyRow: { flexDirection: "row", gap: 12 },
+    carousel: { position: "relative" },
+    carouselArrow: {
+      position: "absolute",
+      top: 150,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: colors.ink,
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 4,
+    },
+    // Vertical padding leaves room for the cards' shadows inside the scroll view.
+    buddyRow: { flexDirection: "row", gap: SECTION_GAP, paddingVertical: 4 },
     allTripsHeader: {
       flexDirection: "row",
       flexWrap: "wrap",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: 12,
-      marginTop: 32,
-      marginBottom: 16,
+      gap: 14,
+      marginTop: 36,
+      marginBottom: 18,
     },
+    allTripsHeading: { flexShrink: 1 },
     allTripsTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    allTripsTitle: { fontSize: 20, fontWeight: "700", color: colors.ink },
-    allTripsControls: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12, flexShrink: 1, maxWidth: "100%" },
-    sortGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
-    sortLabel: { fontSize: 12.5, color: colors.muted, fontWeight: "600" },
+    allTripsTitle: { fontSize: 22, fontWeight: "800", color: colors.ink, letterSpacing: -0.3 },
+    allTripsSubtitle: { fontSize: 13.5, color: colors.muted, marginTop: 3, marginLeft: 32 },
+    allTripsControls: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10, maxWidth: "100%" },
+    allTripsControlsJoined: {
+      flexWrap: "nowrap",
+      gap: 6,
+      padding: 4,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceElevated,
+    },
+    controlPill: {
+      padding: 4,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceElevated,
+    },
+    controlsDivider: { width: 1, height: 26, backgroundColor: colors.border, marginHorizontal: 6 },
+    sortGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
+    sortLabel: { fontSize: 13, color: colors.muted, fontWeight: "600", marginLeft: 6 },
     mapSection: { marginBottom: 8 },
     trendingChipsRow: { minHeight: 40, flexGrow: 0, marginBottom: 10 },
     trendingChipsRowContent: { gap: 8, alignItems: "center" },

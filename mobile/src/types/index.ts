@@ -151,6 +151,12 @@ export interface BuddyMatch extends Omit<User, "email" | "phone" | "phoneVerifie
   compatibilityPercent: number | null;
   connectionState: BuddyConnectionState;
   connectionRequestId: string | null;
+  // Trips owned or joined; host rating is the review-weighted average of their own trips.
+  tripCount: number;
+  rating: number | null;
+  ratingCount: number;
+  // Only ever true for accepted buddies (presence isn't shared with strangers).
+  online: boolean;
 }
 
 export interface BuddyConnection {
