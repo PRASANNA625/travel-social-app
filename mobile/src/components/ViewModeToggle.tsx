@@ -19,7 +19,7 @@ export function ViewModeToggle<T extends string>({
   onChange,
   size = "full",
 }: {
-  options: [ViewModeToggleOption<T>, ViewModeToggleOption<T>];
+  options: readonly ViewModeToggleOption<T>[];
   value: T;
   onChange: (value: T) => void;
   size?: "full" | "compact";

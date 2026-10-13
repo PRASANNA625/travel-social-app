@@ -1,13 +1,15 @@
 import type { ComponentProps } from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { BottomTabBar, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { AppTabParamList } from "./types";
 import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { MyTripsScreen } from "../screens/MyTripsScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { SideNavBar } from "./SideNavBar";
 import { useNotifications } from "../api/notifications";
 import { useTheme } from "../theme/ThemeContext";
+import { SIDEBAR_WIDTH, useResponsiveLayout } from "../theme/layout";
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
@@ -24,9 +26,12 @@ export function AppTabs() {
   const { data } = useNotifications();
   const unreadCount = data?.unreadCount ?? 0;
   const { colors } = useTheme();
+  const { isDesktop } = useResponsiveLayout();
 
   return (
     <Tab.Navigator
+      tabBar={(props) => (isDesktop ? <SideNavBar {...props} icons={ICONS} /> : <BottomTabBar {...props} />)}
+      sceneContainerStyle={isDesktop ? { marginLeft: SIDEBAR_WIDTH } : undefined}
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedLight,
@@ -38,7 +43,7 @@ export function AppTabs() {
         },
       })}
     >
-      <Tab.Screen name="Discover" component={DiscoverScreen} options={{ title: "Discover" }} />
+      <Tab.Screen name="Discover" component={DiscoverScreen} options={{ title: "Discover", headerShown: false }} />
       <Tab.Screen name="MyTrips" component={MyTripsScreen} options={{ title: "My Trips" }} />
       <Tab.Screen
         name="Notifications"

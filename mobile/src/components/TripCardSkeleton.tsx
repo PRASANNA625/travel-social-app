@@ -32,12 +32,12 @@ export function TripCardSkeleton({ layout = "grid" }: { layout?: "grid" | "list"
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 20, overflow: "hidden", marginBottom: 16 },
-  image: { width: "100%", height: 170, borderRadius: 0 },
+  card: { borderRadius: 16, overflow: "hidden", marginBottom: 16 },
+  image: { width: "100%", height: 150, borderRadius: 0 },
   body: { padding: 14, paddingTop: 10, gap: 8 },
   line: { height: 14, width: "70%" },
   lineShort: { height: 12, width: "45%" },
   listCard: { flexDirection: "row", alignItems: "flex-start", borderRadius: 20, padding: 12, gap: 12, marginBottom: 16 },
-  listImage: { width: 96, height: 96, borderRadius: 16 },
+  listImage: { width: 120, height: 104, borderRadius: 12 },
   listBody: { flex: 1, gap: 8, justifyContent: "center" },
 });
