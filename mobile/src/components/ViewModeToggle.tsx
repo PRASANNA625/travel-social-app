@@ -18,12 +18,15 @@ export function ViewModeToggle<T extends string>({
   value,
   onChange,
   size = "full",
+  iconOnly = false,
 }: {
   options: readonly ViewModeToggleOption<T>[];
   value: T;
   onChange: (value: T) => void;
   // "segmented": borderless buttons meant to sit inside a caller-provided pill.
   size?: "full" | "compact" | "segmented";
+  // Hide the labels (they become accessibility labels) where space is tight.
+  iconOnly?: boolean;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -45,20 +48,23 @@ export function ViewModeToggle<T extends string>({
             activeOpacity={0.75}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
+            accessibilityLabel={option.label}
           >
             <MaterialCommunityIcons
               name={option.icon}
               size={segmented ? 16 : compact ? 13 : 15}
               color={active ? colors.white : colors.ink}
             />
-            <Text
-              style={[
-                segmented ? styles.buttonTextSegmented : compact ? styles.buttonTextCompact : styles.buttonText,
-                active && styles.buttonTextActive,
-              ]}
-            >
-              {option.label}
-            </Text>
+            {!iconOnly && (
+              <Text
+                style={[
+                  segmented ? styles.buttonTextSegmented : compact ? styles.buttonTextCompact : styles.buttonText,
+                  active && styles.buttonTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -110,11 +116,11 @@ function createStyles(colors: Palette) {
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      height: 38,
-      paddingHorizontal: 14,
+      height: 34,
+      paddingHorizontal: 12,
       borderRadius: RADIUS.pill,
     },
-    buttonTextSegmented: { fontSize: 13.5, fontWeight: "700", color: colors.ink },
+    buttonTextSegmented: { fontSize: 13, fontWeight: "700", color: colors.ink },
     buttonActive: { backgroundColor: colors.primary },
     buttonCompactActive: { backgroundColor: colors.primary },
     buttonText: { fontSize: 12.5, fontWeight: "700", color: colors.ink },

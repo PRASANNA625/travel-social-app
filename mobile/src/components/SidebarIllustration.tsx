@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, Image, Platform, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef } from "react";
+import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SIDEBAR_WIDTH } from "../theme/layout";
+import { useLoop, useNativeDriver, useReduceMotion } from "../hooks/useReduceMotion";
 
 // Bottom-of-sidebar travel scene: a static illustration (assets/sidebar-scene.png)
 // with lightweight Animated layers on top. Loops use the native driver where it
@@ -9,39 +10,7 @@ import { SIDEBAR_WIDTH } from "../theme/layout";
 export const ILLUSTRATION_SCENE_HEIGHT = 200;
 export const ILLUSTRATION_TEXT_HEIGHT = 92;
 
-const useNativeDriver = Platform.OS !== "web";
 const SNOWFLAKES = 14;
-
-function useReduceMotion() {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduce).catch(() => {});
-    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduce);
-    return () => sub.remove();
-  }, []);
-  return reduce;
-}
-
-// 0 -> 1 forever, after an initial delay; static at `restAt` when motion is reduced.
-function useLoop(duration: number, delay: number, enabled: boolean, restAt = 0.5) {
-  const value = useRef(new Animated.Value(enabled ? 0 : restAt)).current;
-  useEffect(() => {
-    if (!enabled) {
-      value.setValue(restAt);
-      return;
-    }
-    value.setValue(0);
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(value, { toValue: 1, duration, easing: Easing.linear, useNativeDriver }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [value, duration, delay, enabled, restAt]);
-  return value;
-}
 
 function Cloud({ top, scale, duration, delay, animate, restX }: {
   top: number; scale: number; duration: number; delay: number; animate: boolean; restX: number;
