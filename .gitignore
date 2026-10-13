@@ -9,3 +9,5 @@ backend/uploads/*
 .superpowers/
 
 .worktrees/
+.env.local
+.firebase/
