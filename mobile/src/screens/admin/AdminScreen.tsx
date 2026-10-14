@@ -84,6 +84,7 @@ function GlobalSearch({ onSearch }: { onSearch: (section: "users" | "trips", que
   const { colors } = useTheme();
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const query = text.trim();
   const go = (section: "users" | "trips") => {
     if (!query) return;
@@ -93,7 +94,7 @@ function GlobalSearch({ onSearch }: { onSearch: (section: "users" | "trips", que
   };
   return (
     <View style={styles.search}>
-      <View style={[styles.searchBox, { backgroundColor: colors.fieldBg, borderColor: colors.border }]}>
+      <View style={[styles.searchBox, { backgroundColor: colors.fieldBg, borderColor: focused ? colors.primary : colors.border }]}>
         <MaterialCommunityIcons name="magnify" size={19} color={colors.muted} />
         <TextInput
           value={text}
@@ -106,6 +107,8 @@ function GlobalSearch({ onSearch }: { onSearch: (section: "users" | "trips", que
           placeholderTextColor={colors.mutedLight}
           style={[styles.searchInput, { color: colors.ink }]}
           accessibilityLabel="Search users and trips"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
       </View>
       {open && query ? (

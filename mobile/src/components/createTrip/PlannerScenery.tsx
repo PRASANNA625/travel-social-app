@@ -75,9 +75,9 @@ export function PlannerAside({ width }: { width: number }) {
           <Text style={{ color: dark ? "#7aa7ff" : ACTION_BLUE }}>Next Adventure</Text>
         </Text>
         <Text style={[styles.lede, { color: colors.muted }]}>Create a trip, invite fellow travelers and make unforgettable memories.</Text>
+        {/* In the text's flow, so it always sits below the lede however it wraps. */}
+        <FlightPath color={dark ? "rgba(122,167,255,0.6)" : "rgba(37,99,235,0.55)"} />
       </Animated.View>
-
-      <FlightPath color={dark ? "rgba(122,167,255,0.6)" : "rgba(37,99,235,0.55)"} />
 
       <View style={styles.perks}>
         {PERKS.map((p) => (
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   brandTag: { fontSize: 13, marginTop: -2 },
   headline: { fontSize: 34, lineHeight: 40, fontWeight: "800", letterSpacing: -0.8, marginTop: 64 },
   lede: { fontSize: 15.5, lineHeight: 23, marginTop: 16, maxWidth: 270 },
-  flight: { position: "absolute", left: -40, right: 0, top: "41%", height: 140 },
+  flight: { height: 120, marginTop: 18, marginLeft: -72, marginRight: -32 },
   arc: {
     position: "absolute",
     left: 0,

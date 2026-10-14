@@ -373,8 +373,8 @@ export function CreateTripScreen({ navigation, route }: Props) {
           )}
         </FormSection>
 
-        <FormSection icon="map-marker-radius" tint="teal" title="Route" subtitle="Plan your journey from start to destination" index={1} decoration={formWidth >= 760 ? <RouteArt /> : undefined}>
-          <View style={[styles.row, formWidth >= 760 && { paddingRight: 150 }]}>
+        <FormSection icon="map-marker-radius" tint="teal" title="Route" subtitle="Plan your journey from start to destination" index={1} decoration={formWidth >= 560 ? <RouteArt /> : undefined}>
+          <View style={styles.row}>
             <View style={half}>
               <FieldLabel text="Starting location" required />
               <IconInput

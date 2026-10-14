@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native";
@@ -9,6 +10,15 @@ import { LanguageProvider } from "./src/i18n/LanguageContext";
 import { ThemeProvider, useTheme } from "./src/theme/ThemeContext";
 import { BrandSplash } from "./src/components/BrandSplash";
 import { navigationRef } from "./src/navigation/navigationRef";
+
+// Web: every text field sits inside its own bordered box that highlights on focus,
+// so the browser's default focus outline drew a second, dark border inside it.
+// Buttons and links keep the browser's keyboard focus ring.
+if (Platform.OS === "web" && typeof document !== "undefined") {
+  const style = document.createElement("style");
+  style.textContent = "input:focus, textarea:focus { outline: none; }";
+  document.head.appendChild(style);
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

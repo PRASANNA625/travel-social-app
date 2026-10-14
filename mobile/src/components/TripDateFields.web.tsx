@@ -43,6 +43,15 @@ const dateInputStyle: CSSProperties = {
   margin: 0,
 };
 
+// showPicker() is in all current browsers; older ones keep their default click behavior.
+function openPicker(input: HTMLInputElement) {
+  try {
+    input.showPicker?.();
+  } catch {
+    // Throws when the page isn't allowed to open it (e.g. inside a cross-origin frame).
+  }
+}
+
 function DateField({
   value,
   onChangeValidDate,
@@ -75,6 +84,15 @@ function DateField({
         onChange={(e) => {
           const parsed = parseISODateValue(e.target.value);
           if (parsed) onChangeValidDate(parsed);
+        }}
+        // Chrome only opens the calendar from its own icon at the input's right
+        // edge; the input is invisible, so open it on any click or Enter/Space.
+        onClick={(e) => openPicker(e.currentTarget)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openPicker(e.currentTarget);
+          }
         }}
         style={dateInputStyle}
       />

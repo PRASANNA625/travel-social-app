@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View, type StyleProp, type ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { RADIUS } from "../../theme/tokens";
@@ -21,8 +21,9 @@ export function SearchField({
   style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = useTheme();
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={[styles.wrap, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }, style]}>
+    <View style={[styles.wrap, { backgroundColor: colors.surfaceElevated, borderColor: focused ? colors.primary : colors.border }, style]}>
       <MaterialCommunityIcons name={icon} size={19} color={colors.mutedLight} />
       <TextInput
         style={[styles.input, { color: colors.ink }]}
@@ -31,6 +32,8 @@ export function SearchField({
         value={value}
         onChangeText={onChangeText}
         accessibilityLabel={placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
       />
       {value.length > 0 && (
         <TouchableOpacity onPress={() => onChangeText("")} hitSlop={8} accessibilityLabel="Clear">

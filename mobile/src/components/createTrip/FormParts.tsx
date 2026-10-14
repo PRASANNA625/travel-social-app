@@ -321,10 +321,10 @@ export function RouteArt() {
   const line = scheme === "dark" ? "rgba(147,180,251,0.6)" : "rgba(37,99,235,0.55)";
   return (
     <View style={styles.art}>
-      <MaterialCommunityIcons name="image-filter-hdr" size={120} color={scheme === "dark" ? "rgba(94,234,212,0.12)" : "rgba(15,118,110,0.12)"} style={styles.artHills} />
+      <MaterialCommunityIcons name="image-filter-hdr" size={84} color={scheme === "dark" ? "rgba(94,234,212,0.12)" : "rgba(15,118,110,0.12)"} style={styles.artHills} />
       <View style={[styles.artPath, { borderColor: line }]} />
-      <MaterialCommunityIcons name="map-marker" size={34} color={ACTION_BLUE} style={styles.artPinStart} />
-      <MaterialCommunityIcons name="map-marker" size={40} color="#ef4444" style={styles.artPinEnd} />
+      <MaterialCommunityIcons name="map-marker" size={26} color={ACTION_BLUE} style={styles.artPinStart} />
+      <MaterialCommunityIcons name="map-marker" size={32} color="#ef4444" style={styles.artPinEnd} />
     </View>
   );
 }
@@ -379,11 +379,12 @@ const styles = StyleSheet.create({
   radioRing: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
   radioText: { fontSize: 14.5 },
-  art: { width: 200, height: 150 },
-  artHills: { position: "absolute", right: -6, top: 30 },
-  artPath: { position: "absolute", left: 52, top: 44, width: 96, height: 60, borderLeftWidth: 2, borderBottomWidth: 2, borderStyle: "dashed", borderBottomLeftRadius: 40, transform: [{ rotate: "-28deg" }] },
-  artPinStart: { position: "absolute", left: 44, top: 82 },
-  artPinEnd: { position: "absolute", right: 46, top: 10 },
+  // Corner art stays within the card header (about 96px tall) so it never sits over fields.
+  art: { width: 190, height: 96 },
+  artHills: { position: "absolute", right: -4, top: 12 },
+  artPath: { position: "absolute", left: 58, top: 30, width: 74, height: 38, borderLeftWidth: 2, borderBottomWidth: 2, borderStyle: "dashed", borderBottomLeftRadius: 30, transform: [{ rotate: "-22deg" }] },
+  artPinStart: { position: "absolute", left: 48, top: 58 },
+  artPinEnd: { position: "absolute", right: 44, top: 10 },
   flightPath: { position: "absolute", right: 40, top: 24, width: 120, height: 70, borderTopWidth: 2, borderRightWidth: 2, borderStyle: "dashed", borderTopRightRadius: 70 },
   flightPlane: { position: "absolute", right: 22, top: 18, transform: [{ rotate: "35deg" }] },
 });
