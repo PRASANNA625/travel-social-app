@@ -30,11 +30,14 @@ import {
   useSubmitReview,
   useTrip,
   useTripComments,
+  useTripParticipants,
   useTripReviews,
   useUpdateTripImages,
   useUploadTripImages,
 } from "../api/trips";
-import { useExpressInterest, useMyJoinRequestForTrip } from "../api/joinRequests";
+import { useExpressInterest, useMyJoinRequestForTrip, useRespondToInvitation } from "../api/joinRequests";
+import { InviteBuddiesModal } from "../components/sports/InviteBuddiesModal";
+import { SKILL_LABELS, SPORT_INFO, formatDuration, formatSportsTime, isSports } from "../utils/sports";
 import { useGroupByTrip } from "../api/groups";
 import { Alert } from "../utils/alert";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
@@ -75,6 +78,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const { data: reviewsData, refetch: refetchReviews } = useTripReviews(tripId);
   const { data: myRequest, refetch: refetchMyRequest } = useMyJoinRequestForTrip(tripId);
   const { data: group, refetch: refetchGroup } = useGroupByTrip(tripId);
+  const { data: participants, refetch: refetchParticipants } = useTripParticipants(tripId);
+  const respondToInvite = useRespondToInvitation();
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [editingPhotos, setEditingPhotos] = useState(false);
   const [editImages, setEditImages] = useState<string[]>([]);
@@ -90,7 +96,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const isWeb = Platform.OS === "web";
   const { isDesktop } = useResponsiveLayout();
   // Header lines up with the page column (760px) plus the page gutter on each side.
-  const header = <ScreenHeader title="Trip Details" showBack maxWidth={PAGE_WIDTH.form + 2 * pageGutter(isDesktop)} />;
+  const header = <ScreenHeader title={trip?.category === "SPORTS" ? "Activity Details" : "Trip Details"} showBack maxWidth={PAGE_WIDTH.form + 2 * pageGutter(isDesktop)} />;
   const [heroWidth, setHeroWidth] = useState(width);
   const heroHeight = isWeb ? Math.min(Math.round(heroWidth / 2.4), 380) : 260;
   const { colors } = useTheme();
@@ -183,6 +189,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const isOwner = trip.ownerId === me?.id;
   const isMember = !!group?.members.some((m) => m.userId === me?.id);
   const isClosed = trip.status === "COMPLETED";
+  const sports = isSports(trip);
+  const sportInfo = SPORT_INFO[trip.sport ?? "OTHER"];
+  const noun = sports ? "activity" : "trip";
 
   const startEditingPhotos = () => {
     setEditImages(trip.images);
@@ -279,18 +288,37 @@ export function TripDetailScreen({ route, navigation }: Props) {
     refetchReviews();
     refetchMyRequest();
     refetchGroup();
+    refetchParticipants();
+  };
+
+  const onRespondToInvite = (accept: boolean) => {
+    if (!myRequest) return;
+    respondToInvite.mutate(
+      { requestId: myRequest.id, accept, tripId },
+      {
+        onSuccess: () => {
+          if (accept) Alert.alert("You're in!", sports ? `See you at ${trip.destination}.` : "You've been added to the group.");
+        },
+        onError: (err: any) => Alert.alert("Couldn't respond", err?.response?.data?.error ?? "Try again"),
+      }
+    );
   };
 
   let actionSlot: React.ReactNode;
   if (isOwner) {
     actionSlot = (
       <View style={styles.ownerActions}>
-        {!isClosed && (
-          <PrimaryButton
-            label="Edit Trip"
-            icon="pencil-outline"
-            onPress={() => navigation.navigate("CreateTrip", { tripId })}
-          />
+        {!isClosed && trip.status !== "CANCELLED" && (
+          <View style={styles.stickyRow}>
+            <PrimaryButton
+              variant="outline"
+              style={styles.stickyFlex}
+              label={sports ? "Edit Activity" : "Edit Trip"}
+              icon="pencil-outline"
+              onPress={() => navigation.navigate("CreateTrip", { tripId })}
+            />
+            <PrimaryButton style={styles.stickyFlex} label="Invite buddies" icon="account-plus-outline" onPress={() => setInviteOpen(true)} />
+          </View>
         )}
         <View style={styles.stickyRow}>
           <PrimaryButton
@@ -312,6 +340,32 @@ export function TripDetailScreen({ route, navigation }: Props) {
         </View>
       </View>
     );
+  } else if (myRequest?.status === "INVITED" && !isClosed && trip.status !== "CANCELLED") {
+    actionSlot = (
+      <View style={styles.inviteBanner}>
+        <View style={styles.inviteBannerText}>
+          <MaterialCommunityIcons name="email-open-outline" size={20} color={colors.primary} />
+          <Text style={styles.inviteBannerTitle}>{trip.owner.name} invited you to this {noun}</Text>
+        </View>
+        <View style={styles.stickyRow}>
+          <PrimaryButton
+            variant="outline"
+            style={styles.stickyFlex}
+            label="Decline"
+            onPress={() => onRespondToInvite(false)}
+            disabled={respondToInvite.isPending}
+          />
+          <PrimaryButton
+            style={styles.stickyFlex}
+            label="Accept"
+            icon="check"
+            onPress={() => onRespondToInvite(true)}
+            loading={respondToInvite.isPending}
+            disabled={respondToInvite.isPending}
+          />
+        </View>
+      </View>
+    );
   } else if (isMember && group) {
     actionSlot = (
       <PrimaryButton
@@ -330,7 +384,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   } else if (myRequest?.status === "REJECTED") {
     actionSlot = (
       <View style={styles.pendingBadge}>
-        <Text style={styles.pendingText}>Your request wasn't approved for this trip</Text>
+        <Text style={styles.pendingText}>You're not part of this {noun}</Text>
       </View>
     );
   } else if (trip.joinType === "INVITE_ONLY") {
@@ -343,20 +397,26 @@ export function TripDetailScreen({ route, navigation }: Props) {
   } else if (trip.status === "FULL") {
     actionSlot = (
       <View style={styles.pendingBadge}>
-        <Text style={styles.pendingText}>This trip is full</Text>
+        <Text style={styles.pendingText}>This {noun} is full</Text>
+      </View>
+    );
+  } else if (trip.status === "CANCELLED") {
+    actionSlot = (
+      <View style={styles.pendingBadge}>
+        <Text style={styles.pendingText}>This {noun} was cancelled</Text>
       </View>
     );
   } else if (trip.status === "COMPLETED") {
     actionSlot = (
       <View style={styles.pendingBadge}>
-        <Text style={styles.pendingText}>This trip has ended</Text>
+        <Text style={styles.pendingText}>This {noun} has ended</Text>
       </View>
     );
   } else {
     actionSlot = (
       <PrimaryButton
-        label="I'm Interested"
-        icon="hand-front-right"
+        label={sports ? (trip.joinType === "OPEN" ? "Join" : "Request to join") : "I'm Interested"}
+        icon={sports ? "account-plus-outline" : "hand-front-right"}
         onPress={onExpressInterest}
         loading={expressInterest.isPending}
       />
@@ -455,7 +515,16 @@ export function TripDetailScreen({ route, navigation }: Props) {
                 }
               />
             ) : (
-              <LinearGradient colors={["#2563eb", "#0f766e"]} style={styles.heroImage} />
+              sports ? (
+                <LinearGradient colors={sportInfo.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroImage}>
+                  <MaterialCommunityIcons name={sportInfo.icon} size={220} color="rgba(255,255,255,0.14)" style={styles.heroSportWatermark} />
+                  <View style={styles.heroSportIcon}>
+                    <MaterialCommunityIcons name={sportInfo.icon} size={40} color={colors.white} />
+                  </View>
+                </LinearGradient>
+              ) : (
+                <LinearGradient colors={["#2563eb", "#0f766e"]} style={styles.heroImage} />
+              )
             )}
 
             {trip.images.length > 1 && (
@@ -492,32 +561,60 @@ export function TripDetailScreen({ route, navigation }: Props) {
         )}
 
         <View style={styles.section}>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="routes" size={18} color={colors.primary} />
-            <Text style={styles.infoText}>
-              {trip.startLocation} → {trip.destination}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="calendar-range" size={18} color={colors.primary} />
-            <Text style={styles.infoText}>
-              {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={18} color={colors.primary} />
-            <Text style={styles.infoText}>{travelModeText(trip.travelMode)}</Text>
-          </View>
-          {trip.budget != null && (
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="cash" size={18} color={colors.primary} />
-              <Text style={styles.infoText}>Approx. budget ₹{trip.budget}</Text>
-            </View>
+          {sports ? (
+            <>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name={sportInfo.icon} size={18} color={colors.primary} />
+                <Text style={styles.infoText}>
+                  {sportInfo.label} · {SKILL_LABELS[trip.skillLevel ?? "ANY"]}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="calendar-clock" size={18} color={colors.primary} />
+                <Text style={styles.infoText}>
+                  {formatSportsTime(trip.startDate)}
+                  {trip.durationMinutes ? ` · ${formatDuration(trip.durationMinutes)}` : ""}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.primary} />
+                <Text style={styles.infoText}>{trip.destination}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="cash" size={18} color={colors.primary} />
+                <Text style={styles.infoText}>{trip.budget ? `₹${trip.budget} per person` : "Free to join"}</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="routes" size={18} color={colors.primary} />
+                <Text style={styles.infoText}>
+                  {trip.startLocation} → {trip.destination}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="calendar-range" size={18} color={colors.primary} />
+                <Text style={styles.infoText}>
+                  {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={18} color={colors.primary} />
+                <Text style={styles.infoText}>{travelModeText(trip.travelMode)}</Text>
+              </View>
+              {trip.budget != null && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="cash" size={18} color={colors.primary} />
+                  <Text style={styles.infoText}>Approx. budget ₹{trip.budget}</Text>
+                </View>
+              )}
+            </>
           )}
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="account-multiple" size={18} color={colors.primary} />
             <Text style={styles.infoText}>
-              {trip.seatsFilled}/{trip.seats} seats filled
+              {trip.seatsFilled}/{trip.seats} {sports ? "spots filled" : "seats filled"}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -580,6 +677,40 @@ export function TripDetailScreen({ route, navigation }: Props) {
                 <Text style={styles.blockTitle}>Special notes</Text>
               </View>
               <Text style={styles.notesText}>{trip.notes}</Text>
+            </View>
+          )}
+
+          {participants && participants.length > 0 && (
+            <View style={styles.block}>
+              <View style={styles.blockHeaderRow}>
+                <MaterialCommunityIcons name="account-group-outline" size={16} color={colors.ink} />
+                <Text style={styles.blockTitle}>
+                  {sports ? "Players" : "Travelers"} ({participants.length})
+                </Text>
+              </View>
+              <View style={styles.participantGrid}>
+                {participants.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.participant}
+                    onPress={() => navigation.navigate("UserProfile", { userId: p.id, groupRole: p.role })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${p.name}${p.role === "OWNER" ? ", organizer" : ""}`}
+                  >
+                    {p.photoUrl ? (
+                      <Image source={{ uri: optimizedImageUrl(p.photoUrl, 96) }} style={styles.participantAvatar} />
+                    ) : (
+                      <View style={[styles.participantAvatar, styles.participantInitialWrap]}>
+                        <Text style={styles.participantInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                      </View>
+                    )}
+                    <Text style={styles.participantName} numberOfLines={1}>
+                      {p.id === me?.id ? "You" : p.name.split(" ")[0]}
+                    </Text>
+                    {p.role === "OWNER" && <Text style={styles.participantRole}>Organizer</Text>}
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           )}
         </View>
@@ -756,6 +887,19 @@ export function TripDetailScreen({ route, navigation }: Props) {
       </View>
       </ScrollView>
 
+      {isOwner && inviteOpen && (
+        <InviteBuddiesModal
+          visible
+          tripId={tripId}
+          tripTitle={trip.title}
+          onClose={() => setInviteOpen(false)}
+          onFindBuddies={() => {
+            setInviteOpen(false);
+            navigation.navigate("TravelBuddies");
+          }}
+        />
+      )}
+
       <View style={[styles.stickyBar, { paddingBottom: insets.bottom + 12 }]}>
         <View style={isWeb ? styles.stickyBarInnerWeb : undefined}>{actionSlot}</View>
       </View>
@@ -882,6 +1026,29 @@ function createStyles(colors: Palette) {
     padding: 12,
   },
   ownerActions: { gap: 10 },
+  inviteBanner: { gap: 10 },
+  inviteBannerText: { flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" },
+  inviteBannerTitle: { fontSize: 14.5, fontWeight: "700", color: colors.ink, flexShrink: 1 },
+  heroSportWatermark: { position: "absolute", right: -30, bottom: -40 },
+  heroSportIcon: {
+    position: "absolute",
+    top: "26%",
+    left: "50%",
+    marginLeft: -32,
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  participantGrid: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
+  participant: { width: 68, alignItems: "center", gap: 4 },
+  participantAvatar: { width: 52, height: 52, borderRadius: 26 },
+  participantInitialWrap: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+  participantInitial: { color: colors.white, fontSize: 18, fontWeight: "800" },
+  participantName: { fontSize: 12.5, fontWeight: "600", color: colors.ink, maxWidth: 68 },
+  participantRole: { fontSize: 10.5, fontWeight: "700", color: colors.primary },
   stickyRow: { flexDirection: "row", gap: 10 },
   stickyFlex: { flex: 1 },
   pendingBadge: {

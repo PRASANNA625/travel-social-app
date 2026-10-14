@@ -3,7 +3,7 @@ import { prisma } from "../../config/prisma";
 import { HttpError } from "../../middleware/error";
 import { parsePageParams } from "../../utils/pagination";
 import { createGroupWithOwner } from "../groups/groups.service";
-import { notifyTripComment } from "../notifications/notify";
+import { notify, notifyTripComment } from "../notifications/notify";
 import type { CreateTripInput, TripFilters, UpdateTripInput } from "./trips.types";
 
 const cardInclude = {
@@ -37,6 +37,41 @@ function assertValidTripDates(start: Date, end: Date): void {
   }
 }
 
+const MINUTE_MS = 60_000;
+
+type NormalizedTripInput = Omit<CreateTripInput, "travelMode"> & { travelMode: NonNullable<CreateTripInput["travelMode"]> };
+
+// Sports meetups need a sport and a duration; their end is start + duration.
+// Travel trips need a travel mode and never carry sports fields.
+function normalizeCategoryFields(input: CreateTripInput): NormalizedTripInput {
+  if (input.category === "SPORTS") {
+    if (!input.sport) throw new HttpError(400, "Choose a sport");
+    if (!input.durationMinutes) throw new HttpError(400, "Set how long the activity lasts");
+    return {
+      ...input,
+      travelMode: input.travelMode ?? "OTHER",
+      skillLevel: input.skillLevel ?? "ANY",
+      endDate: new Date(input.startDate.getTime() + input.durationMinutes * MINUTE_MS),
+    };
+  }
+  if (!input.travelMode) throw new HttpError(400, "Choose a travel mode");
+  return { ...input, travelMode: input.travelMode, sport: undefined, durationMinutes: undefined, skillLevel: undefined };
+}
+
+// Everyone on the trip except the organizer.
+async function participantIds(tripId: string, ownerId: string) {
+  const members = await prisma.groupMember.findMany({
+    where: { group: { tripId }, userId: { not: ownerId } },
+    select: { userId: true },
+  });
+  return members.map((m) => m.userId);
+}
+
+async function notifyParticipants(tripId: string, ownerId: string, type: string, payload: Record<string, unknown>) {
+  const ids = await participantIds(tripId, ownerId);
+  await Promise.all(ids.map((id) => notify(id, type, payload)));
+}
+
 export async function closeExpiredTrips(): Promise<void> {
   await prisma.trip.updateMany({
     where: { endDate: { lt: todayUTCStart() }, status: { notIn: ["CANCELLED", "COMPLETED"] } },
@@ -44,25 +79,38 @@ export async function closeExpiredTrips(): Promise<void> {
   });
 }
 
+// Per-viewer state for cards: liked, saved, and where they stand on joining
+// (requested, invited, joined...) so cards can show the right Join button.
 async function attachViewerFlags<T extends { id: string }>(trips: T[], viewerId?: string) {
-  if (!viewerId || trips.length === 0) return trips.map((t) => ({ ...t, isLiked: false, isBookmarked: false }));
+  if (!viewerId || trips.length === 0) {
+    return trips.map((t) => ({ ...t, isLiked: false, isBookmarked: false, viewerJoinStatus: null }));
+  }
 
   const tripIds = trips.map((t) => t.id);
-  const [likes, bookmarks] = await Promise.all([
+  const [likes, bookmarks, requests] = await Promise.all([
     prisma.tripLike.findMany({ where: { tripId: { in: tripIds }, userId: viewerId } }),
     prisma.tripBookmark.findMany({ where: { tripId: { in: tripIds }, userId: viewerId } }),
+    prisma.joinRequest.findMany({ where: { tripId: { in: tripIds }, userId: viewerId }, select: { tripId: true, status: true } }),
   ]);
   const likedSet = new Set(likes.map((l) => l.tripId));
   const bookmarkedSet = new Set(bookmarks.map((b) => b.tripId));
+  const joinStatus = new Map(requests.map((r) => [r.tripId, r.status]));
 
-  return trips.map((t) => ({ ...t, isLiked: likedSet.has(t.id), isBookmarked: bookmarkedSet.has(t.id) }));
+  return trips.map((t) => ({
+    ...t,
+    isLiked: likedSet.has(t.id),
+    isBookmarked: bookmarkedSet.has(t.id),
+    viewerJoinStatus: joinStatus.get(t.id) ?? null,
+  }));
 }
 
 const TRENDING_CANDIDATE_LIMIT = 100;
 const SECTION_RESULT_LIMIT = 10;
 
+// Discover's travel sections (trending, recommended, destinations); sports have their own view.
 function upcomingOpenWhere(): Prisma.TripWhereInput {
   return {
+    category: "TRAVEL",
     hidden: false,
     status: { in: ["PLANNING", "OPEN", "ALMOST_FULL"] },
     startDate: { gte: new Date() },
@@ -213,7 +261,8 @@ export async function getRecommendedTrips(userId: string, limit = SECTION_RESULT
   return attachViewerFlags(ranked, userId);
 }
 
-export async function createTrip(ownerId: string, input: CreateTripInput) {
+export async function createTrip(ownerId: string, rawInput: CreateTripInput) {
+  const input = normalizeCategoryFields(rawInput);
   assertValidTripDates(input.startDate, input.endDate);
   const trip = await prisma.trip.create({
     data: { ...input, ownerId },
@@ -243,10 +292,16 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
     ];
   }
   if (filters.destination) where.destination = { contains: filters.destination, mode: "insensitive" };
+  if (filters.category) where.category = filters.category;
+  if (filters.sport) where.sport = { in: filters.sport };
+  if (filters.skillLevel && filters.skillLevel !== "ANY") where.skillLevel = { in: [filters.skillLevel, "ANY"] };
+  if (filters.openSlots) where.status = { in: ["PLANNING", "OPEN", "ALMOST_FULL"] };
   if (filters.travelMode && filters.travelMode.length > 0) where.travelMode = { in: filters.travelMode };
-  if (filters.dateFrom || filters.dateTo) {
+  if (filters.dateFrom || filters.dateTo || filters.upcoming) {
+    const now = new Date();
+    const from = filters.upcoming && (!filters.dateFrom || filters.dateFrom < now) ? now : filters.dateFrom;
     where.startDate = {
-      ...(filters.dateFrom ? { gte: filters.dateFrom } : {}),
+      ...(from ? { gte: from } : {}),
       ...(filters.dateTo ? { lte: filters.dateTo } : {}),
     };
   }
@@ -319,6 +374,17 @@ export async function getTripById(id: string, viewerId?: string) {
   return withFlags;
 }
 
+// Who's going: names and photos only, visible to anyone who can see the trip.
+export async function listParticipants(tripId: string, viewerId: string) {
+  await getTripById(tripId, viewerId);
+  const members = await prisma.groupMember.findMany({
+    where: { group: { tripId }, user: { status: "ACTIVE" } },
+    orderBy: { joinedAt: "asc" },
+    select: { role: true, joinedAt: true, user: { select: { id: true, name: true, photoUrl: true } } },
+  });
+  return members.map((m) => ({ ...m.user, role: m.role, joinedAt: m.joinedAt }));
+}
+
 export async function getMyTrips(ownerId: string) {
   const [trips] = await Promise.all([
     prisma.trip.findMany({ where: { ownerId }, include: cardInclude, orderBy: { createdAt: "desc" } }),
@@ -339,24 +405,46 @@ export async function updateTrip(tripId: string, ownerId: string, input: UpdateT
   if (existing.status === "COMPLETED") {
     throw new HttpError(403, "This trip is closed and can no longer be edited");
   }
-  const effectiveStart = input.startDate ?? existing.startDate;
-  const effectiveEnd = input.endDate ?? existing.endDate;
-
-  if (input.startDate !== undefined || input.endDate !== undefined) {
-    assertValidTripDates(effectiveStart, effectiveEnd);
+  let data: UpdateTripInput = input;
+  if (existing.category === "SPORTS") {
+    // The end always follows the start time and duration.
+    const duration = input.durationMinutes ?? existing.durationMinutes ?? 60;
+    const start = input.startDate ?? existing.startDate;
+    data = { ...data, endDate: new Date(start.getTime() + duration * MINUTE_MS) };
+  } else {
+    data = { ...data, sport: undefined, durationMinutes: undefined, skillLevel: undefined };
   }
 
-  let data = input;
+  const effectiveStart = data.startDate ?? existing.startDate;
+  const effectiveEnd = data.endDate ?? existing.endDate;
+  if (input.startDate !== undefined || input.endDate !== undefined || input.durationMinutes !== undefined) {
+    assertValidTripDates(effectiveStart, effectiveEnd);
+  }
   if (effectiveEnd.getTime() < todayUTCStart().getTime() && data.status && data.status !== "CANCELLED") {
     data = { ...data, status: "COMPLETED" };
   }
 
-  return prisma.trip.update({ where: { id: tripId }, data });
+  const updated = await prisma.trip.update({ where: { id: tripId }, data });
+
+  // Tell participants when something they planned around changes.
+  const changed =
+    updated.startDate.getTime() !== existing.startDate.getTime() ||
+    updated.endDate.getTime() !== existing.endDate.getTime() ||
+    updated.destination !== existing.destination ||
+    updated.startLocation !== existing.startLocation;
+  if (changed) {
+    await notifyParticipants(tripId, ownerId, "TRIP_UPDATED", { tripId, tripTitle: updated.title, category: updated.category });
+  }
+  return updated;
 }
 
 export async function cancelTrip(tripId: string, ownerId: string) {
-  await assertOwner(tripId, ownerId);
-  return prisma.trip.update({ where: { id: tripId }, data: { status: "CANCELLED" } });
+  const trip = await assertOwner(tripId, ownerId);
+  const updated = await prisma.trip.update({ where: { id: tripId }, data: { status: "CANCELLED" } });
+  if (trip.status !== "CANCELLED") {
+    await notifyParticipants(tripId, ownerId, "TRIP_CANCELLED", { tripId, tripTitle: trip.title, category: trip.category });
+  }
+  return updated;
 }
 
 export async function deleteTrip(tripId: string, ownerId: string) {

@@ -56,6 +56,7 @@ import { CompactBuddyCardSkeleton } from "../components/BuddyCardSkeleton";
 import { Alert } from "../utils/alert";
 import { useAppConfig } from "../api/config";
 import { AnnouncementBanner } from "../components/AnnouncementBanner";
+import { SportsDiscover } from "../components/sports/SportsDiscover";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -71,6 +72,13 @@ const VIEW_OPTIONS: readonly ViewModeToggleOption<DiscoverView>[] = [
   { value: "grid", icon: "view-grid-outline", label: "Grid" },
   { value: "list", icon: "view-agenda-outline", label: "List" },
   { value: "map", icon: "map-marker-outline", label: "Map" },
+];
+
+type DiscoverCategory = "TRAVEL" | "SPORTS";
+
+const CATEGORY_OPTIONS: readonly ViewModeToggleOption<DiscoverCategory>[] = [
+  { value: "TRAVEL", icon: "airplane", label: "Travel" },
+  { value: "SPORTS", icon: "trophy-outline", label: "Sports & Activities" },
 ];
 
 const SORT_OPTIONS: readonly ViewModeToggleOption<"asc" | "desc">[] = [
@@ -89,6 +97,8 @@ const CHIP_SCROLL_STEP = 360;
 
 export function DiscoverScreen({ navigation }: Props) {
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<DiscoverCategory>("TRAVEL");
+  const sportsMode = category === "SPORTS";
   const [travelModes, setTravelModes] = useState<TravelMode[]>([]);
   const [nearMe, setNearMe] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
@@ -681,7 +691,7 @@ export function DiscoverScreen({ navigation }: Props) {
         onScroll={(e) => scrollY.setValue(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
         contentContainerStyle={styles.listContent}
-        data={rows}
+        data={sportsMode ? [] : rows}
         keyExtractor={(row) => row.map((t) => t.id).join("-")}
         refreshControl={
           <RefreshControl
@@ -693,6 +703,23 @@ export function DiscoverScreen({ navigation }: Props) {
           <>
             {hero}
             <AnnouncementBanner marginHorizontal={pad} />
+            <View style={[styles.categorySwitch, { paddingHorizontal: pad }]}>
+              <View style={styles.categorySwitchInner}>
+                <ViewModeToggle options={CATEGORY_OPTIONS} value={category} onChange={setCategory} />
+              </View>
+            </View>
+
+            {sportsMode ? (
+              <SportsDiscover
+                search={search}
+                contentWidth={contentWidth}
+                gutter={pad}
+                onOpen={(trip) => navigation.navigate("TripDetail", { tripId: trip.id })}
+                onCreate={canCreateTrip ? () => navigation.navigate("CreateTrip", { category: "SPORTS" }) : undefined}
+                onFindBuddies={() => navigation.navigate("Meetups")}
+              />
+            ) : (
+            <>
             {chipsRow}
 
             <DiscoverSection
@@ -831,10 +858,12 @@ export function DiscoverScreen({ navigation }: Props) {
                 ))}
               </>
             )}
+            </>
+            )}
           </>
         }
         ListEmptyComponent={
-          isLoading || viewMode === "map" ? null : (
+          sportsMode || isLoading || viewMode === "map" ? null : (
             <View style={styles.emptyWrap}>
               <MaterialCommunityIcons
                 name={nearMe ? "map-marker-radius-outline" : "compass-outline"}
@@ -877,8 +906,8 @@ export function DiscoverScreen({ navigation }: Props) {
       {canCreateTrip && (
         <FloatingActionButton
           icon="plus"
-          label="Create Trip"
-          onPress={() => navigation.navigate("CreateTrip")}
+          label={sportsMode ? "Create Activity" : "Create Trip"}
+          onPress={() => navigation.navigate("CreateTrip", sportsMode ? { category: "SPORTS" } : undefined)}
           collapsed={fabCollapsed}
           right={pad}
         />
@@ -1094,6 +1123,8 @@ function createStyles(colors: Palette) {
     },
     clearAllChipText: { fontSize: 13, color: colors.danger, fontWeight: "700", includeFontPadding: false },
     section: { marginTop: 28 },
+    categorySwitch: { marginTop: 18, alignItems: "flex-start" },
+    categorySwitchInner: { width: "100%", maxWidth: 420 },
     seeAll: { flexDirection: "row", alignItems: "center", gap: 2, height: 32, paddingLeft: 8 },
     seeAllText: { fontSize: 13.5, fontWeight: "700", color: colors.primary },
     buddySkeletonRow: { flexDirection: "row", gap: SECTION_GAP, paddingVertical: 4 },

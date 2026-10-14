@@ -2,6 +2,7 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { atLeast, downloadExport, errorMessage, useAnalytics } from "../../../api/admin";
 import { travelModeText } from "../../../utils/travelModeIcons";
+import { SPORT_INFO } from "../../../utils/sports";
 import { DailyColumnChart, BarList } from "../../../components/admin/Charts";
 import { AdminButton, ErrorBlock, LoadingBlock, Panel, SegmentTabs, StatTile, useToast } from "../../../components/admin/AdminUI";
 import { useAdminNav } from "../AdminContext";
@@ -87,6 +88,11 @@ export function AnalyticsSection() {
             </Panel>
             <Panel title="Travel types" subtitle="Trips created per type" style={styles.column}>
               <BarList items={data.travelModes.map((m) => ({ label: travelModeText(m.travelMode), value: m.trips }))} unit="trips" />
+            </Panel>
+          </View>
+          <View style={styles.columns}>
+            <Panel title="Sports & activities" subtitle="Meetups created per sport" style={styles.column}>
+              <BarList items={(data.sports ?? []).map((s) => ({ label: SPORT_INFO[s.sport].label, value: s.trips }))} unit="meetups" />
             </Panel>
           </View>
         </View>

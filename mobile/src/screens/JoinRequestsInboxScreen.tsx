@@ -18,10 +18,11 @@ import type { Palette } from "../theme/palettes";
 type Props = NativeStackScreenProps<AppStackParamList, "JoinRequestsInbox">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-function resolvedStatusMap(colors: Palette): Record<"APPROVED" | "REJECTED", { icon: IconName; bg: string; color: string; label: string }> {
+function resolvedStatusMap(colors: Palette): Record<"APPROVED" | "REJECTED" | "INVITED", { icon: IconName; bg: string; color: string; label: string }> {
   return {
     APPROVED: { icon: "check-circle", bg: colors.successBg, color: colors.primary, label: "Approved" },
     REJECTED: { icon: "close-circle-outline", bg: colors.dangerBg, color: colors.danger, label: "Rejected" },
+    INVITED: { icon: "email-outline", bg: colors.fieldBg, color: colors.muted, label: "Invited · waiting for reply" },
   };
 }
 

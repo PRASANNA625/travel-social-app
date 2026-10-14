@@ -15,6 +15,8 @@ const adminTripSelect = {
   startDate: true,
   endDate: true,
   travelMode: true,
+  category: true,
+  sport: true,
   status: true,
   featured: true,
   hidden: true,

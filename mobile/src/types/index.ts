@@ -40,9 +40,32 @@ export const TRAVEL_MODE_LABELS: Record<TravelMode, string> = {
   OTHER: "🧭 Other",
 };
 
+// Travel trips and sports meetups share the Trip shape.
+export type TripCategory = "TRAVEL" | "SPORTS";
+
+export const SPORTS = [
+  "CRICKET",
+  "FOOTBALL",
+  "BADMINTON",
+  "TENNIS",
+  "VOLLEYBALL",
+  "BASKETBALL",
+  "CYCLING",
+  "RUNNING",
+  "SWIMMING",
+  "HIKING",
+  "GYM",
+  "OTHER",
+] as const;
+export type Sport = (typeof SPORTS)[number];
+
+export const SKILL_LEVELS = ["ANY", "BEGINNER", "INTERMEDIATE", "ADVANCED"] as const;
+export type SkillLevel = (typeof SKILL_LEVELS)[number];
+
 export type JoinType = "OPEN" | "APPROVAL" | "INVITE_ONLY";
 export type TripStatus = "PLANNING" | "OPEN" | "ALMOST_FULL" | "FULL" | "STARTED" | "COMPLETED" | "CANCELLED";
-export type JoinRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
+// INVITED: sent by the organizer, waiting for the invitee's answer.
+export type JoinRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "INVITED";
 export type GroupRole = "OWNER" | "MEMBER";
 export type MessageType = "TEXT" | "IMAGE" | "AUDIO";
 
@@ -86,6 +109,11 @@ export interface Trip {
   startDate: string;
   endDate: string;
   travelMode: TravelMode;
+  category: TripCategory;
+  // Sports meetups only; startDate carries the start time.
+  sport?: Sport | null;
+  durationMinutes?: number | null;
+  skillLevel?: SkillLevel | null;
   budget?: number | null;
   seats: number;
   seatsFilled: number;
@@ -99,6 +127,8 @@ export interface Trip {
   createdAt: string;
   isLiked: boolean;
   isBookmarked: boolean;
+  // The viewer's join request on this trip, if any (lists and detail).
+  viewerJoinStatus?: JoinRequestStatus | null;
   distanceKm?: number;
   _count: { likes: number; comments: number; joinRequests: number };
   avgRating: number | null;

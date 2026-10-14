@@ -16,6 +16,7 @@ tripsRouter.get("/trending-destinations", optionalAuth, asyncHandler(controller.
 tripsRouter.get("/recommended", requireAuth, asyncHandler(controller.recommended));
 tripsRouter.post("/images", requireAuth, upload.array("images", 8), asyncHandler(controller.uploadImages));
 tripsRouter.get("/:id", optionalAuth, asyncHandler(controller.getById));
+tripsRouter.get("/:id/participants", requireAuth, asyncHandler(controller.participants));
 tripsRouter.get("/:id/comments", asyncHandler(controller.listComments));
 tripsRouter.get("/:id/reviews", optionalAuth, asyncHandler(controller.listReviews));
 

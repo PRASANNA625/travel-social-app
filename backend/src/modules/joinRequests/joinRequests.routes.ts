@@ -8,6 +8,10 @@ export const joinRequestsRouter = Router();
 joinRequestsRouter.use(requireAuth);
 
 joinRequestsRouter.get("/mine", asyncHandler(controller.mine));
+joinRequestsRouter.get("/invitations", asyncHandler(controller.invitations));
+joinRequestsRouter.get("/trips/:tripId/invitable", asyncHandler(controller.invitable));
+joinRequestsRouter.post("/:id/accept", asyncHandler(controller.acceptInvitation));
+joinRequestsRouter.post("/:id/decline", asyncHandler(controller.declineInvitation));
 joinRequestsRouter.post("/trips/:tripId", asyncHandler(controller.create));
 joinRequestsRouter.get("/trips/:tripId", asyncHandler(controller.listForTrip));
 joinRequestsRouter.get("/trips/:tripId/mine", asyncHandler(controller.mineForTrip));

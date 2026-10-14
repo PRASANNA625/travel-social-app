@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
-import type { TravelMode, TripStatus } from "../types";
+import type { Sport, TravelMode, TripCategory, TripStatus } from "../types";
 
 // Admin dashboard API. Every endpoint is role-checked by the backend; the UI
 // only mirrors those rules to avoid offering actions that would be refused.
@@ -73,6 +73,8 @@ export interface AdminTrip {
   startDate: string;
   endDate: string;
   travelMode: TravelMode;
+  category: TripCategory;
+  sport: Sport | null;
   status: TripStatus;
   featured: boolean;
   hidden: boolean;
@@ -197,6 +199,7 @@ export interface Analytics {
   series: { signups: DayCount[]; tripsCreated: DayCount[]; joinRequests: DayCount[]; messages: DayCount[]; connections: DayCount[] };
   popularDestinations: { destination: string; trips: number }[];
   travelModes: { travelMode: TravelMode; trips: number }[];
+  sports: { sport: Sport; trips: number }[];
   activeUsers: number;
 }
 

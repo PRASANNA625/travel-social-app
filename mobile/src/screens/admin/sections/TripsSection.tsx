@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { atLeast, errorMessage, useAdminTrips, useBulkTrips, useUpdateTrip, type AdminTrip } from "../../../api/admin";
 import { TRAVEL_MODES, type TravelMode, type TripStatus } from "../../../types";
 import { travelModeText } from "../../../utils/travelModeIcons";
+import { SPORT_INFO } from "../../../utils/sports";
 import { SearchField } from "../../../components/theme/SearchField";
 import { AdminButton, Pagination, Select, StatusBadge, humanize, useConfirm, useToast, type Tone } from "../../../components/admin/AdminUI";
 import { CellText, DataTable, formatDate } from "../../../components/admin/DataTable";
@@ -136,7 +137,7 @@ export function TripsSection() {
               <View style={{ minWidth: 0 }}>
                 <CellText strong>{t.title}</CellText>
                 <CellText muted>
-                  {t.destination} · {travelModeText(t.travelMode)}
+                  {t.destination} · {t.category === "SPORTS" ? SPORT_INFO[t.sport ?? "OTHER"].label : travelModeText(t.travelMode)}
                 </CellText>
               </View>
             ),

@@ -34,6 +34,22 @@ export async function invite(req: AuthedRequest, res: Response) {
   res.status(201).json(request);
 }
 
+export async function acceptInvitation(req: AuthedRequest, res: Response) {
+  res.json(await service.respondToInvitation(req.params.id, req.userId!, true));
+}
+
+export async function declineInvitation(req: AuthedRequest, res: Response) {
+  res.json(await service.respondToInvitation(req.params.id, req.userId!, false));
+}
+
+export async function invitable(req: AuthedRequest, res: Response) {
+  res.json(await service.invitableBuddies(req.params.tripId, req.userId!));
+}
+
+export async function invitations(req: AuthedRequest, res: Response) {
+  res.json(await service.myInvitations(req.userId!));
+}
+
 export async function mine(req: AuthedRequest, res: Response) {
   const requests = await service.myJoinRequests(req.userId!);
   res.json(requests);

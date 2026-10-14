@@ -46,6 +46,11 @@ const NOTIFICATION_COPY: Record<string, (payload: Record<string, unknown>) => st
   MESSAGE_REMOVED_BY_ADMIN: (p) => `A message you sent in "${p.tripTitle}" was removed by the Triply team${p.reason ? `: ${p.reason}` : ""}`,
   REMOVED_FROM_TRIP: (p) => `You were removed from "${p.tripTitle}" by the Triply team`,
   TRIP_REMOVED_BY_ADMIN: (p) => `Your trip "${p.tripTitle}" was removed by the Triply team${p.reason ? `: ${p.reason}` : ""}`,
+  TRIP_INVITATION: (p) => `${p.inviterName} invited you to ${p.category === "SPORTS" ? "play in" : "join"} "${p.tripTitle}"`,
+  INVITATION_ACCEPTED: (p) => `${p.userName} accepted your invitation to "${p.tripTitle}"`,
+  INVITATION_DECLINED: (p) => `${p.userName} can't make it to "${p.tripTitle}"`,
+  TRIP_UPDATED: (p) => `"${p.tripTitle}" was updated: check the new ${p.category === "SPORTS" ? "time and venue" : "dates and places"}`,
+  TRIP_CANCELLED: (p) => `"${p.tripTitle}" was cancelled by the organizer`,
 };
 
 function describe(notification: AppNotification): string {
@@ -72,6 +77,11 @@ function notificationIconMap(colors: Palette): Record<string, { icon: IconName; 
     MESSAGE_REMOVED_BY_ADMIN: { icon: "message-minus-outline", bg: colors.dangerBg, color: colors.danger },
     REMOVED_FROM_TRIP: { icon: "account-remove-outline", bg: colors.dangerBg, color: colors.danger },
     TRIP_REMOVED_BY_ADMIN: { icon: "map-marker-remove-outline", bg: colors.dangerBg, color: colors.danger },
+    TRIP_INVITATION: { icon: "email-outline", bg: colors.fieldBg, color: colors.primary },
+    INVITATION_ACCEPTED: { icon: "account-check-outline", bg: colors.successBg, color: colors.primary },
+    INVITATION_DECLINED: { icon: "account-cancel-outline", bg: colors.fieldBg, color: colors.muted },
+    TRIP_UPDATED: { icon: "calendar-refresh-outline", bg: colors.warningBg, color: colors.warningText },
+    TRIP_CANCELLED: { icon: "calendar-remove-outline", bg: colors.dangerBg, color: colors.danger },
   };
 }
 
@@ -150,7 +160,12 @@ export function NotificationsScreen({ navigation }: Props) {
       case "JOIN_REQUEST_APPROVED":
       case "JOIN_REQUEST_REJECTED":
       case "REMOVED_FROM_TRIP":
-      case "MESSAGE_REMOVED_BY_ADMIN": {
+      case "MESSAGE_REMOVED_BY_ADMIN":
+      case "TRIP_INVITATION":
+      case "INVITATION_ACCEPTED":
+      case "INVITATION_DECLINED":
+      case "TRIP_UPDATED":
+      case "TRIP_CANCELLED": {
         const { tripId } = payload;
         if (typeof tripId === "string") {
           navigation.navigate("TripDetail", { tripId });

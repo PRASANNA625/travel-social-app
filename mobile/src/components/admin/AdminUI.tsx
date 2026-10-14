@@ -210,57 +210,8 @@ export function SegmentTabs<T extends string>({
 
 // --- Select (compact dropdown built on a modal list) ---------------------------------------
 
-export function Select<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T | "";
-  options: { value: T | ""; label: string }[];
-  onChange: (v: T | "") => void;
-}) {
-  const { colors } = useTheme();
-  const [open, setOpen] = useState(false);
-  const current = options.find((o) => o.value === value);
-  return (
-    <>
-      <TouchableOpacity
-        style={[styles.select, { backgroundColor: colors.surfaceElevated, borderColor: value ? colors.primary : colors.border }]}
-        onPress={() => setOpen(true)}
-        accessibilityRole="button"
-        accessibilityLabel={`${label}: ${current?.label ?? "Any"}`}
-      >
-        <Text style={[styles.selectLabel, { color: colors.muted }]}>{label}:</Text>
-        <Text style={[styles.selectValue, { color: colors.ink }]} numberOfLines={1}>
-          {current?.label ?? "Any"}
-        </Text>
-        <MaterialCommunityIcons name="chevron-down" size={16} color={colors.muted} />
-      </TouchableOpacity>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={() => setOpen(false)}>
-          <Pressable style={[styles.menu, { backgroundColor: colors.surfaceElevated }]} onPress={() => {}}>
-            <Text style={[styles.menuTitle, { color: colors.muted }]}>{label}</Text>
-            {options.map((o) => (
-              <TouchableOpacity
-                key={o.value || "any"}
-                style={styles.menuItem}
-                onPress={() => {
-                  onChange(o.value);
-                  setOpen(false);
-                }}
-              >
-                <Text style={[styles.menuItemText, { color: colors.ink }]}>{o.label}</Text>
-                {o.value === value && <MaterialCommunityIcons name="check" size={18} color={colors.primary} />}
-              </TouchableOpacity>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </>
-  );
-}
+// The dropdown lives with the shared theme components; admin screens import it from here.
+export { SelectChip as Select } from "../theme/SelectChip";
 
 // --- Buttons ----------------------------------------------------------------------------
 
@@ -531,14 +482,7 @@ const styles = StyleSheet.create({
   segments: { flexDirection: "row", borderRadius: RADIUS.sm, borderWidth: 1, padding: 3, gap: 2, alignSelf: "flex-start", flexWrap: "wrap" },
   segment: { paddingHorizontal: 14, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   segmentText: { fontSize: 13, fontWeight: "600" },
-  select: { flexDirection: "row", alignItems: "center", gap: 6, height: CONTROL.chip, borderRadius: RADIUS.pill, borderWidth: 1, paddingHorizontal: 12, maxWidth: 240 },
-  selectLabel: { fontSize: 12.5, fontWeight: "600" },
-  selectValue: { fontSize: 13, fontWeight: "600", flexShrink: 1 },
   backdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  menu: { width: "100%", maxWidth: 320, borderRadius: RADIUS.card, paddingVertical: 8, ...SHADOW.raised },
-  menuTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4, paddingHorizontal: 16, paddingVertical: 8 },
-  menuItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  menuItemText: { fontSize: 14.5 },
   button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: CONTROL.buttonSmall, paddingHorizontal: 14, borderRadius: RADIUS.sm, borderWidth: 1 },
   buttonSmall: { height: 32, paddingHorizontal: 10 },
   buttonText: { fontSize: 13.5, fontWeight: "700" },

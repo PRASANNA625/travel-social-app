@@ -108,7 +108,7 @@ export async function getAlerts() {
 
 export async function getAnalytics(days: number) {
   const since = new Date(Date.now() - days * DAY_MS);
-  const [signups, tripsCreated, joinRequests, messages, connections, destinations, modes, activeUsers] = await Promise.all([
+  const [signups, tripsCreated, joinRequests, messages, connections, destinations, modes, activeUsers, sportCounts] = await Promise.all([
     dailyCounts("User", days),
     dailyCounts("Trip", days),
     dailyCounts("JoinRequest", days),
@@ -123,17 +123,24 @@ export async function getAnalytics(days: number) {
     }),
     prisma.trip.groupBy({
       by: ["travelMode"],
-      where: { createdAt: { gte: since } },
+      where: { createdAt: { gte: since }, category: "TRAVEL" },
       _count: { _all: true },
       orderBy: { _count: { travelMode: "desc" } },
     }),
     prisma.user.count({ where: { lastSeenAt: { gte: since } } }),
+    prisma.trip.groupBy({
+      by: ["sport"],
+      where: { createdAt: { gte: since }, category: "SPORTS" },
+      _count: { _all: true },
+      orderBy: { _count: { sport: "desc" } },
+    }),
   ]);
   return {
     days,
     series: { signups, tripsCreated, joinRequests, messages, connections },
     popularDestinations: destinations.map((d) => ({ destination: d.destination, trips: d._count._all })),
     travelModes: modes.map((m) => ({ travelMode: m.travelMode, trips: m._count._all })),
+    sports: sportCounts.map((s) => ({ sport: s.sport, trips: s._count._all })),
     activeUsers,
   };
 }
@@ -165,15 +172,16 @@ export async function exportReport(actorId: string, type: "users" | "trips" | "d
   } else if (type === "trips") {
     const trips = await prisma.trip.findMany({
       select: {
-        id: true, title: true, destination: true, travelMode: true, status: true, startDate: true, endDate: true,
+        id: true, title: true, destination: true, category: true, travelMode: true, sport: true, skillLevel: true,
+        status: true, startDate: true, endDate: true,
         seats: true, seatsFilled: true, featured: true, hidden: true, createdAt: true, owner: { select: { name: true } },
       },
       orderBy: { createdAt: "asc" },
     });
     body = csv([
-      ["id", "title", "destination", "travel_mode", "status", "start", "end", "seats", "seats_filled", "featured", "hidden", "organizer", "created"],
+      ["id", "title", "destination", "category", "travel_mode", "sport", "skill_level", "status", "start", "end", "seats", "seats_filled", "featured", "hidden", "organizer", "created"],
       ...trips.map((t) => [
-        t.id, t.title, t.destination, t.travelMode, t.status, t.startDate.toISOString(), t.endDate.toISOString(),
+        t.id, t.title, t.destination, t.category, t.category === "TRAVEL" ? t.travelMode : "", t.sport, t.skillLevel, t.status, t.startDate.toISOString(), t.endDate.toISOString(),
         t.seats, t.seatsFilled, String(t.featured), String(t.hidden), t.owner.name, t.createdAt.toISOString(),
       ]),
     ]);

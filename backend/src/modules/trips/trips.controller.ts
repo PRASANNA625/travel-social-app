@@ -38,6 +38,10 @@ export async function getById(req: AuthedRequest, res: Response) {
   res.json(trip);
 }
 
+export async function participants(req: AuthedRequest, res: Response) {
+  res.json(await service.listParticipants(req.params.id, req.userId!));
+}
+
 export async function mine(req: AuthedRequest, res: Response) {
   const trips = await service.getMyTrips(req.userId!);
   res.json(trips);

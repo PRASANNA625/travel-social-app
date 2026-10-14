@@ -26,6 +26,34 @@ enum TravelMode {
   OTHER
 }
 
+// Travel trips and sports meetups share one model, flow and feed.
+enum TripCategory {
+  TRAVEL
+  SPORTS
+}
+
+enum Sport {
+  CRICKET
+  FOOTBALL
+  BADMINTON
+  TENNIS
+  VOLLEYBALL
+  BASKETBALL
+  CYCLING
+  RUNNING
+  SWIMMING
+  HIKING
+  GYM
+  OTHER
+}
+
+enum SkillLevel {
+  ANY
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
 enum JoinType {
   OPEN
   APPROVAL
@@ -46,6 +74,8 @@ enum JoinRequestStatus {
   PENDING
   APPROVED
   REJECTED
+  // Sent by the organizer; waits for the invitee to accept or decline.
+  INVITED
 }
 
 enum GroupRole {
@@ -184,6 +214,11 @@ model Trip {
   startDate          DateTime
   endDate            DateTime
   travelMode         TravelMode
+  category           TripCategory @default(TRAVEL)
+  // Sports meetups only. startDate carries the start time; endDate = start + duration.
+  sport              Sport?
+  durationMinutes    Int?
+  skillLevel         SkillLevel?
   budget             Float?
   seats              Int
   seatsFilled        Int        @default(0)
@@ -211,6 +246,7 @@ model Trip {
 
   @@index([destination])
   @@index([travelMode])
+  @@index([category])
   @@index([status])
   @@index([startDate])
 }

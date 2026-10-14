@@ -18,6 +18,8 @@ import type { Palette } from "../theme/palettes";
 import { CONTENT_MAX_WIDTH, gridColumnsFor, toRows, useResponsiveLayout } from "../theme/layout";
 import { pageGutter } from "../theme/tokens";
 import { useFeature } from "../api/config";
+import { useMyInvitations } from "../api/joinRequests";
+import { InvitationCard } from "../components/sports/InvitationCard";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "MyTrips">,
@@ -28,9 +30,10 @@ const GRID_GAP = 16;
 
 export function MyTripsScreen({ navigation }: Props) {
   const canCreateTrip = useFeature("tripCreation");
-  const [tab, setTab] = useState<"mine" | "saved">("mine");
+  const [tab, setTab] = useState<"mine" | "saved" | "invites">("mine");
   const myTrips = useMyTrips();
   const savedTrips = useBookmarkedTrips();
+  const invitations = useMyInvitations();
   const deleteTrip = useDeleteTrip();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -38,9 +41,11 @@ export function MyTripsScreen({ navigation }: Props) {
   const gutter = pageGutter(isDesktop);
   const columns = gridColumnsFor(contentWidth);
 
-  const data = tab === "mine" ? myTrips.data : savedTrips.data;
-  const isLoading = tab === "mine" ? myTrips.isLoading : savedTrips.isLoading;
+  const data = tab === "mine" ? myTrips.data : tab === "saved" ? savedTrips.data : [];
+  const isLoading = tab === "mine" ? myTrips.isLoading : tab === "saved" ? savedTrips.isLoading : invitations.isLoading;
   const rows = useMemo(() => toRows(data ?? [], columns), [data, columns]);
+  const inviteColumns = Math.min(2, columns);
+  const inviteRows = useMemo(() => toRows(invitations.data ?? [], inviteColumns), [invitations.data, inviteColumns]);
 
   const confirmDelete = (trip: Trip) => {
     Alert.alert("Delete this trip?", `"${trip.title}" will be permanently deleted. This can't be undone.`, [
@@ -66,7 +71,7 @@ export function MyTripsScreen({ navigation }: Props) {
         keyExtractor={(row) => row.map((t) => t.id).join("-")}
         ListHeaderComponent={
           <View style={{ marginHorizontal: -gutter }}>
-            <ScreenHeader title="My Trips" subtitle="Trips you organize and trips you've saved" />
+            <ScreenHeader title="My Trips" subtitle="Trips and activities you organize, save or are invited to" />
             <View style={[styles.tabs, { paddingHorizontal: gutter }]}>
               <FilterChip
                 label={countLabel("Created", myTrips.data?.length)}
@@ -80,7 +85,29 @@ export function MyTripsScreen({ navigation }: Props) {
                 active={tab === "saved"}
                 onPress={() => setTab("saved")}
               />
+              <FilterChip
+                label={countLabel("Invitations", invitations.data?.length)}
+                icon="email-outline"
+                active={tab === "invites"}
+                onPress={() => setTab("invites")}
+              />
             </View>
+            {tab === "invites" && !isLoading && inviteRows.length > 0 && (
+              <View style={[styles.invites, { paddingHorizontal: gutter }]}>
+                {inviteRows.map((row) => (
+                  <View key={row.map((i) => i.id).join("-")} style={styles.row}>
+                    {row.map((inv) => (
+                      <View key={inv.id} style={styles.cell}>
+                        <InvitationCard invitation={inv} onOpen={() => navigation.navigate("TripDetail", { tripId: inv.trip.id })} />
+                      </View>
+                    ))}
+                    {Array.from({ length: inviteColumns - row.length }, (_, i) => (
+                      <View key={`filler-${i}`} style={styles.cell} />
+                    ))}
+                  </View>
+                ))}
+              </View>
+            )}
             {isLoading && (
               <View style={[styles.row, { paddingHorizontal: gutter }]}>
                 {Array.from({ length: columns }, (_, i) => (
@@ -93,7 +120,25 @@ export function MyTripsScreen({ navigation }: Props) {
           </View>
         }
         ListEmptyComponent={
-          isLoading ? null : tab === "mine" ? (
+          isLoading ? null : tab === "invites" ? (
+            invitations.error ? (
+              <EmptyState
+                icon="wifi-off"
+                title="Couldn't load invitations"
+                message="Check your connection and try again."
+                actionLabel="Try again"
+                onAction={() => invitations.refetch()}
+              />
+            ) : (invitations.data?.length ?? 0) === 0 ? (
+              <EmptyState
+                icon="email-outline"
+                title="No invitations"
+                message="When a buddy invites you to a trip or a game, it shows up here."
+                actionLabel="Find activities"
+                onAction={() => navigation.navigate("Discover")}
+              />
+            ) : null
+          ) : tab === "mine" ? (
             <EmptyState
               icon="map-marker-path"
               title="No trips yet"
@@ -144,7 +189,8 @@ function createStyles(colors: Palette) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.surface },
     content: { width: "100%", maxWidth: CONTENT_MAX_WIDTH, alignSelf: "center", paddingBottom: FAB_CLEARANCE },
-    tabs: { flexDirection: "row", gap: 8, marginBottom: 16 },
+    tabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
+    invites: { gap: GRID_GAP },
     row: { flexDirection: "row", gap: GRID_GAP },
     cell: { flex: 1, minWidth: 0 },
   });

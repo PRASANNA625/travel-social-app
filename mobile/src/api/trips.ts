@@ -2,13 +2,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ImagePickerAsset } from "expo-image-picker";
 import { apiClient } from "./client";
 import { appendImageAsset } from "../utils/formDataImage";
-import type { JoinType, Paginated, Trip, TripComment, TripReview, TripReviewsResponse, TravelMode } from "../types";
+import type { GroupRole, JoinType, Paginated, SkillLevel, Sport, Trip, TripCategory, TripComment, TripOwnerSummary, TripReview, TripReviewsResponse, TravelMode } from "../types";
 import { useAuthStore } from "../store/authStore";
 
 export interface TripFilters {
   search?: string;
   destination?: string;
+  // Defaults to TRAVEL; the Sports view asks for SPORTS.
+  category?: TripCategory;
   travelMode?: TravelMode[];
+  sport?: Sport[];
+  skillLevel?: SkillLevel;
+  openSlots?: boolean;
+  upcoming?: boolean;
   dateFrom?: string;
   dateTo?: string;
   budgetMin?: number;
@@ -21,11 +27,18 @@ export interface TripFilters {
   pageSize?: number;
 }
 
-export function useTrips(filters: TripFilters, options?: { enabled?: boolean }) {
+export function useTrips(rawFilters: TripFilters, options?: { enabled?: boolean }) {
+  const filters: TripFilters = { category: "TRAVEL", ...rawFilters };
   return useQuery({
     queryKey: ["trips", filters],
     queryFn: async () => {
-      const params = { ...filters, travelMode: filters.travelMode?.length ? filters.travelMode.join(",") : undefined };
+      const params = {
+        ...filters,
+        travelMode: filters.travelMode?.length ? filters.travelMode.join(",") : undefined,
+        sport: filters.sport?.length ? filters.sport.join(",") : undefined,
+        openSlots: filters.openSlots ? "true" : undefined,
+        upcoming: filters.upcoming ? "true" : undefined,
+      };
       return (await apiClient.get<Paginated<Trip>>("/trips", { params })).data;
     },
     enabled: options?.enabled ?? true,
@@ -71,6 +84,19 @@ export function useTrip(tripId?: string) {
   });
 }
 
+export interface TripParticipant extends TripOwnerSummary {
+  role: GroupRole;
+  joinedAt: string;
+}
+
+export function useTripParticipants(tripId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ["trips", tripId, "participants"],
+    queryFn: async () => (await apiClient.get<TripParticipant[]>(`/trips/${tripId}/participants`)).data,
+    enabled: !!tripId && enabled,
+  });
+}
+
 export function useMyTrips() {
   return useQuery({
     queryKey: ["trips", "mine"],
@@ -95,7 +121,12 @@ export interface CreateTripInput {
   destLng?: number | null;
   startDate: string;
   endDate: string;
-  travelMode: TravelMode;
+  // Required for travel; sports meetups leave it out.
+  travelMode?: TravelMode;
+  category?: TripCategory;
+  sport?: Sport;
+  durationMinutes?: number;
+  skillLevel?: SkillLevel;
   budget?: number;
   seats: number;
   description: string;
@@ -144,7 +175,8 @@ export function useUpdateTripImages() {
   return useTripMutation((tripId, images: string[]) => apiClient.patch(`/trips/${tripId}`, { images }));
 }
 
-export type UpdateTripInput = Partial<Omit<CreateTripInput, "images">>;
+// The category is fixed once a trip exists.
+export type UpdateTripInput = Partial<Omit<CreateTripInput, "images" | "category">>;
 
 export function useUpdateTrip() {
   return useTripMutation((tripId, input: UpdateTripInput) => apiClient.patch(`/trips/${tripId}`, input));
