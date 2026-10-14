@@ -20,6 +20,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useAuthStore } from "../store/authStore";
 import { useCompletedTrips, useMe, useUploadCoverPhoto, useUploadProfilePhoto } from "../api/users";
+import { useFeature } from "../api/config";
+import { isStaff } from "../api/admin";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { Alert } from "../utils/alert";
 import { FeedbackModal } from "../components/FeedbackModal";
@@ -83,6 +85,7 @@ function SectionHeader({ icon, title, styles, colors }: { icon: IconName; title:
 export function ProfileScreen({ navigation }: Props) {
   const { data: user, isLoading } = useMe();
   const { data: completedTrips } = useCompletedTrips(user?.id);
+  const assistantEnabled = useFeature("aiAssistant");
   const uploadPhoto = useUploadProfilePhoto();
   const uploadCover = useUploadCoverPhoto();
   const logout = useAuthStore((s) => s.logout);
@@ -297,13 +300,25 @@ export function ProfileScreen({ navigation }: Props) {
           </TouchableOpacity>
         </Card>
 
-        <PrimaryButton
-          label="AI Trip Assistant"
-          icon="robot-outline"
-          variant="outline"
-          onPress={() => navigation.navigate("Assistant")}
-          style={styles.editButton}
-        />
+        {isStaff(user?.role) && (
+          <PrimaryButton
+            label="Admin Dashboard"
+            icon="shield-account-outline"
+            variant="outline"
+            onPress={() => navigation.navigate("Admin")}
+            style={styles.editButton}
+          />
+        )}
+
+        {assistantEnabled && (
+          <PrimaryButton
+            label="AI Trip Assistant"
+            icon="robot-outline"
+            variant="outline"
+            onPress={() => navigation.navigate("Assistant")}
+            style={styles.editButton}
+          />
+        )}
 
         <PrimaryButton
           label="Edit Profile"

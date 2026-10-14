@@ -62,6 +62,8 @@ export interface User {
   phoneVerified?: boolean;
   createdAt: string;
   isBlocked?: boolean;
+  // Only on the signed-in user's own profile.
+  role?: "USER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN";
 }
 
 export interface TripOwnerSummary {

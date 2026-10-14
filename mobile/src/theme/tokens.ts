@@ -83,3 +83,7 @@ export const CONTROL = { button: 48, buttonSmall: 40, field: 48, chip: 36, iconB
 
 // Readable widths for page content on large screens.
 export const PAGE_WIDTH = { form: 760, content: 1100 };
+
+// Single-series chart fill per color scheme (validated: lightness band, chroma floor
+// and 3:1 contrast against each surface). Text never takes this color.
+export const CHART_COLOR = { light: "#0d9488", dark: "#14a294" };

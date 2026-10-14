@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useMe, useUpdateProfile, useUploadCoverPhoto, useUploadProfilePhoto } from "../api/users";
+import { useAppConfig } from "../api/config";
 import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { Alert } from "../utils/alert";
@@ -38,17 +39,24 @@ type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 const BIO_MAX_LENGTH = 300;
 
-const INTEREST_OPTIONS: { value: string; icon: IconName }[] = [
-  { value: "Adventure", icon: "terrain" },
-  { value: "Nature", icon: "leaf" },
-  { value: "Beaches", icon: "beach" },
-  { value: "Food", icon: "silverware-fork-knife" },
-  { value: "Photography", icon: "camera-outline" },
-  { value: "Culture", icon: "bank" },
-  { value: "Nightlife", icon: "glass-cocktail" },
-  { value: "Wildlife", icon: "paw" },
-  { value: "Trekking", icon: "hiking" },
-];
+const INTEREST_ICONS: Record<string, IconName> = {
+  Adventure: "terrain",
+  Nature: "leaf",
+  Beaches: "beach",
+  Food: "silverware-fork-knife",
+  Photography: "camera-outline",
+  Culture: "bank",
+  Nightlife: "glass-cocktail",
+  Wildlife: "paw",
+  Trekking: "hiking",
+  Camping: "tent",
+  Mountains: "image-filter-hdr",
+  "Road trips": "car-outline",
+  History: "castle",
+  Music: "music-note-outline",
+};
+// Used until the admin-managed list (GET /config) arrives.
+const DEFAULT_INTERESTS = ["Adventure", "Nature", "Beaches", "Food", "Photography", "Culture", "Nightlife", "Wildlife", "Trekking"];
 
 export function EditProfileScreen({ navigation }: Props) {
   const { data: user } = useMe();
@@ -74,6 +82,10 @@ export function EditProfileScreen({ navigation }: Props) {
   const toggleMode = (mode: TravelMode) => {
     setPreferredModes((prev) => (prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode]));
   };
+
+  // Admin-managed suggestions, plus anything the member already picked so it can be removed.
+  const suggested = useAppConfig().data?.suggestedInterests ?? DEFAULT_INTERESTS;
+  const interestOptions = [...suggested, ...interests.filter((i) => !suggested.includes(i))];
 
   const toggleInterest = (value: string) => {
     setInterests((prev) => (prev.includes(value) ? prev.filter((i) => i !== value) : [...prev, value]));
@@ -265,13 +277,13 @@ export function EditProfileScreen({ navigation }: Props) {
 
             <Text style={[styles.fieldLabel, styles.fieldLabelSpaced]}>Travel interests</Text>
             <View style={styles.chipRow}>
-              {INTEREST_OPTIONS.map((option) => (
+              {interestOptions.map((value) => (
                 <SelectableChip
-                  key={option.value}
-                  icon={option.icon}
-                  label={option.value}
-                  active={interests.includes(option.value)}
-                  onPress={() => toggleInterest(option.value)}
+                  key={value}
+                  icon={INTEREST_ICONS[value] ?? "tag-outline"}
+                  label={value}
+                  active={interests.includes(value)}
+                  onPress={() => toggleInterest(value)}
                 />
               ))}
             </View>

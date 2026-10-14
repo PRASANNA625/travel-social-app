@@ -63,6 +63,7 @@ const SECTION_RESULT_LIMIT = 10;
 
 function upcomingOpenWhere(): Prisma.TripWhereInput {
   return {
+    hidden: false,
     status: { in: ["PLANNING", "OPEN", "ALMOST_FULL"] },
     startDate: { gte: new Date() },
   };
@@ -72,12 +73,17 @@ function daysSince(date: Date): number {
   return (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
 }
 
+// Trips an admin marked as featured always rank ahead of organically trending ones.
+const FEATURED_BOOST = 1_000_000;
+
 function engagementScore(trip: {
   _count: { likes: number; comments: number; joinRequests: number };
   createdAt: Date;
+  featured: boolean;
 }): number {
   const recencyBoost = Math.max(0, 5 - daysSince(trip.createdAt) * 0.5);
-  return trip._count.likes * 2 + trip._count.comments * 1.5 + trip._count.joinRequests * 3 + recencyBoost;
+  const featuredBoost = trip.featured ? FEATURED_BOOST : 0;
+  return trip._count.likes * 2 + trip._count.comments * 1.5 + trip._count.joinRequests * 3 + recencyBoost + featuredBoost;
 }
 
 export async function getTrendingTrips(viewerId?: string, limit = SECTION_RESULT_LIMIT) {
@@ -226,6 +232,7 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
 
   const where: Prisma.TripWhereInput = {
     status: { notIn: ["CANCELLED"] },
+    hidden: false,
   };
 
   if (filters.search) {
@@ -302,6 +309,12 @@ export async function getTripById(id: string, viewerId?: string) {
     closeExpiredTrips(),
   ]);
   if (!trip) throw new HttpError(404, "Trip not found");
+  // Trips hidden by moderators stay visible only to their owner and group members.
+  if (trip.hidden && trip.ownerId !== viewerId) {
+    const isMember =
+      !!viewerId && (await prisma.groupMember.count({ where: { userId: viewerId, group: { tripId: id } } })) > 0;
+    if (!isMember) throw new HttpError(404, "Trip not found");
+  }
   const [withFlags] = await attachViewerFlags([trip], viewerId);
   return withFlags;
 }

@@ -85,6 +85,25 @@ enum FeedbackStatus {
   RESOLVED
 }
 
+// Admin dashboard access, from least to most privileged.
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
 model User {
   id             String   @id @default(cuid())
   email          String?  @unique
@@ -102,6 +121,10 @@ model User {
   preferredModes TravelMode[] @default([])
   preferredLanguage String @default("en")
   lastSeenAt     DateTime?
+  role           UserRole      @default(USER)
+  status         AccountStatus @default(ACTIVE)
+  suspendedAt    DateTime?
+  suspendedReason String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -123,6 +146,12 @@ model User {
   reportsReceived UserReport[] @relation("ReportsReceived")
   buddyRequestsSent     BuddyConnection[] @relation("BuddyRequestsSent")
   buddyRequestsReceived BuddyConnection[] @relation("BuddyRequestsReceived")
+  reportsResolved UserReport[] @relation("ReportsResolved")
+  auditLogs       AuditLog[]
+  announcements   Announcement[]
+
+  @@index([role])
+  @@index([status])
 }
 
 model BuddyConnection {
@@ -164,6 +193,9 @@ model Trip {
   notes              String?
   joinType           JoinType   @default(APPROVAL)
   status             TripStatus @default(OPEN)
+  // Set by admins: featured trips lead Discover; hidden trips are removed from public listings.
+  featured           Boolean    @default(false)
+  hidden             Boolean    @default(false)
   avgRating          Float?
   reviewCount        Int        @default(0)
   createdAt          DateTime   @default(now())
@@ -337,9 +369,15 @@ model UserReport {
   reported   User         @relation("ReportsReceived", fields: [reportedId], references: [id], onDelete: Cascade)
   reason     ReportReason
   details    String?
+  status         ReportStatus @default(OPEN)
+  resolvedById   String?
+  resolvedBy     User?        @relation("ReportsResolved", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt     DateTime?
+  resolutionNote String?
   createdAt  DateTime     @default(now())
 
   @@index([reportedId])
+  @@index([status])
 }
 
 model AppFeedback {
@@ -357,4 +395,42 @@ model AppFeedback {
 
   @@index([userId])
   @@index([status])
+}
+
+// Every administrative action, kept even if the acting admin's account is deleted.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  targetType String
+  targetId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@index([actorId])
+}
+
+// System announcements sent from the admin dashboard (delivered as notifications).
+model Announcement {
+  id             String   @id @default(cuid())
+  title          String
+  body           String
+  audience       String
+  recipientCount Int      @default(0)
+  createdById    String?
+  createdBy      User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// Key/value app configuration editable from the admin dashboard (feature switches etc.).
+model AppSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
 }

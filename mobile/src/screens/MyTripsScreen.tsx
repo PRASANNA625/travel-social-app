@@ -17,6 +17,7 @@ import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { CONTENT_MAX_WIDTH, gridColumnsFor, toRows, useResponsiveLayout } from "../theme/layout";
 import { pageGutter } from "../theme/tokens";
+import { useFeature } from "../api/config";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "MyTrips">,
@@ -26,6 +27,7 @@ type Props = CompositeScreenProps<
 const GRID_GAP = 16;
 
 export function MyTripsScreen({ navigation }: Props) {
+  const canCreateTrip = useFeature("tripCreation");
   const [tab, setTab] = useState<"mine" | "saved">("mine");
   const myTrips = useMyTrips();
   const savedTrips = useBookmarkedTrips();
@@ -96,8 +98,8 @@ export function MyTripsScreen({ navigation }: Props) {
               icon="map-marker-path"
               title="No trips yet"
               message="Plan a trip and find travel buddies to share it with."
-              actionLabel="Create a trip"
-              onAction={() => navigation.navigate("CreateTrip")}
+              actionLabel={canCreateTrip ? "Create a trip" : undefined}
+              onAction={canCreateTrip ? () => navigation.navigate("CreateTrip") : undefined}
             />
           ) : (
             <EmptyState
@@ -126,12 +128,14 @@ export function MyTripsScreen({ navigation }: Props) {
           </View>
         )}
       />
-      <FloatingActionButton
-        icon="plus"
-        label="Create Trip"
-        onPress={() => navigation.navigate("CreateTrip")}
-        right={gutter}
-      />
+      {canCreateTrip && (
+        <FloatingActionButton
+          icon="plus"
+          label="Create Trip"
+          onPress={() => navigation.navigate("CreateTrip")}
+          right={gutter}
+        />
+      )}
     </View>
   );
 }

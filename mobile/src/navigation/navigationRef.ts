@@ -29,6 +29,15 @@ export function useActiveTab() {
   );
 }
 
+// Name of the top-level stack route on screen ("Tabs", "TripDetail", ...).
+export function useRootRouteName() {
+  return useSyncExternalStore(subscribe, () => {
+    if (!navigationRef.isReady()) return "Tabs";
+    const state = navigationRef.getRootState();
+    return state?.routes[state.index ?? 0]?.name ?? "Tabs";
+  });
+}
+
 export function navigateToTab(tab: keyof AppTabParamList) {
   if (!navigationRef.isReady()) return;
   // Navigating to the existing "Tabs" route also closes any stack screens above it.

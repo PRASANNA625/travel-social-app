@@ -14,6 +14,9 @@ import { notificationsRouter } from "./modules/notifications/notifications.route
 import { assistantRouter } from "./modules/assistant/assistant.routes";
 import { safetyRouter } from "./modules/safety/safety.routes";
 import { feedbackRouter } from "./modules/feedback/feedback.routes";
+import { adminRouter } from "./modules/admin/admin.routes";
+import { getSettingsCached } from "./modules/admin/settings";
+import { asyncHandler } from "./utils/asyncHandler";
 
 export const app = express();
 
@@ -22,6 +25,17 @@ app.use(express.json());
 app.use("/uploads", express.static(path.resolve(env.uploadsDir)));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
+
+// Public app configuration managed from the admin dashboard (feature switches etc.).
+app.get(
+  "/config",
+  asyncHandler(async (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=30");
+    // Only what the apps need; admin-only settings (e.g. templates) stay private.
+    const { features, disabledTravelModes, suggestedInterests, announcementBanner } = await getSettingsCached();
+    res.json({ features, disabledTravelModes, suggestedInterests, announcementBanner });
+  })
+);
 
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
@@ -34,6 +48,7 @@ app.use("/notifications", notificationsRouter);
 app.use("/assistant", assistantRouter);
 app.use("/safety", safetyRouter);
 app.use("/feedback", feedbackRouter);
+app.use("/admin", adminRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

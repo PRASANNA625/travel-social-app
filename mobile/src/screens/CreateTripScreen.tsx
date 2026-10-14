@@ -28,6 +28,7 @@ import { useResponsiveLayout } from "../theme/layout";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { Alert } from "../utils/alert";
+import { useAppConfig } from "../api/config";
 import { isAfterDate, isBeforeToday } from "../utils/date";
 
 type Props = NativeStackScreenProps<AppStackParamList, "CreateTrip">;
@@ -52,6 +53,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
   const tripId = route.params?.tripId;
   const isEditMode = !!tripId;
   const { data: existingTrip, isLoading: isLoadingTrip } = useTrip(tripId);
+  const disabledModes = useAppConfig().data?.disabledTravelModes ?? [];
   const [prefilled, setPrefilled] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -420,7 +422,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
             <FieldLabel text="Travel mode" required />
             <Text style={styles.helperText}>How will you travel?</Text>
             <View style={[styles.modeGrid, submitted && !travelMode && styles.selectorError]}>
-              {TRAVEL_MODES.map((mode) => (
+              {TRAVEL_MODES.filter((m) => !disabledModes.includes(m) || m === existingTrip?.travelMode).map((mode) => (
                 <SelectableChip
                   key={mode}
                   icon={TRAVEL_MODE_ICONS[mode]}

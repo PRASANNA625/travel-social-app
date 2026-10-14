@@ -17,6 +17,8 @@ const privateUserSelect = {
   email: true,
   phone: true,
   phoneVerified: true,
+  // Lets the app show the admin dashboard entry; the API enforces access itself.
+  role: true,
   createdAt: true,
 } as const;
 

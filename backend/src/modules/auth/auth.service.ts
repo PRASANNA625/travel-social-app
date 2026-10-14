@@ -8,8 +8,13 @@ import { isMockPhoneProvider, phoneProvider } from "./phoneProvider";
 
 const googleClient = new OAuth2Client(env.googleClientId);
 
-function toAuthResponse(user: { id: string }) {
-  return { token: signToken(user.id) };
+// Token plus the signed-in user, minus credentials. Suspended accounts can't sign in.
+function toAuthResponse<T extends { id: string; status: string; passwordHash: string | null; googleId: string | null }>(user: T) {
+  if (user.status === "SUSPENDED") {
+    throw new HttpError(403, "This account has been suspended", "ACCOUNT_SUSPENDED");
+  }
+  const { passwordHash: _passwordHash, googleId: _googleId, ...safeUser } = user;
+  return { token: signToken(user.id), user: safeUser };
 }
 
 export async function register(email: string, password: string, name: string) {
@@ -18,7 +23,7 @@ export async function register(email: string, password: string, name: string) {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({ data: { email, passwordHash, name } });
-  return { ...toAuthResponse(user), user };
+  return toAuthResponse(user);
 }
 
 export async function login(email: string, password: string) {
@@ -28,7 +33,7 @@ export async function login(email: string, password: string) {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) throw new HttpError(401, "Invalid email or password");
 
-  return { ...toAuthResponse(user), user };
+  return toAuthResponse(user);
 }
 
 export async function loginWithGoogle(idToken: string) {
@@ -55,7 +60,7 @@ export async function loginWithGoogle(idToken: string) {
     user = await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub } });
   }
 
-  return { ...toAuthResponse(user), user };
+  return toAuthResponse(user);
 }
 
 export async function sendPhoneOtp(phone: string) {
@@ -83,5 +88,5 @@ export async function verifyPhoneOtp(phone: string, code: string, name?: string)
     user = await prisma.user.update({ where: { id: user.id }, data: { phoneVerified: true } });
   }
 
-  return { ...toAuthResponse(user), user };
+  return toAuthResponse(user);
 }

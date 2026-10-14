@@ -54,6 +54,8 @@ import { CompactBuddyCard, COMPACT_BUDDY_CARD_HEIGHT } from "../components/Buddy
 import { useHorizontalScroll } from "../hooks/useHorizontalScroll";
 import { CompactBuddyCardSkeleton } from "../components/BuddyCardSkeleton";
 import { Alert } from "../utils/alert";
+import { useAppConfig } from "../api/config";
+import { AnnouncementBanner } from "../components/AnnouncementBanner";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -121,6 +123,8 @@ export function DiscoverScreen({ navigation }: Props) {
   }, [scrollY]);
 
   const pad = isDesktop ? 24 : 16;
+  const { data: appConfig } = useAppConfig();
+  const canCreateTrip = appConfig?.features.tripCreation ?? true;
   const innerWidth = contentWidth - pad * 2;
 
   const { data: me } = useMe();
@@ -361,7 +365,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const chipItems: string[] = [
     "ALL",
     "NEAR_ME",
-    ...TRAVEL_MODES,
+    ...TRAVEL_MODES.filter((m) => !appConfig?.disabledTravelModes.includes(m)),
     ...(activeFilterCount > 1 ? ["CLEAR_ALL"] : []),
   ];
 
@@ -688,6 +692,7 @@ export function DiscoverScreen({ navigation }: Props) {
         ListHeaderComponent={
           <>
             {hero}
+            <AnnouncementBanner marginHorizontal={pad} />
             {chipsRow}
 
             <DiscoverSection
@@ -869,13 +874,15 @@ export function DiscoverScreen({ navigation }: Props) {
         }
       />
 
-      <FloatingActionButton
-        icon="plus"
-        label="Create Trip"
-        onPress={() => navigation.navigate("CreateTrip")}
-        collapsed={fabCollapsed}
-        right={pad}
-      />
+      {canCreateTrip && (
+        <FloatingActionButton
+          icon="plus"
+          label="Create Trip"
+          onPress={() => navigation.navigate("CreateTrip")}
+          collapsed={fabCollapsed}
+          right={pad}
+        />
+      )}
 
       <Modal
         visible={radiusSheetVisible}

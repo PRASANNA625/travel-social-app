@@ -3,6 +3,7 @@ import { Server as SocketIOServer, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import { env } from "./env";
 import { prisma } from "./prisma";
+import { isSuspended } from "../middleware/auth";
 import { assertMember } from "../modules/groups/groups.service";
 import {
   ALLOWED_REACTIONS,
@@ -63,13 +64,19 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
   io.use((socket: AuthedSocket, next) => {
     const token = socket.handshake.auth?.token as string | undefined;
     if (!token) return next(new Error("Missing auth token"));
+    let userId: string;
     try {
-      const payload = jwt.verify(token, env.jwtSecret) as { sub: string };
-      socket.userId = payload.sub;
-      next();
+      userId = (jwt.verify(token, env.jwtSecret) as { sub: string }).sub;
     } catch {
-      next(new Error("Invalid auth token"));
+      return next(new Error("Invalid auth token"));
     }
+    isSuspended(userId)
+      .then((suspended) => {
+        if (suspended) return next(new Error("Account suspended"));
+        socket.userId = userId;
+        next();
+      })
+      .catch(() => next(new Error("Could not verify account")));
   });
 
   io.on("connection", (socket: AuthedSocket) => {

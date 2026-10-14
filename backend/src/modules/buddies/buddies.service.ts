@@ -105,6 +105,7 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
 
   const where: NonNullable<Parameters<typeof prisma.user.findMany>[0]>["where"] = {
     id: { notIn: [...excluded] },
+    status: "ACTIVE",
   };
   if (filters.search) {
     where.OR = [

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { optionalAuth, requireAuth } from "../../middleware/auth";
 import { upload } from "../../middleware/upload";
 import { asyncHandler } from "../../utils/asyncHandler";
+import { requireFeature } from "../admin/settings";
 import * as controller from "./trips.controller";
 
 export const tripsRouter = Router();
@@ -18,7 +19,7 @@ tripsRouter.get("/:id", optionalAuth, asyncHandler(controller.getById));
 tripsRouter.get("/:id/comments", asyncHandler(controller.listComments));
 tripsRouter.get("/:id/reviews", optionalAuth, asyncHandler(controller.listReviews));
 
-tripsRouter.post("/", requireAuth, asyncHandler(controller.create));
+tripsRouter.post("/", requireAuth, requireFeature("tripCreation"), asyncHandler(controller.create));
 tripsRouter.patch("/:id", requireAuth, asyncHandler(controller.update));
 tripsRouter.post("/:id/cancel", requireAuth, asyncHandler(controller.cancel));
 tripsRouter.delete("/:id", requireAuth, asyncHandler(controller.remove));

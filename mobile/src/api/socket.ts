@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { API_URL } from "./client";
+import { API_URL, signOutSuspended } from "./client";
 import { useAuthStore } from "../store/authStore";
 
 let socket: Socket | null = null;
@@ -11,6 +11,7 @@ export function getSocket(): Socket {
     transports: ["websocket"],
     autoConnect: true,
   });
+  socket.on("account:suspended", (payload: { reason?: string } | undefined) => signOutSuspended(payload?.reason));
   return socket;
 }
 
