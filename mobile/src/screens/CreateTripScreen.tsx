@@ -36,6 +36,7 @@ import type { Palette } from "../theme/palettes";
 import { Alert } from "../utils/alert";
 import { useAppConfig } from "../api/config";
 import { isAfterDate, isBeforeToday } from "../utils/date";
+import { resolveCoords } from "../utils/geocode";
 
 type Props = NativeStackScreenProps<AppStackParamList, "CreateTrip">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -103,6 +104,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
   const [coverPhoto, setCoverPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const [resolvingPlaces, setResolvingPlaces] = useState(false);
 
   const createTrip = useCreateTrip();
   const updateTrip = useUpdateTrip();
@@ -232,6 +234,13 @@ export function CreateTripScreen({ navigation, route }: Props) {
       return;
     }
 
+    // Typed places without a map pin are looked up so the trip shows in "Near me".
+    setResolvingPlaces(true);
+    const [startCoords, destCoords] = await Promise.all([
+      resolveCoords(startLocation, startLocationCoords),
+      resolveCoords(destination, destinationCoords),
+    ]).finally(() => setResolvingPlaces(false));
+
     try {
       if (isEditMode && tripId) {
         await updateTrip.mutateAsync({
@@ -240,10 +249,10 @@ export function CreateTripScreen({ navigation, route }: Props) {
             title: title.trim(),
             destination: destination.trim(),
             startLocation: startLocation.trim(),
-            startLat: startLocationCoords?.lat ?? null,
-            startLng: startLocationCoords?.lng ?? null,
-            destLat: destinationCoords?.lat ?? null,
-            destLng: destinationCoords?.lng ?? null,
+            startLat: startCoords?.lat ?? null,
+            startLng: startCoords?.lng ?? null,
+            destLat: destCoords?.lat ?? null,
+            destLng: destCoords?.lng ?? null,
             ...(datesChanged
               ? { startDate: startDate.toISOString(), endDate: endDate.toISOString() }
               : {}),
@@ -273,10 +282,10 @@ export function CreateTripScreen({ navigation, route }: Props) {
         title: title.trim(),
         destination: destination.trim(),
         startLocation: startLocation.trim(),
-        startLat: startLocationCoords?.lat ?? null,
-        startLng: startLocationCoords?.lng ?? null,
-        destLat: destinationCoords?.lat ?? null,
-        destLng: destinationCoords?.lng ?? null,
+        startLat: startCoords?.lat ?? null,
+        startLng: startCoords?.lng ?? null,
+        destLat: destCoords?.lat ?? null,
+        destLng: destCoords?.lng ?? null,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         travelMode,
@@ -319,14 +328,16 @@ export function CreateTripScreen({ navigation, route }: Props) {
       return;
     }
     const end = new Date(activityStart.getTime() + durationMinutes * 60 * 1000);
+    setResolvingPlaces(true);
+    const venue = await resolveCoords(destination, destinationCoords).finally(() => setResolvingPlaces(false));
     const fields = {
       title: title.trim(),
       destination: destination.trim(),
       startLocation: destination.trim(),
-      startLat: destinationCoords?.lat ?? null,
-      startLng: destinationCoords?.lng ?? null,
-      destLat: destinationCoords?.lat ?? null,
-      destLng: destinationCoords?.lng ?? null,
+      startLat: venue?.lat ?? null,
+      startLng: venue?.lng ?? null,
+      destLat: venue?.lat ?? null,
+      destLng: venue?.lng ?? null,
       sport,
       durationMinutes,
       skillLevel,
@@ -362,7 +373,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
     }
   };
 
-  const isSubmitting = createTrip.isPending || uploadImages.isPending || updateTrip.isPending;
+  const isSubmitting = resolvingPlaces || createTrip.isPending || uploadImages.isPending || updateTrip.isPending;
 
   // Layout: a scenic column beside the form on desktop, a banner above it otherwise.
   const wide = windowWidth >= DESKTOP_MIN_WIDTH;
@@ -511,7 +522,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
                 />
                 <FieldError message={errors?.venue} />
                 <LocationLink onPress={() => setActivePicker("destination")} color={teal} />
-                {!destinationCoords && <Hint>Pin the venue on the map so players nearby can find it.</Hint>}
+                {!destinationCoords && <Hint>We'll place the venue from its name. Pin it on the map for an exact spot.</Hint>}
               </View>
               <View>
                 <View style={styles.row}>
@@ -843,7 +854,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
               ) : (
                 <MaterialCommunityIcons name={isEditMode ? "check" : "send"} size={19} color="#ffffff" style={!isEditMode && { transform: [{ rotate: "-30deg" }] }} />
               )}
-              <Text style={styles.publishText}>{isSubmitting ? (uploadImages.isPending ? "Uploading photos…" : "Saving…") : isEditMode ? "Save Changes" : sportsMode ? "Publish Activity" : "Publish Trip"}</Text>
+              <Text style={styles.publishText}>{isSubmitting ? (resolvingPlaces ? "Finding location…" : uploadImages.isPending ? "Uploading photos…" : "Saving…") : isEditMode ? "Save Changes" : sportsMode ? "Publish Activity" : "Publish Trip"}</Text>
             </LinearGradient>
           </Pressable>
         </View>

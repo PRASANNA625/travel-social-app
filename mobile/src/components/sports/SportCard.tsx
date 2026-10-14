@@ -68,7 +68,7 @@ export function SportCard({ trip, onPress, onInvite }: { trip: Trip; onPress: ()
         { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
         (state as { hovered?: boolean }).hovered && styles.cardHover,
       ]}
-      accessibilityRole="button"
+      // Not role="button": the card holds its own buttons, and nested buttons are invalid HTML.
       accessibilityLabel={`${info.label}: ${trip.title}`}
     >
       <View style={styles.media}>

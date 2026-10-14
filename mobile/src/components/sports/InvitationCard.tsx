@@ -41,7 +41,7 @@ export function InvitationCard({ invitation, onOpen }: { invitation: Invitation;
     <Pressable
       onPress={onOpen}
       style={[styles.card, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
-      accessibilityRole="button"
+      // Not role="button": the card holds its own buttons, and nested buttons are invalid HTML.
       accessibilityLabel={`Invitation to ${trip.title} from ${trip.owner.name}`}
     >
       <View style={styles.top}>
