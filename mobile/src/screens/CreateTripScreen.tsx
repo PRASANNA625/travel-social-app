@@ -1,15 +1,8 @@
-import { useEffect, useMemo, useState, type ComponentProps } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from "react";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
@@ -19,12 +12,22 @@ import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TripDateFields } from "../components/TripDateFields";
 import { LocationPickerModal, type LocationValue } from "../components/LocationPickerModal";
 import { ScreenHeader } from "../components/theme/ScreenHeader";
-import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
-import { PrimaryButton } from "../components/theme/PrimaryButton";
-import { SelectableChip } from "../components/theme/SelectableChip";
-import { FONT, PAGE_WIDTH, RADIUS, pageGutter } from "../theme/tokens";
-import { useResponsiveLayout } from "../theme/layout";
+import { PlannerAside, PlannerBanner } from "../components/createTrip/PlannerScenery";
+import {
+  CoverDropzone,
+  FieldError,
+  FieldLabel,
+  FlightArt,
+  FormSection,
+  Hint,
+  OptionPill,
+  PhotoStrip,
+  RadioOption,
+  RouteArt,
+} from "../components/createTrip/FormParts";
+import { ACTION_BLUE, RADIUS, SHADOW } from "../theme/tokens";
+import { DESKTOP_MIN_WIDTH } from "../theme/layout";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { Alert } from "../utils/alert";
@@ -34,18 +37,21 @@ import { isAfterDate, isBeforeToday } from "../utils/date";
 type Props = NativeStackScreenProps<AppStackParamList, "CreateTrip">;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const JOIN_TYPES: { value: JoinType; label: string; icon: IconName }[] = [
-  { value: "OPEN", label: "Open to everyone", icon: "earth" },
-  { value: "APPROVAL", label: "Requires approval", icon: "shield-check-outline" },
+const JOIN_TYPES: { value: JoinType; label: string }[] = [
+  { value: "OPEN", label: "Open to everyone" },
+  { value: "APPROVAL", label: "Requires approval" },
 ];
 
-function FieldLabel({ text, required }: { text: string; required?: boolean }) {
-  const { colors } = useTheme();
+// The upload route takes at most 8 images: the cover plus 7 more.
+const MAX_EXTRA_PHOTOS = 7;
+const FORM_MAX_WIDTH = 900;
+
+function LocationLink({ onPress, color }: { onPress: () => void; color: string }) {
   return (
-    <Text style={[FONT.label, { color: colors.ink, marginTop: 4 }]}>
-      {text}
-      {required && <Text style={{ color: colors.danger }}> *</Text>}
-    </Text>
+    <Pressable onPress={onPress} style={styles.mapLink} accessibilityRole="button" hitSlop={6}>
+      <MaterialCommunityIcons name="map-search-outline" size={15} color={color} />
+      <Text style={[styles.mapLinkText, { color }]}>Pick on map</Text>
+    </Pressable>
   );
 }
 
@@ -79,9 +85,9 @@ export function CreateTripScreen({ navigation, route }: Props) {
   const updateTrip = useUpdateTrip();
   const uploadImages = useUploadTripImages();
   const insets = useSafeAreaInsets();
-  const { isDesktop } = useResponsiveLayout();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { width: windowWidth } = useWindowDimensions();
+  const { colors, scheme } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     if (!isEditMode || !existingTrip || prefilled) return;
@@ -128,12 +134,25 @@ export function CreateTripScreen({ navigation, route }: Props) {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      selectionLimit: 8,
+      selectionLimit: Math.max(1, MAX_EXTRA_PHOTOS - images.length),
       quality: 0.7,
     });
     if (!result.canceled) {
-      setImages((prev) => [...prev, ...result.assets]);
+      setImages((prev) => [...prev, ...result.assets].slice(0, MAX_EXTRA_PHOTOS));
     }
+  };
+
+  // Web drag and drop; files that aren't images or are over 10 MB are skipped.
+  const warnRejected = (rejected: number) => {
+    if (rejected > 0) Alert.alert("Some files were skipped", "Only images up to 10 MB can be added, and at most 7 extra photos.");
+  };
+  const onDropCover = (assets: ImagePicker.ImagePickerAsset[], rejected: number) => {
+    if (assets[0]) setCoverPhoto(assets[0]);
+    warnRejected(rejected);
+  };
+  const onDropImages = (assets: ImagePicker.ImagePickerAsset[], rejected: number) => {
+    setImages((prev) => [...prev, ...assets].slice(0, MAX_EXTRA_PHOTOS));
+    warnRejected(rejected);
   };
 
   const handleStartDateChange = (date: Date) => {
@@ -253,123 +272,169 @@ export function CreateTripScreen({ navigation, route }: Props) {
 
   const isSubmitting = createTrip.isPending || uploadImages.isPending || updateTrip.isPending;
 
+  // Layout: a scenic column beside the form on desktop, a banner above it otherwise.
+  const wide = windowWidth >= DESKTOP_MIN_WIDTH;
+  const asideWidth = windowWidth >= 1280 ? 340 : 300;
+  const gutter = wide ? 28 : windowWidth >= 600 ? 20 : 14;
+  const formWidth = Math.min((wide ? windowWidth - asideWidth : windowWidth) - gutter * 2, FORM_MAX_WIDTH);
+  const twoCol = formWidth >= 640;
+  const modeColumns = formWidth >= 600 ? 3 : 2;
+  const [modeGridWidth, setModeGridWidth] = useState(0);
+  const modeWidth = modeGridWidth ? (modeGridWidth - 10 * (modeColumns - 1)) / modeColumns : undefined;
+  const [showModeInfo, setShowModeInfo] = useState(false);
+  const [showJoinInfo, setShowJoinInfo] = useState(false);
+  const blue = scheme === "dark" ? "#93b4fb" : ACTION_BLUE;
+  const teal = colors.primary;
+
+  const errors = submitted
+    ? {
+        title: !title.trim() && "Give your trip a title",
+        startLocation: !startLocation.trim() && "Where does the trip start?",
+        destination: !destination.trim() && "Where are you headed?",
+        endDate: !endDate && "Pick an end date",
+        travelMode: !travelMode && "Choose how you'll travel",
+        seats: (!seats.trim() || Number(seats) < 1) && "Enter at least 1 seat",
+        description: !description.trim() && "Tell people what the trip is about",
+        joinType: !joinType && "Choose who can join",
+      }
+    : null;
+
+  const leave = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Tabs"));
+
   const header = (
     <ScreenHeader
       title={isEditMode ? "Edit Trip" : "Create a Trip"}
       subtitle={isEditMode ? "Update your trip details below" : "Share your travel plan and find like-minded companions"}
       showBack
-      maxWidth={PAGE_WIDTH.form}
+      maxWidth={FORM_MAX_WIDTH + gutter * 2}
     />
   );
 
+  const shell = (content: ReactNode) => (
+    <View style={s.screen}>
+      {wide && <PlannerAside width={asideWidth} />}
+      <View style={s.main}>{content}</View>
+    </View>
+  );
+
   if (isEditMode && (isLoadingTrip || !prefilled)) {
-    return (
-      <View style={styles.screen}>
+    return shell(
+      <>
         {header}
         <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
-      </View>
+      </>
     );
   }
 
-  return (
-    <View style={styles.screen}>
-      {header}
+  const half = twoCol ? styles.half : styles.full;
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.form,
-          { paddingHorizontal: pageGutter(isDesktop), paddingBottom: 24 + insets.bottom },
-        ]}
-      >
-        <Card>
-          <Text style={styles.sectionHeading}>Trip Basics</Text>
-          <View>
-            <FieldLabel text="Trip title" required />
-            <IconInput
-              icon="format-title"
-              error={submitted && !title.trim()}
-              placeholder="e.g., Spiti Valley Road Trip"
-              maxLength={60}
-              value={title}
-              onChangeText={setTitle}
-            />
-            <Text style={styles.counter}>{title.length}/60</Text>
-          </View>
+  return shell(
+    <>
+      <ScrollView style={s.scroll} contentContainerStyle={[s.form, { paddingHorizontal: gutter, maxWidth: FORM_MAX_WIDTH + gutter * 2 }]} keyboardShouldPersistTaps="handled">
+        <View style={{ marginHorizontal: -gutter }}>{header}</View>
+        {!wide && <PlannerBanner compact={windowWidth < 600} />}
 
-          {!isEditMode && (
-            <View style={{ gap: 12 }}>
-              <View>
-                <Text style={styles.label}>Cover photo</Text>
-                {coverPhoto ? (
-                  <TouchableOpacity onPress={pickCoverPhoto}>
-                    <Image source={{ uri: coverPhoto.uri }} style={styles.coverPreview} />
-                    <View style={styles.coverChangeBadge}>
-                      <Text style={styles.coverChangeText}>Change</Text>
-                    </View>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity style={styles.coverPicker} onPress={pickCoverPhoto}>
-                    <Text style={{ fontSize: 28 }}>🖼️</Text>
-                    <Text style={styles.coverPickerText}>Add a cover photo</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View>
-                <Text style={styles.label}>Additional photos</Text>
-                <View style={styles.row}>
-                  {images.map((asset) => (
-                    <Image key={asset.uri} source={{ uri: asset.uri }} style={styles.thumb} />
-                  ))}
-                  <TouchableOpacity style={styles.addImage} onPress={pickImages}>
-                    <Text style={{ fontSize: 24 }}>+</Text>
-                  </TouchableOpacity>
-                </View>
+        <FormSection icon="calendar-month-outline" tint="blue" title="Trip Basics" subtitle={isEditMode ? "Your trip's title" : "Give your trip a title and cover photo"} index={0}>
+          <View style={styles.row}>
+            <View style={isEditMode ? styles.full : half}>
+              <FieldLabel text="Trip title" required />
+              <IconInput
+                icon="format-title"
+                error={!!errors?.title}
+                placeholder="e.g. Himalayan Trek"
+                maxLength={60}
+                value={title}
+                onChangeText={setTitle}
+                accessibilityLabel="Trip title"
+              />
+              <View style={styles.underRow}>
+                <FieldError message={errors?.title} />
+                <Text style={[styles.counter, { color: colors.mutedLight }]}>{title.length}/60</Text>
               </View>
             </View>
+            {!isEditMode && (
+              <View style={half}>
+                <FieldLabel text="Cover photo" />
+                <CoverDropzone photo={coverPhoto} onPick={pickCoverPhoto} onDropFiles={onDropCover} onRemove={() => setCoverPhoto(null)} />
+              </View>
+            )}
+          </View>
+          {!isEditMode && (
+            <View>
+              <FieldLabel text="Additional photos (optional)" />
+              <PhotoStrip
+                photos={images}
+                max={MAX_EXTRA_PHOTOS}
+                onAdd={pickImages}
+                onDropFiles={onDropImages}
+                onRemove={(uri) => setImages((prev) => prev.filter((p) => p.uri !== uri))}
+              />
+            </View>
           )}
-        </Card>
+        </FormSection>
 
-        <Card>
-          <Text style={styles.sectionHeading}>Route</Text>
-          <View style={styles.row}>
-            <View style={styles.flex1}>
+        <FormSection icon="map-marker-radius" tint="teal" title="Route" subtitle="Plan your journey from start to destination" index={1} decoration={formWidth >= 760 ? <RouteArt /> : undefined}>
+          <View style={[styles.row, formWidth >= 760 && { paddingRight: 150 }]}>
+            <View style={half}>
               <FieldLabel text="Starting location" required />
               <IconInput
                 icon="map-marker-outline"
-                error={submitted && !startLocation.trim()}
-                placeholder="e.g., Chennai, India"
+                error={!!errors?.startLocation}
+                placeholder="e.g. Chennai, India"
                 value={startLocation}
                 onChangeText={(text) => {
                   setStartLocation(text);
                   if (startLocationCoords) setStartLocationCoords(null);
                 }}
+                accessibilityLabel="Starting location"
               />
-              <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("start")}>
-                <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={colors.primary} />
-                <Text style={styles.pickOnMapText}>Pick on map</Text>
-              </TouchableOpacity>
+              <FieldError message={errors?.startLocation} />
+              <LocationLink onPress={() => setActivePicker("start")} color={teal} />
             </View>
-            <View style={styles.flex1}>
+            <View style={half}>
               <FieldLabel text="Destination" required />
               <IconInput
-                icon="flag-checkered"
-                error={submitted && !destination.trim()}
-                placeholder="e.g., Ladakh, India"
+                icon="flag-outline"
+                error={!!errors?.destination}
+                placeholder="e.g. Ladakh, India"
                 value={destination}
                 onChangeText={(text) => {
                   setDestination(text);
                   if (destinationCoords) setDestinationCoords(null);
                 }}
+                accessibilityLabel="Destination"
               />
-              <TouchableOpacity style={styles.pickOnMapLink} onPress={() => setActivePicker("destination")}>
-                <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={colors.primary} />
-                <Text style={styles.pickOnMapText}>Pick on map</Text>
-              </TouchableOpacity>
+              <FieldError message={errors?.destination} />
+              <LocationLink onPress={() => setActivePicker("destination")} color={teal} />
             </View>
           </View>
-        </Card>
+          <View>
+            <View style={styles.row}>
+              <View style={styles.flex1}>
+                <FieldLabel text="Start date" required />
+              </View>
+              <View style={styles.flex1}>
+                <FieldLabel text="End date" required />
+              </View>
+            </View>
+            <TripDateFields
+              startDate={startDate}
+              endDate={endDate}
+              onChangeStart={handleStartDateChange}
+              onChangeEnd={setEndDate}
+              endError={!!errors?.endDate}
+              inputStyle={s.dateField}
+              errorStyle={s.inputError}
+              placeholderStyle={s.placeholderText}
+            />
+            <View style={styles.row}>
+              <View style={styles.flex1} />
+              <View style={styles.flex1}>
+                <FieldError message={errors?.endDate} />
+              </View>
+            </View>
+          </View>
+        </FormSection>
 
         <LocationPickerModal
           visible={activePicker === "start"}
@@ -394,153 +459,181 @@ export function CreateTripScreen({ navigation, route }: Props) {
           }}
         />
 
-        <Card>
-          <Text style={styles.sectionHeading}>When</Text>
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <FieldLabel text="Start date" required />
-            </View>
-            <View style={styles.flex1}>
-              <FieldLabel text="End date" required />
-            </View>
-          </View>
-          <TripDateFields
-            startDate={startDate}
-            endDate={endDate}
-            onChangeStart={handleStartDateChange}
-            onChangeEnd={setEndDate}
-            endError={submitted && !endDate}
-            inputStyle={styles.dateField}
-            errorStyle={styles.inputError}
-            placeholderStyle={styles.placeholderText}
-          />
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionHeading}>Travel & Capacity</Text>
+        <FormSection icon="account-group" tint="violet" title="Travel & Capacity" subtitle="Choose how you will travel and set your preferences" index={2} decoration={formWidth >= 640 ? <FlightArt /> : undefined}>
           <View>
-            <FieldLabel text="Travel mode" required />
-            <Text style={styles.helperText}>How will you travel?</Text>
-            <View style={[styles.modeGrid, submitted && !travelMode && styles.selectorError]}>
+            <FieldLabel text="Travel mode" required info onInfo={() => setShowModeInfo((v) => !v)} />
+            {showModeInfo && <Hint>The main way the group gets around. Travelers can filter trips by it on Discover.</Hint>}
+            <View
+              style={[styles.modeGrid, errors?.travelMode && s.selectorError]}
+              onLayout={(e) => setModeGridWidth(e.nativeEvent.layout.width)}
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Travel mode"
+            >
               {TRAVEL_MODES.filter((m) => !disabledModes.includes(m) || m === existingTrip?.travelMode).map((mode) => (
-                <SelectableChip
+                <OptionPill
                   key={mode}
-                  icon={TRAVEL_MODE_ICONS[mode]}
+                  icon={TRAVEL_MODE_ICONS[mode] as IconName}
                   label={travelModeText(mode)}
-                  active={travelMode === mode}
+                  selected={travelMode === mode}
                   onPress={() => setTravelMode(mode)}
-                  style={styles.modeChip}
+                  style={modeWidth ? { width: modeWidth } : styles.modeFallback}
+                  compact={modeColumns === 2}
                 />
               ))}
             </View>
+            <FieldError message={errors?.travelMode} />
           </View>
 
           <View style={styles.row}>
-            <View style={styles.flex1}>
+            <View style={half}>
               <FieldLabel text="Budget (₹, optional)" />
               <IconInput
                 icon="currency-inr"
-                placeholder="e.g., 10000"
+                placeholder="e.g. 10000"
                 keyboardType="numeric"
                 value={budget}
-                onChangeText={setBudget}
+                onChangeText={(v) => setBudget(v.replace(/[^0-9]/g, ""))}
+                accessibilityLabel="Budget in rupees"
               />
             </View>
-            <View style={styles.flex1}>
+            <View style={half}>
               <FieldLabel text="Seats available" required />
               <IconInput
-                icon="account-multiple"
-                error={submitted && (!seats.trim() || Number(seats) < 1)}
-                placeholder="e.g., 4"
+                icon="account-group-outline"
+                error={!!errors?.seats}
+                placeholder="e.g. 4"
                 keyboardType="numeric"
                 value={seats}
-                onChangeText={setSeats}
+                onChangeText={(v) => setSeats(v.replace(/[^0-9]/g, ""))}
+                accessibilityLabel="Seats available"
               />
+              <FieldError message={errors?.seats} />
             </View>
           </View>
-        </Card>
+        </FormSection>
 
-        <Card>
-          <Text style={styles.sectionHeading}>Details</Text>
+        <FormSection icon="text-box-outline" tint="blue" title="Details" subtitle="Add more information about your trip" index={3}>
           <View>
             <FieldLabel text="Describe the trip" required />
             <IconInput
-              icon="text-box-outline"
-              error={submitted && !description.trim()}
-              placeholder="Add a short description"
+              icon="pencil-outline"
+              error={!!errors?.description}
+              placeholder="Tell us what makes this trip special…"
               multiline
               maxLength={500}
               value={description}
               onChangeText={setDescription}
+              accessibilityLabel="Trip description"
             />
-            <Text style={styles.counter}>{description.length}/500</Text>
-          </View>
-
-          <View>
-            <FieldLabel text="Places to visit (comma-separated)" />
-            <IconInput
-              icon="map-marker-multiple"
-              placeholder="Places to visit"
-              value={placesToVisit}
-              onChangeText={setPlacesToVisit}
-            />
-          </View>
-
-          <View>
-            <FieldLabel text="Special notes (optional)" />
-            <IconInput
-              icon="note-text-outline"
-              placeholder="Add any notes"
-              multiline
-              value={notes}
-              onChangeText={setNotes}
-            />
-          </View>
-
-          <View>
-            <FieldLabel text="Who can join?" required />
-            <View style={[styles.joinTypeList, submitted && !joinType && styles.selectorError]}>
-              {JOIN_TYPES.map((jt) => (
-                <SelectableChip
-                  key={jt.value}
-                  icon={jt.icon}
-                  label={jt.label}
-                  active={joinType === jt.value}
-                  onPress={() => setJoinType(jt.value)}
-                  style={styles.joinTypeChip}
-                />
-              ))}
+            <View style={styles.underRow}>
+              <FieldError message={errors?.description} />
+              <Text style={[styles.counter, { color: colors.mutedLight }]}>{description.length}/500</Text>
             </View>
           </View>
-        </Card>
 
-        <PrimaryButton
-          label={isEditMode ? "Save Changes" : "Publish Trip"}
-          onPress={onSubmit}
-          disabled={isSubmitting}
-          loading={isSubmitting}
-          icon={isEditMode ? "check" : "arrow-right"}
-        />
+          <View style={styles.row}>
+            <View style={half}>
+              <FieldLabel text="Places to visit (comma-separated)" />
+              <IconInput icon="map-marker-multiple-outline" placeholder="e.g. Goa, Munnar, Coorg" value={placesToVisit} onChangeText={setPlacesToVisit} accessibilityLabel="Places to visit" />
+            </View>
+            <View style={half}>
+              <FieldLabel text="Special notes (optional)" />
+              <IconInput icon="star-outline" placeholder="Any additional notes…" value={notes} onChangeText={setNotes} accessibilityLabel="Special notes" />
+            </View>
+          </View>
+
+          <View>
+            <View style={[styles.joinRow, errors?.joinType && s.selectorError]} accessibilityRole="radiogroup" accessibilityLabel="Who can join">
+              <View style={[styles.joinLabel, !twoCol && styles.full]}>
+                <FieldLabel text="Who can join?" required info onInfo={() => setShowJoinInfo((v) => !v)} />
+              </View>
+              {JOIN_TYPES.map((jt) => (
+                <RadioOption key={jt.value} label={jt.label} selected={joinType === jt.value} onPress={() => setJoinType(jt.value)} />
+              ))}
+            </View>
+            {showJoinInfo && <Hint>Open: anyone can join right away while seats last. Requires approval: you review each request first.</Hint>}
+            <FieldError message={errors?.joinType} />
+          </View>
+        </FormSection>
       </ScrollView>
-    </View>
+
+      <View style={[s.footer, { paddingHorizontal: gutter, paddingBottom: 12 + insets.bottom }]}>
+        <View style={[styles.footerInner, { maxWidth: FORM_MAX_WIDTH }]}>
+          <Pressable
+            onPress={leave}
+            style={(state) => {
+              const { hovered } = state as { hovered?: boolean };
+              return [s.cancel, hovered && { backgroundColor: colors.fieldBg }];
+            }}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.cancelText, { color: colors.ink }]}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            onPress={onSubmit}
+            disabled={isSubmitting}
+            style={(state) => {
+              const { hovered, pressed } = state as { hovered?: boolean; pressed: boolean };
+              return [
+                styles.publish,
+                WEB_TRANSITION,
+                hovered && !isSubmitting && styles.publishHover,
+                pressed && { transform: [{ scale: 0.98 }] },
+                isSubmitting && { opacity: 0.75 },
+              ];
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={isEditMode ? "Save changes" : "Publish trip"}
+            accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+          >
+            <LinearGradient colors={["#2563eb", "#4f46e5"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.publishFill}>
+              {isSubmitting ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <MaterialCommunityIcons name={isEditMode ? "check" : "send"} size={19} color="#ffffff" style={!isEditMode && { transform: [{ rotate: "-30deg" }] }} />
+              )}
+              <Text style={styles.publishText}>{isSubmitting ? (uploadImages.isPending ? "Uploading photos…" : "Saving…") : isEditMode ? "Save Changes" : "Publish Trip"}</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      </View>
+    </>
   );
 }
 
+const WEB_TRANSITION =
+  Platform.OS === "web" ? ({ transitionProperty: "transform, box-shadow", transitionDuration: "160ms" } as object) : null;
+
+const styles = StyleSheet.create({
+  row: { flexDirection: "row", flexWrap: "wrap", gap: 18 },
+  flex1: { flex: 1 },
+  half: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 },
+  full: { width: "100%" },
+  underRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
+  counter: { fontSize: 12, marginTop: 6, marginLeft: "auto" },
+  mapLink: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8, alignSelf: "flex-start" },
+  mapLinkText: { fontSize: 13, fontWeight: "700" },
+  modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  modeFallback: { flexBasis: "30%", flexGrow: 1 },
+  joinRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 22, rowGap: 4 },
+  joinLabel: { marginBottom: -8 },
+  footerInner: { width: "100%", alignSelf: "center", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  cancelText: { fontSize: 15, fontWeight: "600" },
+  publish: { borderRadius: RADIUS.pill, flexGrow: 1, maxWidth: 300, shadowColor: "#2563eb", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
+  publishHover: { transform: [{ translateY: -1 }], shadowOpacity: 0.42, shadowRadius: 18 },
+  publishFill: { height: 52, borderRadius: RADIUS.pill, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 24 },
+  publishText: { color: "#ffffff", fontSize: 16, fontWeight: "800" },
+});
+
 function createStyles(colors: Palette) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.surface },
+    screen: { flex: 1, flexDirection: "row", backgroundColor: colors.surface },
+    main: { flex: 1, minWidth: 0 },
     scroll: { flex: 1 },
-    form: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", paddingTop: 4, gap: 16 },
-    sectionHeading: { ...FONT.cardTitle, color: colors.ink },
-    label: { ...FONT.label, marginTop: 4, color: colors.ink },
-    required: { color: colors.danger },
-    counter: { alignSelf: "flex-end", fontSize: 11, color: colors.mutedLight, marginTop: 2 },
-    helperText: { fontSize: 12, color: colors.muted, marginTop: -2, marginBottom: 8 },
-    row: { flexDirection: "row", gap: 10 },
-    flex1: { flex: 1 },
+    form: { width: "100%", alignSelf: "center", gap: 18, paddingBottom: 28 },
     inputError: { borderColor: colors.danger },
     placeholderText: { color: colors.mutedLight },
-    selectorError: { borderWidth: 1, borderColor: colors.danger, borderRadius: RADIUS.field, padding: 6 },
+    selectorError: { borderWidth: 1, borderColor: colors.danger, borderRadius: RADIUS.field, padding: 8 },
     dateField: {
       backgroundColor: colors.fieldBg,
       borderWidth: 1,
@@ -549,45 +642,16 @@ function createStyles(colors: Palette) {
       paddingHorizontal: 14,
       paddingVertical: 13,
     },
-    modeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8, width: "100%" },
-    modeChip: { flexBasis: "48%", flexGrow: 1, flexShrink: 1, minWidth: 0 },
-    joinTypeList: { gap: 8, marginTop: 8 },
-    joinTypeChip: { width: "100%", justifyContent: "flex-start", paddingHorizontal: 14 },
-    pickOnMapLink: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-    pickOnMapText: { color: colors.primary, fontSize: 12, fontWeight: "600" },
-    coverPicker: {
-      height: 150,
-      borderRadius: RADIUS.field,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderStyle: "dashed",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.fieldBg,
-      gap: 6,
-    },
-    coverPickerText: { color: colors.muted, fontSize: 13, fontWeight: "600" },
-    coverPreview: { width: "100%", height: 150, borderRadius: RADIUS.field },
-    coverChangeBadge: {
-      position: "absolute",
-      right: 10,
-      bottom: 10,
-      backgroundColor: "rgba(15,23,42,0.75)",
+    footer: { borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surfaceElevated, paddingTop: 12, ...SHADOW.card, shadowOffset: { width: 0, height: -4 } },
+    cancel: {
+      height: 52,
+      paddingHorizontal: 30,
       borderRadius: RADIUS.pill,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-    },
-    coverChangeText: { color: colors.white, fontSize: 11, fontWeight: "700" },
-    thumb: { width: 60, height: 60, borderRadius: 8 },
-    addImage: {
-      width: 60,
-      height: 60,
-      borderRadius: 8,
       borderWidth: 1,
       borderColor: colors.border,
-      borderStyle: "dashed",
       alignItems: "center",
       justifyContent: "center",
+      backgroundColor: colors.surfaceElevated,
     },
   });
 }

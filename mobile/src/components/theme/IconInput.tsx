@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CONTROL, RADIUS } from "../../theme/tokens";
@@ -19,12 +19,15 @@ export function IconInput({
   style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = useTheme();
+  // Focus ring so the active field is easy to spot.
+  const [focused, setFocused] = useState(false);
   return (
     <View
       style={[
         styles.wrap,
         { backgroundColor: colors.fieldBg, borderColor: colors.border },
         textInputProps.multiline && styles.wrapMultiline,
+        focused && { borderColor: colors.primary, backgroundColor: colors.surfaceElevated },
         error && { borderColor: colors.danger },
         style,
       ]}
@@ -39,6 +42,14 @@ export function IconInput({
         style={[styles.input, { color: colors.ink }, textInputProps.multiline && styles.inputMultiline]}
         placeholderTextColor={colors.mutedLight}
         {...textInputProps}
+        onFocus={(e) => {
+          setFocused(true);
+          textInputProps.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          textInputProps.onBlur?.(e);
+        }}
       />
       {rightElement}
     </View>

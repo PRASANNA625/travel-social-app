@@ -47,8 +47,12 @@ function DesktopSidebar() {
 
 export function AppNavigator() {
   const { isDesktop } = useResponsiveLayout();
-  // The admin dashboard brings its own navigation, so it gets the full window.
+  // Loads the signed-in user into the auth store on every app start (see useMe).
+  useMe();
+  // These screens bring their own left column (admin menu, Create Trip's scenic
+  // panel), so they get the full window.
   const routeName = useRootRouteName();
+  const fullWindow = routeName === "Admin" || routeName === "CreateTrip";
   const stack = (
     // Every screen draws its own ScreenHeader; titles still name the browser tab.
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -80,7 +84,7 @@ export function AppNavigator() {
   // Desktop: the sidebar stays beside every screen, tabs and stack screens alike.
   return (
     <View style={styles.desktop}>
-      {routeName !== "Admin" && <DesktopSidebar />}
+      {!fullWindow && <DesktopSidebar />}
       <View style={styles.desktopContent}>{stack}</View>
     </View>
   );

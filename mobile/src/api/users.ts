@@ -10,7 +10,13 @@ export function useMe() {
   const token = useAuthStore((s) => s.token);
   return useQuery({
     queryKey: ["users", "me"],
-    queryFn: async () => (await apiClient.get<User>("/users/me")).data,
+    queryFn: async () => {
+      const user = (await apiClient.get<User>("/users/me")).data;
+      // Only the token survives a reload; this restores the signed-in user that
+      // screens read from the store (trip ownership, own chat messages).
+      useAuthStore.getState().setUser(user);
+      return user;
+    },
     enabled: !!token,
   });
 }
