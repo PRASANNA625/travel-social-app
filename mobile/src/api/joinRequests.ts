@@ -30,10 +30,12 @@ export function useExpressInterest(tripId: string) {
   return useMutation({
     mutationFn: async (message?: string) =>
       (await apiClient.post<JoinRequest>(`/join-requests/trips/${tripId}`, { message })).data,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trips", tripId] });
-      queryClient.invalidateQueries({ queryKey: ["join-requests", "mine"] });
-      queryClient.invalidateQueries({ queryKey: ["join-requests", "trip", tripId, "mine"] });
+    // Show the new request at once; an open trip approves it straight away, so the
+    // group (which decides membership on screen) has to refresh as well. The button
+    // keeps spinning until it has.
+    onSuccess: (req) => {
+      queryClient.setQueryData(["join-requests", "trip", tripId, "mine"], req);
+      return invalidateJoinState(queryClient, tripId);
     },
   });
 }
@@ -77,10 +79,12 @@ export interface InvitableBuddy {
 export type Invitation = JoinRequest & { trip: Trip & { owner: { id: string; name: string; photoUrl: string | null } } };
 
 function invalidateJoinState(queryClient: ReturnType<typeof useQueryClient>, tripId?: string) {
-  queryClient.invalidateQueries({ queryKey: ["join-requests"] });
-  queryClient.invalidateQueries({ queryKey: ["trips"] });
-  queryClient.invalidateQueries({ queryKey: ["groups"] });
-  if (tripId) queryClient.invalidateQueries({ queryKey: ["trips", tripId] });
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["join-requests"] }),
+    queryClient.invalidateQueries({ queryKey: ["trips"] }),
+    queryClient.invalidateQueries({ queryKey: ["groups"] }),
+    tripId ? queryClient.invalidateQueries({ queryKey: ["trips", tripId] }) : undefined,
+  ]);
 }
 
 export function useInvitableBuddies(tripId?: string, enabled = true) {

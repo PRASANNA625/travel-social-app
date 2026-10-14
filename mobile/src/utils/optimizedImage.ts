@@ -1,3 +1,4 @@
+import { PixelRatio } from "react-native";
 import { API_URL } from "../api/client";
 
 // All uploaded photos are stored on Cloudinary (see backend/src/middleware/upload.ts)
@@ -25,6 +26,15 @@ export function optimizedVideoUrl(url: string, width: number): string {
   return url.slice(0, insertAt) + `q_auto,vc_auto,c_limit,w_${Math.round(width)}/` + url.slice(insertAt);
 }
 
+// Cloudinary builds each new size on first request (close to a second), so widths
+// are rounded up to a few shared steps that are usually already cached. Sharp
+// screens get extra pixels, capped at 2x to keep files small.
+const WIDTH_STEPS = [64, 128, 256, 384, 512, 640, 828, 1080, 1280, 1600, 1920];
+function requestWidth(width: number) {
+  const px = width * Math.min(PixelRatio.get() || 1, 2);
+  return WIDTH_STEPS.find((step) => step >= px) ?? WIDTH_STEPS[WIDTH_STEPS.length - 1];
+}
+
 export function optimizedImageUrl(url: string, width: number): string {
   const localUpload = url.match(LOCAL_UPLOAD_PATH);
   if (localUpload) return API_URL.replace(/\/+$/, "") + localUpload[1];
@@ -34,6 +44,6 @@ export function optimizedImageUrl(url: string, width: number): string {
 
   const insertAt = markerIndex + CLOUDINARY_UPLOAD_MARKER.length;
   // c_limit: shrink to width but never upscale a smaller original.
-  const transform = `f_auto,q_auto,c_limit,w_${Math.round(width)}/`;
+  const transform = `f_auto,q_auto,c_limit,w_${requestWidth(width)}/`;
   return url.slice(0, insertAt) + transform + url.slice(insertAt);
 }

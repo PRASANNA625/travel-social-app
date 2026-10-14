@@ -86,6 +86,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const [editImages, setEditImages] = useState<string[]>([]);
   const [newPhotoAssets, setNewPhotoAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // Cover photos that failed once (retried at their original URL) and twice (shown as a gradient).
+  const [retriedImages, setRetriedImages] = useState<Set<string>>(new Set());
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
@@ -502,9 +504,13 @@ export function TripDetailScreen({ route, navigation }: Props) {
                     />
                   ) : (
                     <Image
-                      source={{ uri: optimizedImageUrl(item, heroWidth) }}
-                      style={[styles.heroImage, { width: heroWidth, height: heroHeight }]}
-                      onError={() => setFailedImages((prev) => new Set(prev).add(item))}
+                      source={{ uri: retriedImages.has(item) ? item : optimizedImageUrl(item, heroWidth) }}
+                      style={[styles.heroImage, styles.heroImageLoading, { width: heroWidth, height: heroHeight }]}
+                      onError={() =>
+                        retriedImages.has(item)
+                          ? setFailedImages((prev) => new Set(prev).add(item))
+                          : setRetriedImages((prev) => new Set(prev).add(item))
+                      }
                     />
                   )
                 }
@@ -924,6 +930,7 @@ function createStyles(colors: Palette) {
   heroWeb: { borderRadius: RADIUS.card, marginTop: 4 },
   heroList: { flex: 1 },
   heroImage: { width: "100%", height: "100%" },
+  heroImageLoading: { backgroundColor: colors.border },
   statusPill: {
     position: "absolute",
     top: 14,
