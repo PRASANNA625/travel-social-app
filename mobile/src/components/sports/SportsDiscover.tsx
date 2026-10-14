@@ -4,8 +4,9 @@ import { useTrips } from "../../api/trips";
 import { SKILL_LEVELS, SPORTS, type SkillLevel, type Sport, type Trip } from "../../types";
 import { useTheme } from "../../theme/ThemeContext";
 import { gridColumnsFor, toRows } from "../../theme/layout";
-import { getCurrentLocationOrThrow } from "../../utils/currentLocation";
-import { Alert } from "../../utils/alert";
+import { getCurrentLocationOrThrow, locationProblemOf, type LocationProblem } from "../../utils/currentLocation";
+import { LocationProblemModal } from "../LocationProblemModal";
+import { LocationPickerModal, type LocationValue } from "../LocationPickerModal";
 import { SKILL_LABELS, SPORT_INFO } from "../../utils/sports";
 import { FilterChip } from "../theme/FilterChip";
 import { SelectChip } from "../theme/SelectChip";
@@ -70,6 +71,9 @@ export function SportsDiscover({
   const [openSlots, setOpenSlots] = useState(true);
   const [nearMe, setNearMe] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
+  const [locationProblem, setLocationProblem] = useState<LocationProblem | null>(null);
+  const [placePickerOpen, setPlacePickerOpen] = useState(false);
+  const [nearPlace, setNearPlace] = useState<string | null>(null);
   const [limit, setLimit] = useState(PAGE);
   const [inviteFor, setInviteFor] = useState<Trip | null>(null);
 
@@ -94,22 +98,28 @@ export function SportsDiscover({
   const filtersOn = sports.length > 0 || !!when || !!skill || !!nearMe || !openSlots;
 
   const toggleSport = (s: Sport) => setSports((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
-  const toggleNearMe = async () => {
-    if (nearMe) return setNearMe(null);
+  const locate = async () => {
     setLocating(true);
     try {
       setNearMe(await getCurrentLocationOrThrow());
-    } catch (err: any) {
-      Alert.alert("Location unavailable", err?.message ?? "Allow location access to see activities near you.");
+      setNearPlace(null);
+    } catch (err) {
+      setLocationProblem(locationProblemOf(err));
     } finally {
       setLocating(false);
     }
+  };
+  const toggleNearMe = () => {
+    if (!nearMe) return locate();
+    setNearMe(null);
+    setNearPlace(null);
   };
   const clearAll = () => {
     setSports([]);
     setWhen("");
     setSkill("");
     setNearMe(null);
+    setNearPlace(null);
     setOpenSlots(true);
   };
 
@@ -132,7 +142,7 @@ export function SportsDiscover({
         />
         <FilterChip label="Open spots" icon="account-check-outline" active={openSlots} onPress={() => setOpenSlots((v) => !v)} />
         <FilterChip
-          label={locating ? "Locating…" : nearMe ? `Near me · ${NEAR_ME_RADIUS_KM} km` : "Near me"}
+          label={locating ? "Locating…" : nearMe ? `Near ${nearPlace ?? "me"} · ${NEAR_ME_RADIUS_KM} km` : "Near me"}
           icon="map-marker"
           iconColor={colors.danger}
           active={!!nearMe}
@@ -172,7 +182,7 @@ export function SportsDiscover({
           title={filtersOn || search ? "No activities match" : "No upcoming activities yet"}
           message={
             nearMe
-              ? `Nothing within ${NEAR_ME_RADIUS_KM} km of you. Try a wider search or start one yourself.`
+              ? `Nothing within ${NEAR_ME_RADIUS_KM} km of ${nearPlace ?? "you"}. Try a wider search or start one yourself.`
               : filtersOn || search
                 ? "Try fewer filters, or start the game yourself."
                 : "Be the first to organize a game and invite your buddies."
@@ -199,6 +209,31 @@ export function SportsDiscover({
           )}
         </View>
       )}
+
+      <LocationProblemModal
+        problem={locationProblem}
+        subject="activities"
+        onClose={() => setLocationProblem(null)}
+        onRetry={() => {
+          setLocationProblem(null);
+          locate();
+        }}
+        onChoosePlace={() => {
+          setLocationProblem(null);
+          setPlacePickerOpen(true);
+        }}
+      />
+      <LocationPickerModal
+        visible={placePickerOpen}
+        title="See activities near"
+        initialValue={null}
+        onClose={() => setPlacePickerOpen(false)}
+        onSelect={(place: LocationValue) => {
+          setPlacePickerOpen(false);
+          setNearMe({ lat: place.lat, lng: place.lng });
+          setNearPlace(place.name.split(",")[0].trim());
+        }}
+      />
 
       {inviteFor && (
         <InviteBuddiesModal

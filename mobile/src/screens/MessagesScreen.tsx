@@ -9,7 +9,9 @@ import type { GroupInboxItem } from "../types";
 import { useMyGroups } from "../api/groups";
 import { useMe } from "../api/users";
 import { Skeleton } from "../components/theme/Skeleton";
+import { LinearGradient } from "expo-linear-gradient";
 import { fallbackCover } from "../utils/coverPhotos";
+import { SPORT_INFO } from "../utils/sports";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 import { formatRelativeTime } from "../utils/date";
 import { ACTION_BLUE, PAGE_WIDTH, RADIUS, SHADOW, pageGutter } from "../theme/tokens";
@@ -43,14 +45,22 @@ function ChatRow({ item, myId, onPress }: { item: GroupInboxItem; myId?: string;
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [coverFailed, setCoverFailed] = useState(false);
   const unread = item.unreadCount > 0;
-  const cover =
-    item.trip.images[0] && !coverFailed
-      ? { uri: optimizedImageUrl(item.trip.images[0], 120) }
-      : fallbackCover({ id: item.trip.id, travelMode: item.trip.travelMode });
+  const hasPhoto = !!item.trip.images[0] && !coverFailed;
+  const cover = hasPhoto
+    ? { uri: optimizedImageUrl(item.trip.images[0], 120) }
+    : fallbackCover({ id: item.trip.id, travelMode: item.trip.travelMode });
+  // Sports meetups without a photo use their sport's gradient, as on their cards.
+  const sport = item.trip.category === "SPORTS" && !hasPhoto ? SPORT_INFO[item.trip.sport ?? "OTHER"] : null;
 
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.85} accessibilityRole="button">
-      <Image source={cover} style={styles.cover} resizeMode="cover" onError={() => setCoverFailed(true)} />
+      {sport ? (
+        <LinearGradient colors={sport.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.cover, styles.sportCover]}>
+          <MaterialCommunityIcons name={sport.icon} size={28} color="#ffffff" />
+        </LinearGradient>
+      ) : (
+        <Image source={cover} style={styles.cover} resizeMode="cover" onError={() => setCoverFailed(true)} />
+      )}
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
           <Text style={[styles.title, unread && styles.titleUnread]} numberOfLines={1}>
@@ -152,6 +162,7 @@ function createStyles(colors: Palette) {
       ...SHADOW.card,
     },
     cover: { width: 60, height: 60, borderRadius: 14, backgroundColor: colors.fieldBg },
+    sportCover: { alignItems: "center", justifyContent: "center" },
     rowBody: { flex: 1, minWidth: 0, gap: 3 },
     rowTop: { flexDirection: "row", alignItems: "center", gap: 8 },
     title: { flex: 1, fontSize: 15, fontWeight: "600", color: colors.ink },

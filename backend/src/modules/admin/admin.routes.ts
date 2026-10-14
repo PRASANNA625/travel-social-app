@@ -10,6 +10,7 @@ import * as moderation from "./admin.moderation";
 import * as insights from "./admin.insights";
 import { getSettings, settingsSchema, updateSettings } from "./settings";
 import { logAction } from "./audit";
+import { heroAdminRouter } from "../hero/hero.routes";
 
 // Every /admin endpoint requires a signed-in, non-suspended account with at least
 // the role named on the route. Roles are checked against the database each time.
@@ -36,6 +37,10 @@ const reason = z.string().trim().min(3, "Please give a reason").max(500);
 function actor(req: AuthedRequest) {
   return { id: req.userId!, role: req.userRole! };
 }
+
+// --- Discover hero banners (own module; roles checked per route) -------------------
+
+adminRouter.use("/hero", heroAdminRouter);
 
 // --- Session ----------------------------------------------------------------------
 

@@ -34,19 +34,30 @@ const ACTION_TEXT: Record<string, string> = {
   "announcement.send": "sent an announcement",
   "settings.update": "changed app settings",
   "export.download": "downloaded a report",
+  "hero.create": "created a hero banner",
+  "hero.update": "edited a hero banner",
+  "hero.published": "published a hero banner",
+  "hero.scheduled": "scheduled a hero banner",
+  "hero.draft": "unpublished a hero banner",
+  "hero.archived": "archived a hero banner",
+  "hero.delete": "deleted a hero banner",
+  "hero.reorder": "reordered hero banners",
+  "hero.upload": "uploaded hero media",
+  "hero.settings": "changed hero carousel settings",
 };
 
 export function describeAction(action: string) {
   return ACTION_TEXT[action] ?? humanize(action.replace(".", " "));
 }
 
-const TARGETS = ["USER", "TRIP", "REPORT", "REVIEW", "COMMENT", "MESSAGE", "FEEDBACK", "JOIN_REQUEST", "GROUP_MEMBER", "CONNECTION", "ANNOUNCEMENT", "SETTINGS", "EXPORT"] as const;
+const TARGETS = ["USER", "TRIP", "REPORT", "REVIEW", "COMMENT", "MESSAGE", "FEEDBACK", "JOIN_REQUEST", "GROUP_MEMBER", "CONNECTION", "ANNOUNCEMENT", "SETTINGS", "EXPORT", "HERO_BANNER"] as const;
 
 // Human-readable summary of an entry's details (reason, changes, role move...).
 function detailText(entry: AuditEntry) {
   const d = entry.details ?? {};
   if (typeof d.reason === "string") return `Reason: ${d.reason}`;
   if (d.from && d.to) return `${humanize(String(d.from))} → ${humanize(String(d.to))}`;
+  if (typeof d.title === "string") return `"${d.title}"`;
   if (Array.isArray(d.changed)) return d.changed.length ? `Changed: ${d.changed.join(", ")}` : "No changes";
   if (d.changes && typeof d.changes === "object") return Object.keys(d.changes as object).join(", ");
   if (typeof d.recipients === "number") return `${d.recipients} recipients`;

@@ -315,6 +315,11 @@ export async function listTrips(filters: TripFilters, viewerId?: string) {
   const useGeoSort = filters.lat !== undefined && filters.lng !== undefined;
 
   if (useGeoSort) {
+    // "Near me" is about trips you could still join: ended or cancelled ones
+    // (often the closest, since they start right here) are left out.
+    // ("Open spots" has already narrowed the status further.)
+    where.status ??= { notIn: ["COMPLETED", "CANCELLED"] };
+    where.endDate = { gte: new Date() };
     // Geo sort/filter happens in-memory (no PostGIS in this MVP), so pull a
     // bounded working set ordered by recency, then re-sort by distance.
     const [candidates] = await Promise.all([

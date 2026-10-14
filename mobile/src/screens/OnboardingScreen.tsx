@@ -257,7 +257,8 @@ const styles = StyleSheet.create({
   controls: { gap: 22 },
   controlsWide: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" },
   progress: { flexDirection: "row", gap: 6, minWidth: 0 },
-  segmentHit: { paddingVertical: 10 },
+  // 44px tall to tap; the negative margin keeps the bar where it was.
+  segmentHit: { paddingVertical: 20, marginVertical: -10 },
   segment: { width: 40, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   segmentDone: { backgroundColor: "rgba(255,255,255,0.65)" },
   segmentActive: { width: 64, backgroundColor: "#ffffff" },

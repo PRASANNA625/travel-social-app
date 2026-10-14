@@ -14,6 +14,17 @@ const CLOUDINARY_UPLOAD_MARKER = "/upload/";
 // Load those from the backend this build talks to instead.
 const LOCAL_UPLOAD_PATH = /^https?:\/\/[^/]+(\/uploads\/.+)$/;
 
+// Same idea for videos: Cloudinary re-encodes to a smaller file at the width
+// asked for (q_auto/vc_auto), so phones don't download the full original.
+export function optimizedVideoUrl(url: string, width: number): string {
+  const localUpload = url.match(LOCAL_UPLOAD_PATH);
+  if (localUpload) return API_URL.replace(/\/+$/, "") + localUpload[1];
+  const markerIndex = url.indexOf(CLOUDINARY_UPLOAD_MARKER);
+  if (markerIndex === -1) return url;
+  const insertAt = markerIndex + CLOUDINARY_UPLOAD_MARKER.length;
+  return url.slice(0, insertAt) + `q_auto,vc_auto,c_limit,w_${Math.round(width)}/` + url.slice(insertAt);
+}
+
 export function optimizedImageUrl(url: string, width: number): string {
   const localUpload = url.match(LOCAL_UPLOAD_PATH);
   if (localUpload) return API_URL.replace(/\/+$/, "") + localUpload[1];

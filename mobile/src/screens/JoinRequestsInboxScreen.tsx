@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useJoinRequestsForTrip, useRespondToJoinRequest } from "../api/joinRequests";
+import { useTrip } from "../api/trips";
 import type { JoinRequest } from "../types";
 import { Skeleton } from "../components/theme/Skeleton";
 import { ScreenHeader } from "../components/theme/ScreenHeader";
@@ -38,7 +39,9 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
   const resolvedStatus = useMemo(() => resolvedStatusMap(colors), [colors]);
   const { isDesktop } = useResponsiveLayout();
   const listStyle = [styles.list, { paddingHorizontal: pageGutter(isDesktop) }];
-  const tripTitle = requests?.find((r) => r.trip)?.trip?.title;
+  const { data: trip } = useTrip(tripId);
+  const noun = trip?.category === "SPORTS" ? "activity" : "trip";
+  const tripTitle = trip?.title ?? requests?.find((r) => r.trip)?.trip?.title;
 
   useEffect(() => {
     if (handledHighlightRef.current || !requests) return;
@@ -62,7 +65,7 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
     <View style={styles.container}>
       <ScreenHeader
         title="Join Requests"
-        subtitle={tripTitle ? `People who want to join "${tripTitle}"` : "People who want to join your trip"}
+        subtitle={tripTitle ? `People who want to join "${tripTitle}"` : `People who want to join your ${noun}`}
         showBack
         maxWidth={PAGE_WIDTH.form}
       />
@@ -95,7 +98,7 @@ export function JoinRequestsInboxScreen({ route, navigation }: Props) {
             <EmptyState
               icon="account-clock-outline"
               title="No requests yet"
-              message="When someone asks to join this trip, you can approve or decline them here."
+              message={`When someone asks to join this ${noun}, you can approve or decline them here.`}
             />
           }
           renderItem={({ item }: { item: JoinRequest }) => (

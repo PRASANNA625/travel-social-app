@@ -250,7 +250,7 @@ export interface ChatMessage {
 export interface GroupInboxItem {
   id: string;
   role: GroupRole;
-  trip: Pick<Trip, "id" | "title" | "destination" | "images" | "travelMode" | "startDate" | "endDate">;
+  trip: Pick<Trip, "id" | "title" | "destination" | "images" | "travelMode" | "category" | "sport" | "startDate" | "endDate">;
   memberCount: number;
   lastMessage: {
     id: string;

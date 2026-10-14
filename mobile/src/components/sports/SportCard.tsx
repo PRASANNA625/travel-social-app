@@ -203,6 +203,7 @@ const styles = StyleSheet.create({
   button: { flex: 1, height: 40, borderRadius: RADIUS.pill, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 10 },
   buttonPrimary: { backgroundColor: ACTION_BLUE },
   buttonPrimaryText: { color: "#ffffff", fontSize: 14, fontWeight: "800" },
-  buttonGhost: { borderWidth: 1, flex: 0, paddingHorizontal: 16 },
+  // Sized to its label; never squeezed by the main button beside it.
+  buttonGhost: { borderWidth: 1, flexGrow: 0, flexShrink: 0, flexBasis: "auto", paddingHorizontal: 16 },
   buttonText: { fontSize: 14, fontWeight: "700" },
 });

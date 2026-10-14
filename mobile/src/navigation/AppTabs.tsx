@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { BottomTabBar, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { AppTabParamList } from "./types";
@@ -26,8 +27,25 @@ export const TAB_ICONS: Record<keyof AppTabParamList, { active: IconName; inacti
   Profile: { active: "account-circle", inactive: "account-circle-outline" },
 };
 
-// Sidebar-only routes: the phone bottom bar keeps its four tabs.
 const hiddenOnBottomBar = { tabBarButton: () => null };
+// Tablets have room for every tab; phones leave Meetups to Discover's "See all".
+const TABLET_MIN_WIDTH = 600;
+
+// Tab icon with an unread badge. Drawn here rather than with tabBarBadge,
+// whose fixed-width box cut two-digit counts down to "3..".
+function TabIcon({ name, color, count }: { name: IconName; color: string; count: number }) {
+  const { colors } = useTheme();
+  return (
+    <View>
+      <MaterialCommunityIcons name={name} size={22} color={color} />
+      {count > 0 && (
+        <View style={[styles.badge, { backgroundColor: colors.danger, borderColor: colors.navBarBg }]}>
+          <Text style={styles.badgeText}>{count > 99 ? "99+" : count}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 // Tab order and labels, shared by the phone tab bar and the desktop sidebar.
 export const TAB_ITEMS: { key: keyof AppTabParamList; label: string }[] = [
@@ -52,7 +70,8 @@ export function useNavBadges() {
 export function AppTabs() {
   const { Notifications: unreadCount, Messages: unreadChats } = useNavBadges();
   const { colors } = useTheme();
-  const { isDesktop } = useResponsiveLayout();
+  const { isDesktop, width } = useResponsiveLayout();
+  const counts: Partial<Record<keyof AppTabParamList, number>> = { Notifications: unreadCount, Messages: unreadChats };
 
   return (
     <Tab.Navigator
@@ -64,22 +83,28 @@ export function AppTabs() {
         tabBarInactiveTintColor: colors.mutedLight,
         tabBarStyle: { borderTopWidth: 1, borderTopColor: colors.divider, backgroundColor: colors.navBarBg },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        // Labels under the icons at every width (tablets would put them beside), so badges never sit on a label.
+        tabBarLabelPosition: "below-icon",
         tabBarIcon: ({ focused, color }) => {
-          const icon = TAB_ICONS[route.name as keyof AppTabParamList];
-          return <MaterialCommunityIcons name={focused ? icon.active : icon.inactive} size={22} color={color} />;
+          const key = route.name as keyof AppTabParamList;
+          const icon = TAB_ICONS[key];
+          return <TabIcon name={focused ? icon.active : icon.inactive} color={color} count={counts[key] ?? 0} />;
         },
       })}
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} options={{ title: "Discover", headerShown: false }} />
       <Tab.Screen name="MyTrips" component={MyTripsScreen} options={{ title: "My Trips" }} />
-      <Tab.Screen name="Meetups" component={TravelBuddiesScreen} options={{ title: "Meetups", ...hiddenOnBottomBar }} />
+      <Tab.Screen
+        name="Meetups"
+        component={TravelBuddiesScreen}
+        options={{ title: "Meetups", ...(width >= TABLET_MIN_WIDTH ? {} : hiddenOnBottomBar) }}
+      />
       <Tab.Screen
         name="Messages"
         component={MessagesScreen}
         options={{
           title: "Messages",
-          tabBarBadge: unreadChats > 0 ? unreadChats : undefined,
-          ...hiddenOnBottomBar,
+          tabBarAccessibilityLabel: unreadChats > 0 ? `Messages, ${unreadChats} unread` : "Messages",
         }}
       />
       <Tab.Screen
@@ -88,10 +113,26 @@ export function AppTabs() {
         options={{
           title: "Notifications",
           headerShown: false,
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarAccessibilityLabel: unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications",
         }}
       />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: "Profile", headerShown: false }} />
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    position: "absolute",
+    top: -5,
+    left: 13,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: { color: "#ffffff", fontSize: 10, fontWeight: "800", lineHeight: 12 },
+});

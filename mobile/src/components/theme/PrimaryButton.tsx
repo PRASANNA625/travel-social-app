@@ -15,6 +15,7 @@ export function PrimaryButton({
   style,
   variant = "solid",
   size = "regular",
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
@@ -25,6 +26,8 @@ export function PrimaryButton({
   variant?: "solid" | "outline";
   // "small" for inline actions (empty states, cards); "regular" for forms and page actions.
   size?: "regular" | "small";
+  // When the visible label is shortened (e.g. on phones).
+  accessibilityLabel?: string;
 }) {
   const { colors } = useTheme();
   const isOutline = variant === "outline";
@@ -43,6 +46,7 @@ export function PrimaryButton({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.9}
+      accessibilityLabel={accessibilityLabel}
     >
       {loading ? (
         <ActivityIndicator color={contentColor} />

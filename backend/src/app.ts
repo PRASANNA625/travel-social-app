@@ -15,6 +15,7 @@ import { assistantRouter } from "./modules/assistant/assistant.routes";
 import { safetyRouter } from "./modules/safety/safety.routes";
 import { feedbackRouter } from "./modules/feedback/feedback.routes";
 import { adminRouter } from "./modules/admin/admin.routes";
+import { heroPublicRouter } from "./modules/hero/hero.routes";
 import { getSettingsCached } from "./modules/admin/settings";
 import { asyncHandler } from "./utils/asyncHandler";
 
@@ -22,7 +23,11 @@ export const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static(path.resolve(env.uploadsDir)));
+app.use(
+  "/uploads",
+  // nosniff: browsers must treat files as the type we stored, never guess (e.g. as HTML).
+  express.static(path.resolve(env.uploadsDir), { setHeaders: (res) => res.setHeader("X-Content-Type-Options", "nosniff") })
+);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
@@ -48,6 +53,7 @@ app.use("/notifications", notificationsRouter);
 app.use("/assistant", assistantRouter);
 app.use("/safety", safetyRouter);
 app.use("/feedback", feedbackRouter);
+app.use("/hero", heroPublicRouter);
 app.use("/admin", adminRouter);
 
 app.use(notFoundHandler);

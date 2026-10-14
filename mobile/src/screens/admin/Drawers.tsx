@@ -24,8 +24,22 @@ import { AccountBadge, RoleBadge, canManage, useAccountActions } from "./section
 import { TripFlags, TripStatusBadge } from "./sections/TripsSection";
 import { describeAction } from "./sections/AuditSection";
 
-// Side panel on wide screens, full screen on phones.
-function Drawer({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: ReactNode }) {
+// Side panel on wide screens, full screen on phones. `footer` stays pinned below the scrolling body.
+export function Drawer({
+  visible,
+  title,
+  onClose,
+  children,
+  panelWidth = 520,
+  footer,
+}: {
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  panelWidth?: number;
+  footer?: ReactNode;
+}) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const full = width < 720;
@@ -33,7 +47,7 @@ function Drawer({ visible, title, onClose, children }: { visible: boolean; title
     <Modal visible={visible} transparent animationType={full ? "slide" : "fade"} onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: full ? colors.surface : colors.overlay }]}>
         {!full && <Pressable style={styles.flex1} onPress={onClose} accessibilityLabel="Close panel" />}
-        <View style={[styles.drawer, full ? styles.drawerFull : styles.drawerSide, { backgroundColor: colors.surface }]}>
+        <View style={[styles.drawer, full ? styles.drawerFull : [styles.drawerSide, { width: panelWidth }], { backgroundColor: colors.surface }]}>
           <View style={[styles.drawerHeader, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}>
             <Text style={[styles.drawerTitle, { color: colors.ink }]} numberOfLines={1}>
               {title}
@@ -43,6 +57,7 @@ function Drawer({ visible, title, onClose, children }: { visible: boolean; title
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={styles.drawerBody}>{children}</ScrollView>
+          {footer && <View style={[styles.drawerFooter, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}>{footer}</View>}
         </View>
       </View>
     </Modal>
@@ -489,6 +504,7 @@ const styles = StyleSheet.create({
   drawerTitle: { ...FONT.screenTitle, fontSize: 18, flexShrink: 1 },
   close: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   drawerBody: { padding: 16, gap: 12, paddingBottom: 40 },
+  drawerFooter: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, padding: 12, borderTopWidth: 1 },
   hero: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: RADIUS.card, borderWidth: 1 },
   heroName: { ...FONT.screenTitle },
   badges: { flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 6 },

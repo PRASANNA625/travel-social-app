@@ -19,7 +19,7 @@ export interface Column<T> {
 }
 
 // One table component for every admin list. Wide: a real table with a header row.
-// Narrow (< 720px): each row becomes a card listing its fields, so nothing is
+// Narrow (< 860px, so tablets too): each row becomes a card listing its fields, so nothing is
 // squeezed or scrolled sideways. Handles loading, error, empty and selection.
 export function DataTable<T>({
   columns,
@@ -51,13 +51,14 @@ export function DataTable<T>({
 }) {
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
-  const narrow = width > 0 && width < 720;
+  // Below this a 6-7 column table gets cramped; cards read better.
+  const narrow = width > 0 && width < NARROW_MAX;
   const selectable = !!selected && !!onToggleSelect;
   const keys = rows?.map(keyOf) ?? [];
   const allSelected = selectable && keys.length > 0 && keys.every((k) => selected!.has(k));
 
   const checkbox = (checked: boolean, onPress: () => void, label: string) => (
-    <TouchableOpacity onPress={onPress} hitSlop={8} accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={label}>
+    <TouchableOpacity onPress={onPress} style={styles.checkHit} accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={label}>
       <MaterialCommunityIcons name={checked ? "checkbox-marked" : "checkbox-blank-outline"} size={20} color={checked ? colors.primary : colors.mutedLight} />
     </TouchableOpacity>
   );
@@ -147,6 +148,8 @@ export function DataTable<T>({
   );
 }
 
+const NARROW_MAX = 860;
+
 // Plain text cell with consistent type.
 export function CellText({ children, muted, strong }: { children: ReactNode; muted?: boolean; strong?: boolean }) {
   const { colors } = useTheme();
@@ -173,8 +176,11 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, minHeight: 52 },
   headerRow: { minHeight: 40, paddingVertical: 8 },
   headerText: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
-  cell: { minWidth: 0, justifyContent: "center" },
+  // Clip so long values (emails, badges) never spill into the next column.
+  cell: { minWidth: 0, justifyContent: "center", overflow: "hidden" },
   checkCell: { width: 24, alignItems: "center" },
+  // 36px tap target around the 20px box; the negative margin keeps the layout unchanged.
+  checkHit: { padding: 8, margin: -8 },
   actionsCell: { flexDirection: "row", gap: 6, justifyContent: "flex-end", minWidth: 40 },
   cellText: { fontSize: 13.5 },
   cellStrong: { fontWeight: "700" },

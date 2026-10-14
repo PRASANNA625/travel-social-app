@@ -9,6 +9,8 @@ import { useTheme } from "../theme/ThemeContext";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 import { useLikeTrip } from "../api/trips";
 import { checkPlaceholderCover, fallbackCover } from "../utils/coverPhotos";
+import { LinearGradient } from "expo-linear-gradient";
+import { SPORT_INFO, formatSportsTime, isSports } from "../utils/sports";
 
 export function formatTripDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -33,7 +35,10 @@ export function TripCard({
   const [imageFailed, setImageFailed] = useState(false);
   const { colors } = useTheme();
   const likeTrip = useLikeTrip();
-  const distance = formatDistance(trip.distanceKm);
+  // Location searches measure from where a trip starts (a sports meetup's venue),
+  // so say so: "From Bengaluru · 2 km away", not a bare distance next to the destination.
+  const away = formatDistance(trip.distanceKm);
+  const distance = away && (isSports(trip) ? away : `From ${trip.startLocation} · ${away}`);
 
   // Uploaded cover first; trips without one (or whose upload fails) get their travel type's photo.
   const coverSource = (width: number) =>
@@ -43,6 +48,19 @@ export function TripCard({
       checkPlaceholderCover(optimizedImageUrl(trip.images[0], width), () => setImageFailed(true));
     }
   };
+
+  // Sports meetups without a photo show their sport's gradient instead of a travel photo.
+  const sports = isSports(trip);
+  const sportInfo = SPORT_INFO[trip.sport ?? "OTHER"];
+  const cover = (width: number, iconSize: number) =>
+    sports && (!trip.images[0] || imageFailed) ? (
+      <LinearGradient colors={sportInfo.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.fill, styles.sportCover]}>
+        <MaterialCommunityIcons name={sportInfo.icon} size={iconSize} color="rgba(255,255,255,0.9)" />
+      </LinearGradient>
+    ) : (
+      <Image source={coverSource(width)} style={styles.fill} resizeMode="cover" onLoad={() => onCoverLoad(width)} onError={() => setImageFailed(true)} />
+    );
+  const when = sports ? formatSportsTime(trip.startDate) : `${formatTripDate(trip.startDate)} – ${formatTripDate(trip.endDate)}`;
 
   const toggleLike = () => likeTrip.mutate({ tripId: trip.id, input: !trip.isLiked });
 
@@ -71,16 +89,16 @@ export function TripCard({
     <View style={styles.statsGroup}>
       <MaterialCommunityIcons name="account-multiple" size={14} color={colors.muted} />
       <Text style={[styles.meta, { color: colors.muted }]}>
-        {trip.seatsFilled}/{trip.seats} joined
+        {trip.seatsFilled}/{trip.seats} {sports ? "spots filled" : "joined"}
       </Text>
     </View>
   );
 
   const modeChip = (
     <View style={[styles.modeChip, { backgroundColor: colors.primaryMuted }]}>
-      <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[trip.travelMode]} size={13} color={colors.primary} />
+      <MaterialCommunityIcons name={sports ? sportInfo.icon : TRAVEL_MODE_ICONS[trip.travelMode]} size={13} color={colors.primary} />
       <Text style={[styles.mode, { color: colors.primary }]} numberOfLines={1}>
-        {travelModeText(trip.travelMode)}
+        {sports ? sportInfo.label : travelModeText(trip.travelMode)}
       </Text>
     </View>
   );
@@ -93,7 +111,7 @@ export function TripCard({
         activeOpacity={0.9}
       >
         <View style={styles.listImageWrap}>
-          <Image source={coverSource(240)} style={styles.fill} resizeMode="cover" onLoad={() => onCoverLoad(240)} onError={() => setImageFailed(true)} />
+          {cover(240, 30)}
         </View>
 
         <View style={styles.listBody}>
@@ -109,7 +127,7 @@ export function TripCard({
           <View style={styles.metaRow}>
             <MaterialCommunityIcons name="map-marker-outline" size={13} color={colors.muted} />
             <Text style={[styles.metaText, { color: colors.muted }]} numberOfLines={1}>
-              {trip.destination} · {formatTripDate(trip.startDate)} – {formatTripDate(trip.endDate)}
+              {trip.destination} · {when}
               {distance ? ` · ${distance}` : ""}
             </Text>
           </View>
@@ -138,7 +156,7 @@ export function TripCard({
       activeOpacity={0.9}
     >
       <View style={styles.imageWrap}>
-        <Image source={coverSource(600)} style={styles.fill} resizeMode="cover" onLoad={() => onCoverLoad(600)} onError={() => setImageFailed(true)} />
+        {cover(600, 44)}
 
         <View style={[styles.statusPill, { backgroundColor: TRIP_STATUS_COLORS[trip.status] }]}>
           <Text style={styles.statusText}>{TRIP_STATUS_LABELS[trip.status]}</Text>
@@ -177,7 +195,7 @@ export function TripCard({
           </Text>
           <MaterialCommunityIcons name="calendar-blank-outline" size={13} color={colors.muted} style={styles.metaIconSpacer} />
           <Text style={[styles.metaText, { color: colors.muted }]} numberOfLines={1}>
-            {formatTripDate(trip.startDate)} – {formatTripDate(trip.endDate)}
+            {when}
           </Text>
         </View>
         {distance && (
@@ -197,6 +215,7 @@ export function TripCard({
 
 const styles = StyleSheet.create({
   fill: { width: "100%", height: "100%" },
+  sportCover: { alignItems: "center", justifyContent: "center" },
   card: {
     flexGrow: 1,
     borderRadius: 16,

@@ -51,7 +51,7 @@ export function TripMapPreviewCard({
             <Text style={styles.meta} numberOfLines={1}>
               {trip.destination} · {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
               {typeof trip.distanceKm === "number"
-                ? ` · ${trip.distanceKm < 1 ? "<1" : Math.round(trip.distanceKm)} km away`
+                ? ` · starts ${trip.distanceKm < 1 ? "<1" : Math.round(trip.distanceKm)} km away`
                 : ""}
             </Text>
           </View>

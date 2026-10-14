@@ -6,6 +6,7 @@ import {
   Animated,
   FlatList,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -31,7 +32,9 @@ import { TripCard } from "../components/TripCard";
 import { TripCardSkeleton } from "../components/TripCardSkeleton";
 import { ViewModeToggle, type ViewModeToggleOption } from "../components/ViewModeToggle";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
-import { getCurrentLocationOrThrow } from "../utils/currentLocation";
+import { getCurrentLocationOrThrow, locationProblemOf, type LocationProblem } from "../utils/currentLocation";
+import { LocationProblemModal } from "../components/LocationProblemModal";
+import { LocationPickerModal, type LocationValue } from "../components/LocationPickerModal";
 import { HERO_PHOTO, HERO_PHOTO_ASPECT } from "../utils/coverPhotos";
 import { DiscoverSection, SECTION_GAP } from "../components/DiscoverSection";
 import { SectionHeader } from "../components/SectionHeader";
@@ -57,6 +60,8 @@ import { Alert } from "../utils/alert";
 import { useAppConfig } from "../api/config";
 import { AnnouncementBanner } from "../components/AnnouncementBanner";
 import { SportsDiscover } from "../components/sports/SportsDiscover";
+import { DEFAULT_HERO_SETTINGS, useHeroBanners } from "../api/hero";
+import { FadeSwap, HeroBackdrop, HeroCopy, HeroDots, HeroTagline, useHeroCarousel } from "../components/hero/HeroCarousel";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, "Discover">,
@@ -104,7 +109,10 @@ export function DiscoverScreen({ navigation }: Props) {
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
   const [locating, setLocating] = useState(false);
   const [radiusSheetVisible, setRadiusSheetVisible] = useState(false);
-  const [locationDeniedVisible, setLocationDeniedVisible] = useState(false);
+  const [locationProblem, setLocationProblem] = useState<LocationProblem | null>(null);
+  const [placePickerOpen, setPlacePickerOpen] = useState(false);
+  // Set when the user picked a place instead of sharing their location.
+  const [nearMePlace, setNearMePlace] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [profileMenuVisible, setProfileMenuVisible] = useState(false);
   const [heroSize, setHeroSize] = useState({ width: 0, height: 0 });
@@ -338,8 +346,9 @@ export function DiscoverScreen({ navigation }: Props) {
     try {
       const coords = await getCurrentLocationOrThrow();
       setNearMe(coords);
-    } catch {
-      setLocationDeniedVisible(true);
+      setNearMePlace(null);
+    } catch (err) {
+      setLocationProblem(locationProblemOf(err));
     } finally {
       setLocating(false);
     }
@@ -347,6 +356,7 @@ export function DiscoverScreen({ navigation }: Props) {
 
   const clearNearMe = () => {
     setNearMe(null);
+    setNearMePlace(null);
     setRadiusSheetVisible(false);
   };
 
@@ -398,7 +408,7 @@ export function DiscoverScreen({ navigation }: Props) {
             <MaterialCommunityIcons name="map-marker" size={15} color={nearMe ? colors.white : colors.danger} />
           )}
           <Text style={[styles.chipText, nearMe && styles.chipTextActive]}>
-            {nearMe ? `Near me · ${radiusKm} km` : "Near me"}
+            {nearMe ? `Near ${nearMePlace ?? "me"} · ${radiusKm} km` : "Near me"}
           </Text>
           {nearMe && (
             <>
@@ -446,6 +456,30 @@ export function DiscoverScreen({ navigation }: Props) {
   const searchIn = useEntrance(260, reduceMotion);
   const taglineIn = [useEntrance(520, reduceMotion, 700), useEntrance(680, reduceMotion, 700), useEntrance(840, reduceMotion, 700)];
   const heroAmbient = isFocused && !reduceMotion;
+
+  // Banners managed from the admin dashboard. With none live, the built-in scene shows.
+  const { data: heroData } = useHeroBanners();
+  const heroSlides = heroData?.banners ?? [];
+  const heroSettings = heroData?.settings ?? DEFAULT_HERO_SETTINGS;
+  const [heroPaused, setHeroPaused] = useState(false);
+  const [heroIndex, setHeroIndex] = useHeroCarousel(heroSlides.length, heroSettings.intervalSeconds, isFocused && !heroPaused);
+  const activeSlide = heroSlides[heroIndex];
+  const heroText = activeSlide?.textColor ?? "#ffffff";
+  const defaultSubtitle = isDesktop
+    ? "Find amazing trips, meet like-minded travelers and create unforgettable memories."
+    : "Find trips and meet like-minded travelers.";
+
+  // A banner button opens an in-app place or an https page (new tab on web).
+  const openHeroCta = (url: string) => {
+    if (url.startsWith("https://")) return void Linking.openURL(url);
+    const trip = url.match(/^\/trip\/([a-z0-9]+)$/);
+    if (trip) return navigation.navigate("TripDetail", { tripId: trip[1] });
+    if (url === "/sports") return setCategory("SPORTS");
+    if (url === "/create-trip") return navigation.navigate("CreateTrip");
+    if (url === "/create-activity") return navigation.navigate("CreateTrip", { category: "SPORTS" });
+    if (url === "/meetups") return navigation.navigate("Meetups");
+    if (url === "/my-trips") return navigation.navigate("MyTrips");
+  };
   const heroDrift = usePingPong(16000, heroAmbient);
   const heroDriftX = heroDrift.interpolate({ inputRange: [0, 1], outputRange: [-10, 10] });
   const heroParallax = reduceMotion
@@ -466,34 +500,47 @@ export function DiscoverScreen({ navigation }: Props) {
         isDesktop && styles.heroDesktop,
       ]}
       onLayout={(e) => setHeroSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+      onPointerEnter={() => setHeroPaused(true)}
+      onPointerLeave={() => setHeroPaused(false)}
     >
-      {/* Panorama sized to cover the banner; when the banner is shorter than the photo, crop
-          evenly from top and bottom so both the peaks and the lake stay in view. */}
-      <Animated.Image
-        source={HERO_PHOTO}
-        resizeMode="cover"
-        style={[
-          styles.heroPhoto,
-          {
-            height: heroPhotoHeight,
-            top: (heroSize.height - heroPhotoHeight) / 2,
-            transform: [{ translateY: heroParallax }, { translateX: heroDriftX }, { scale: 1.04 }],
-          },
-        ]}
-      />
-      <HeroAmbience width={heroSize.width} height={heroSize.height} animate={heroAmbient} />
-      <LinearGradient
-        colors={["rgba(37,99,235,0.35)", "rgba(37,99,235,0)"]}
-        locations={[0, 0.6]}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={["rgba(8,20,40,0.62)", "rgba(8,20,40,0.25)", "rgba(8,20,40,0.05)"]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {isDesktop && (
+      {activeSlide ? (
+        <HeroBackdrop slides={heroSlides} index={heroIndex} transition={heroSettings.transition} width={heroSize.width} animate={!reduceMotion} />
+      ) : (
+        <>
+        {/* Panorama sized to cover the banner; when the banner is shorter than the photo, crop
+            evenly from top and bottom so both the peaks and the lake stay in view. */}
+        <Animated.Image
+          source={HERO_PHOTO}
+          resizeMode="cover"
+          style={[
+            styles.heroPhoto,
+            {
+              height: heroPhotoHeight,
+              top: (heroSize.height - heroPhotoHeight) / 2,
+              transform: [{ translateY: heroParallax }, { translateX: heroDriftX }, { scale: 1.04 }],
+            },
+          ]}
+        />
+        <HeroAmbience width={heroSize.width} height={heroSize.height} animate={heroAmbient} />
+        <LinearGradient
+          colors={["rgba(37,99,235,0.35)", "rgba(37,99,235,0)"]}
+          locations={[0, 0.6]}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={["rgba(8,20,40,0.62)", "rgba(8,20,40,0.25)", "rgba(8,20,40,0.05)"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={StyleSheet.absoluteFill}
+        />
+        </>
+      )}
+      {isDesktop && activeSlide && (
+        <FadeSwap id={activeSlide.id} animate={!reduceMotion} style={StyleSheet.absoluteFill}>
+          <HeroTagline text={activeSlide.tagline} color={heroText} side="right" />
+        </FadeSwap>
+      )}
+      {isDesktop && !activeSlide && (
         <View style={styles.heroTagline} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {["Explore", "Connect", "Belong"].map((word, i) => (
             <Animated.Text
@@ -522,13 +569,22 @@ export function DiscoverScreen({ navigation }: Props) {
             },
           ]}
         >
-          {!isDesktop && <Text style={styles.heroKicker}>Hi, {firstName} 👋</Text>}
-          <Text style={[styles.heroTitle, isDesktop && styles.heroTitleDesktop]}>Discover</Text>
-          <Text style={styles.heroSubtitle}>
-            {isDesktop
-              ? "Find amazing trips, meet like-minded travelers and create unforgettable memories."
-              : "Find trips and meet like-minded travelers."}
-          </Text>
+          {activeSlide ? (
+            <FadeSwap id={activeSlide.id} animate={!reduceMotion}>
+              <HeroCopy
+                slide={{ ...activeSlide, heading: activeSlide.heading ?? "Discover", subtitle: activeSlide.subtitle ?? defaultSubtitle }}
+                desktop={isDesktop}
+                kicker={isDesktop ? undefined : `Hi, ${firstName} 👋`}
+                onCta={() => activeSlide.ctaUrl && openHeroCta(activeSlide.ctaUrl)}
+              />
+            </FadeSwap>
+          ) : (
+            <>
+              {!isDesktop && <Text style={styles.heroKicker}>Hi, {firstName} 👋</Text>}
+              <Text style={[styles.heroTitle, isDesktop && styles.heroTitleDesktop]}>Discover</Text>
+              <Text style={styles.heroSubtitle}>{defaultSubtitle}</Text>
+            </>
+          )}
         </Animated.View>
         <View style={styles.heroActions}>
           <Pressable
@@ -557,8 +613,8 @@ export function DiscoverScreen({ navigation }: Props) {
           </View>
           {isDesktop && (
             <View>
-              <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
-              <Text style={styles.greetingSub}>Where to next?</Text>
+              <Text style={[styles.greeting, { color: heroText }]}>Hi, {firstName} 👋</Text>
+              <Text style={[styles.greetingSub, { color: heroText }]}>Where to next?</Text>
             </View>
           )}
         </View>
@@ -588,6 +644,7 @@ export function DiscoverScreen({ navigation }: Props) {
           </TouchableOpacity>
         )}
       </Animated.View>
+      <HeroDots count={heroSlides.length} index={heroIndex} onSelect={setHeroIndex} style={styles.heroDots} />
     </View>
   );
 
@@ -921,8 +978,8 @@ export function DiscoverScreen({ navigation }: Props) {
       >
         <Pressable style={styles.backdrop} onPress={() => setRadiusSheetVisible(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetTitle}>Near me</Text>
-            <Text style={styles.sheetSubtitle}>Showing trips within {radiusKm} km of your location</Text>
+            <Text style={styles.sheetTitle}>{nearMePlace ? `Near ${nearMePlace}` : "Near me"}</Text>
+            <Text style={styles.sheetSubtitle}>Showing trips within {radiusKm} km of {nearMePlace ?? "your location"}</Text>
             <View style={styles.radiusOptionsRow}>
               {RADIUS_OPTIONS_KM.map((km) => (
                 <TouchableOpacity
@@ -947,42 +1004,30 @@ export function DiscoverScreen({ navigation }: Props) {
         </Pressable>
       </Modal>
 
-      <Modal
-        visible={locationDeniedVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setLocationDeniedVisible(false)}
-      >
-        <Pressable style={styles.backdrop} onPress={() => setLocationDeniedVisible(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <View style={styles.permissionIconWrap}>
-              <MaterialCommunityIcons name="map-marker-off-outline" size={26} color={colors.danger} />
-            </View>
-            <Text style={styles.sheetTitle}>Location access needed</Text>
-            <Text style={styles.sheetSubtitle}>
-              To show trips near you, we need permission to use your device's location. Please allow location
-              access and try again.
-            </Text>
-            <View style={styles.permissionButtonRow}>
-              <TouchableOpacity
-                style={styles.permissionCancelButton}
-                onPress={() => setLocationDeniedVisible(false)}
-              >
-                <Text style={styles.permissionCancelText}>Not now</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.permissionRetryButton}
-                onPress={() => {
-                  setLocationDeniedVisible(false);
-                  activateNearMe();
-                }}
-              >
-                <Text style={styles.permissionRetryText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <LocationProblemModal
+        problem={locationProblem}
+        subject="trips"
+        onClose={() => setLocationProblem(null)}
+        onRetry={() => {
+          setLocationProblem(null);
+          activateNearMe();
+        }}
+        onChoosePlace={() => {
+          setLocationProblem(null);
+          setPlacePickerOpen(true);
+        }}
+      />
+      <LocationPickerModal
+        visible={placePickerOpen}
+        title="See trips near"
+        initialValue={null}
+        onClose={() => setPlacePickerOpen(false)}
+        onSelect={(place: LocationValue) => {
+          setPlacePickerOpen(false);
+          setNearMe({ lat: place.lat, lng: place.lng });
+          setNearMePlace(place.name.split(",")[0].trim());
+        }}
+      />
 
       <ProfileMenu
         visible={profileMenuVisible}
@@ -1008,6 +1053,7 @@ function createStyles(colors: Palette) {
       backgroundColor: "#0c2b28",
     },
     heroDesktop: { minHeight: 280, paddingBottom: 40 },
+    heroDots: { position: "absolute", bottom: 0, alignSelf: "center" },
     heroPhoto: { position: "absolute", left: 0, right: 0, width: "100%" },
     heroTagline: {
       position: "absolute",
@@ -1219,32 +1265,5 @@ function createStyles(colors: Palette) {
       backgroundColor: colors.dangerBg,
     },
     clearFilterText: { color: colors.danger, fontWeight: "700", fontSize: 13 },
-    permissionIconWrap: {
-      alignSelf: "center",
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.dangerBg,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: 10,
-    },
-    permissionButtonRow: { flexDirection: "row", gap: 10, marginTop: 18 },
-    permissionCancelButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      alignItems: "center",
-      backgroundColor: colors.fieldBg,
-    },
-    permissionCancelText: { color: colors.ink, fontWeight: "700", fontSize: 13 },
-    permissionRetryButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      alignItems: "center",
-      backgroundColor: colors.primary,
-    },
-    permissionRetryText: { color: colors.white, fontWeight: "700", fontSize: 13 },
   });
 }

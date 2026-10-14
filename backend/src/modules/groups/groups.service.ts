@@ -73,7 +73,7 @@ export async function listGroupsForUser(userId: string) {
         group: {
           include: {
             trip: {
-              select: { id: true, title: true, destination: true, images: true, travelMode: true, startDate: true, endDate: true },
+              select: { id: true, title: true, destination: true, images: true, travelMode: true, category: true, sport: true, startDate: true, endDate: true },
             },
             _count: { select: { members: true } },
             messages: {

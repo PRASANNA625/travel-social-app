@@ -1,6 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
+import type { ImagePickerAsset } from "expo-image-picker";
 import type { Sport, TravelMode, TripCategory, TripStatus } from "../types";
+import type { HeroSettings, HeroSlide } from "./hero";
 
 // Admin dashboard API. Every endpoint is role-checked by the backend; the UI
 // only mirrors those rules to avoid offering actions that would be refused.
@@ -246,6 +248,7 @@ function useAdminMutation<TVars, TResult = unknown>(fn: (vars: TVars) => Promise
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin"] });
       queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: ["hero"] });
     },
   });
 }
@@ -324,6 +327,53 @@ export const useSetFeedbackStatus = () =>
 export const useSendAnnouncement = () =>
   useAdminMutation((body: { title: string; body: string; audience: Audience }) => apiClient.post("/admin/announcements", body));
 export const useSaveSettings = () => useAdminMutation((settings: AppSettings) => apiClient.put("/admin/settings", settings));
+
+// --- Discover hero banners
+export type HeroBannerStatus = "DRAFT" | "PUBLISHED" | "SCHEDULED" | "ARCHIVED";
+// Status as it stands right now (a published banner can be waiting for its start or already over).
+export type HeroBannerState = "DRAFT" | "ARCHIVED" | "LIVE" | "SCHEDULED" | "ENDED";
+export interface AdminHeroBanner extends HeroSlide {
+  title: string;
+  status: HeroBannerStatus;
+  state: HeroBannerState;
+  mediaKey: string;
+  posterKey: string | null;
+  displayOrder: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export type HeroBannerInput = Omit<AdminHeroBanner, "id" | "state" | "displayOrder" | "createdAt" | "updatedAt">;
+export interface StoredHeroMedia {
+  mediaType: "IMAGE" | "VIDEO";
+  url: string;
+  key: string;
+  posterUrl: string | null;
+}
+
+export const useAdminHero = () => useAdminQuery<{ settings: HeroSettings; banners: AdminHeroBanner[] }>(["hero"], "/admin/hero");
+export const useCreateHeroBanner = () =>
+  useAdminMutation(async (input: HeroBannerInput) => (await apiClient.post<AdminHeroBanner>("/admin/hero", input)).data);
+export const useUpdateHeroBanner = () =>
+  useAdminMutation(async ({ id, input }: { id: string; input: Partial<HeroBannerInput> }) => (await apiClient.patch<AdminHeroBanner>(`/admin/hero/${id}`, input)).data);
+export const useDeleteHeroBanner = () => useAdminMutation((id: string) => apiClient.delete(`/admin/hero/${id}`));
+export const useReorderHero = () => useAdminMutation((ids: string[]) => apiClient.post("/admin/hero/reorder", { ids }));
+export const useSaveHeroSettings = () => useAdminMutation((settings: HeroSettings) => apiClient.put("/admin/hero/settings", settings));
+
+// Uploads one hero image or video, reporting progress (0-1). "poster" accepts images only.
+export async function uploadHeroMedia(asset: ImagePickerAsset, kind: "media" | "poster", onProgress: (fraction: number) => void) {
+  const form = new FormData();
+  const isVideo = asset.type === "video" || asset.mimeType?.startsWith("video/");
+  const name = asset.fileName ?? (isVideo ? "banner.mp4" : "banner.jpg");
+  if (asset.file) form.append("file", asset.file, name);
+  else form.append("file", { uri: asset.uri, name, type: asset.mimeType ?? (isVideo ? "video/mp4" : "image/jpeg") } as unknown as Blob);
+  const { data } = await apiClient.post<StoredHeroMedia>(`/admin/hero/media?kind=${kind}`, form, {
+    onUploadProgress: (e) => e.total && onProgress(e.loaded / e.total),
+    timeout: 5 * 60_000,
+  });
+  return data;
+}
 
 // CSV exports come back as text; on web they're saved through a temporary link.
 export async function downloadExport(type: "users" | "trips" | "destinations") {

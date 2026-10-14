@@ -98,7 +98,8 @@ export function TripDetailScreen({ route, navigation }: Props) {
   // Header lines up with the page column (760px) plus the page gutter on each side.
   const header = <ScreenHeader title={trip?.category === "SPORTS" ? "Activity Details" : "Trip Details"} showBack maxWidth={PAGE_WIDTH.form + 2 * pageGutter(isDesktop)} />;
   const [heroWidth, setHeroWidth] = useState(width);
-  const heroHeight = isWeb ? Math.min(Math.round(heroWidth / 2.4), 380) : 260;
+  // Wide banner on desktop; phones get a taller crop so the photo and title have room.
+  const heroHeight = isWeb ? Math.min(Math.max(Math.round(heroWidth / (heroWidth < 600 ? 1.6 : 2.4)), 200), 380) : 260;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -317,7 +318,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
               icon="pencil-outline"
               onPress={() => navigation.navigate("CreateTrip", { tripId })}
             />
-            <PrimaryButton style={styles.stickyFlex} label="Invite buddies" icon="account-plus-outline" onPress={() => setInviteOpen(true)} />
+            <PrimaryButton style={styles.stickyFlex} label={width < 420 ? "Invite" : "Invite buddies"} accessibilityLabel="Invite buddies" icon="account-plus-outline" onPress={() => setInviteOpen(true)} />
           </View>
         )}
         <View style={styles.stickyRow}>
@@ -518,9 +519,6 @@ export function TripDetailScreen({ route, navigation }: Props) {
               sports ? (
                 <LinearGradient colors={sportInfo.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroImage}>
                   <MaterialCommunityIcons name={sportInfo.icon} size={220} color="rgba(255,255,255,0.14)" style={styles.heroSportWatermark} />
-                  <View style={styles.heroSportIcon}>
-                    <MaterialCommunityIcons name={sportInfo.icon} size={40} color={colors.white} />
-                  </View>
                 </LinearGradient>
               ) : (
                 <LinearGradient colors={["#2563eb", "#0f766e"]} style={styles.heroImage} />
@@ -547,6 +545,11 @@ export function TripDetailScreen({ route, navigation }: Props) {
             )}
 
             <LinearGradient colors={["transparent", "rgba(15,23,42,0.85)"]} style={styles.heroScrim}>
+              {sports && trip.images.length === 0 && (
+                <View style={styles.heroSportIcon}>
+                  <MaterialCommunityIcons name={sportInfo.icon} size={30} color={colors.white} />
+                </View>
+              )}
               <Text style={styles.title} numberOfLines={2}>
                 {trip.title}
               </Text>
@@ -1030,14 +1033,12 @@ function createStyles(colors: Palette) {
   inviteBannerText: { flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" },
   inviteBannerTitle: { fontSize: 14.5, fontWeight: "700", color: colors.ink, flexShrink: 1 },
   heroSportWatermark: { position: "absolute", right: -30, bottom: -40 },
+  // Sits above the title in the scrim, so it can't overlap it at any width.
   heroSportIcon: {
-    position: "absolute",
-    top: "26%",
-    left: "50%",
-    marginLeft: -32,
-    width: 64,
-    height: 64,
-    borderRadius: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    marginBottom: 10,
     backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",

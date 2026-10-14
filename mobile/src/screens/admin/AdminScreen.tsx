@@ -19,6 +19,7 @@ import { ReportsSection } from "./sections/ReportsSection";
 import { ReviewsSection } from "./sections/ReviewsSection";
 import { NotificationsSection } from "./sections/NotificationsSection";
 import { ConfigSection } from "./sections/ConfigSection";
+import { HeroSection } from "./sections/HeroSection";
 import { AnalyticsSection } from "./sections/AnalyticsSection";
 import { RolesSection } from "./sections/RolesSection";
 import { AuditSection } from "./sections/AuditSection";
@@ -35,6 +36,7 @@ const SECTION_COMPONENTS: Record<SectionKey, ComponentType> = {
   reviews: ReviewsSection,
   notifications: NotificationsSection,
   config: ConfigSection,
+  hero: HeroSection,
   analytics: AnalyticsSection,
   roles: RolesSection,
   audit: AuditSection,

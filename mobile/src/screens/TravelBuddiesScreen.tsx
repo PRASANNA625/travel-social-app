@@ -262,7 +262,8 @@ function createStyles(colors: Palette) {
       paddingVertical: 7,
     },
     requestsPillText: { fontSize: 12.5, fontWeight: "700", color: colors.primary },
-    filterRow: { flexGrow: 0, marginTop: 12 },
+    // flexShrink 0: on short screens the grid below would otherwise squash the chips flat.
+    filterRow: { flexGrow: 0, flexShrink: 0, marginTop: 12, width: "100%", maxWidth: GRID_MAX_WIDTH, alignSelf: "center" },
     filterRowContent: { paddingVertical: 4, alignItems: "center", gap: 8 },
     skeletonGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, paddingVertical: 16 },
     list: { paddingTop: 16, paddingBottom: 40, width: "100%", maxWidth: GRID_MAX_WIDTH, alignSelf: "center" },

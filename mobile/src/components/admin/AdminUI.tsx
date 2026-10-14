@@ -148,7 +148,7 @@ export function StatTile({
   const body = (
     <>
       <View style={styles.statTop}>
-        <Text style={[styles.statLabel, { color: colors.muted }]} numberOfLines={1}>
+        <Text style={[styles.statLabel, { color: colors.muted }]} numberOfLines={2}>
           {label}
         </Text>
         <View style={[styles.statIcon, { backgroundColor: c.bg }]}>
@@ -462,7 +462,8 @@ export function EmptyBlock({ icon, title, message }: { icon: IconName; title: st
 const styles = StyleSheet.create({
   badge: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", borderRadius: RADIUS.pill, paddingHorizontal: 9, paddingVertical: 3 },
   badgeText: { fontSize: 11.5, fontWeight: "700" },
-  person: { flexDirection: "row", alignItems: "center", gap: 10, minWidth: 0 },
+  // maxWidth keeps it inside a table cell so long names and emails get an ellipsis.
+  person: { flexDirection: "row", alignItems: "center", gap: 10, minWidth: 0, maxWidth: "100%" },
   personText: { flexShrink: 1, minWidth: 0 },
   personName: { fontSize: 14, fontWeight: "600" },
   personSub: { fontSize: 12, marginTop: 1 },

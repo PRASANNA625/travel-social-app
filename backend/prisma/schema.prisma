@@ -482,3 +482,55 @@ model AppSetting {
   updatedById String?
   updatedAt   DateTime @updatedAt
 }
+
+enum HeroBannerStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum HeroMediaType {
+  IMAGE
+  VIDEO
+}
+
+enum HeroTextAlign {
+  LEFT
+  CENTER
+  RIGHT
+}
+
+// A slide in the Discover hero carousel, managed from the admin dashboard.
+// Media lives in object storage (Cloudinary, or local uploads in development);
+// only its URL and storage key are kept here.
+model HeroBanner {
+  id             String           @id @default(cuid())
+  title          String
+  status         HeroBannerStatus @default(DRAFT)
+  mediaType      HeroMediaType
+  mediaUrl       String
+  mediaKey       String?
+  posterUrl      String?
+  posterKey      String?
+  // CSS object-position keyword used when the media is cropped to fit.
+  focalPoint     String           @default("center")
+  heading        String?
+  subtitle       String?
+  tagline        String?
+  textColor      String           @default("#FFFFFF")
+  overlayOpacity Float            @default(0.45)
+  textAlign      HeroTextAlign    @default(LEFT)
+  ctaLabel       String?
+  ctaUrl         String?
+  displayOrder   Int              @default(0)
+  // Shown only between these times (either may be open-ended).
+  startsAt       DateTime?
+  endsAt         DateTime?
+  createdById    String?
+  updatedById    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([status, displayOrder])
+}

@@ -13,6 +13,7 @@ export type SectionKey =
   | "reports"
   | "notifications"
   | "config"
+  | "hero"
   | "reviews"
   | "analytics"
   | "roles"
@@ -48,6 +49,7 @@ export const SECTIONS: { group: string; items: { key: SectionKey; label: string;
     group: "System",
     items: [
       { key: "notifications", label: "Notifications", icon: "bullhorn-outline", minRole: "MODERATOR" },
+      { key: "hero", label: "Hero & Banners", icon: "image-multiple-outline", minRole: "MODERATOR" },
       { key: "config", label: "Configuration", icon: "tune-variant", minRole: "MODERATOR" },
       { key: "roles", label: "Roles & Permissions", icon: "shield-account-outline", minRole: "MODERATOR" },
       { key: "audit", label: "Audit Log", icon: "history", minRole: "ADMIN" },
