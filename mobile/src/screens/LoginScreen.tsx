@@ -145,11 +145,6 @@ export function LoginScreen({ navigation }: Props) {
                   <MaterialCommunityIcons name="account-plus-outline" size={16} color={colors.primary} />
                   <Text style={[styles.secondaryLinkText, { color: colors.primary }]}>{t("login.createAccount")}</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity style={styles.secondaryLink} onPress={() => navigation.navigate("PhoneLogin")}>
-                  <MaterialCommunityIcons name="phone-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.secondaryLinkText, { color: colors.primary }]}>{t("login.phoneLogin")}</Text>
-                </TouchableOpacity>
               </View>
             </View>
 

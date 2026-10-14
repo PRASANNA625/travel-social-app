@@ -106,6 +106,8 @@ export async function getBuddyMatches(viewerId: string, filters: BuddyFilters) {
   const where: NonNullable<Parameters<typeof prisma.user.findMany>[0]>["where"] = {
     id: { notIn: [...excluded] },
     status: "ACTIVE",
+    // Staff accounts (moderators and admins) aren't travellers; keep them out of suggestions.
+    role: "USER",
   };
   if (filters.search) {
     where.OR = [
