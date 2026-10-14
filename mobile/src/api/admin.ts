@@ -106,6 +106,21 @@ export interface AdminReport {
   reporter: Person;
   reported: Person & { _count: { reportsReceived: number } };
   resolvedBy: { id: string; name: string } | null;
+  // Message reports: the reported message as it was when reported.
+  messageId: string | null;
+  messageSnapshot: ReportedMessage | null;
+  message: { removedAt: string | null; removedBy: { id: string; name: string } | null } | null;
+}
+
+export interface ReportedMessage {
+  type: "TEXT" | "IMAGE" | "AUDIO";
+  content: string | null;
+  mediaUrl: string | null;
+  durationMs: number | null;
+  sentAt: string;
+  groupId: string;
+  tripId: string;
+  tripTitle: string;
 }
 
 export interface AdminConnection {
@@ -292,6 +307,8 @@ export const useResolveReport = () =>
   useAdminMutation(({ id, ...body }: { id: string; status: ReportStatus; note?: string; suspendReported?: boolean }) =>
     apiClient.patch(`/admin/reports/${id}`, body)
   );
+export const useRemoveMessage = () =>
+  useAdminMutation(({ id, reason }: { id: string; reason: string }) => apiClient.post(`/admin/messages/${id}/remove`, { reason }));
 export const useDeleteConnection = () => useAdminMutation((id: string) => apiClient.delete(`/admin/connections/${id}`));
 export const useDeleteReview = () =>
   useAdminMutation(({ tripId, userId, reason }: { tripId: string; userId: string; reason: string }) =>

@@ -1,5 +1,6 @@
 import { prisma } from "../../config/prisma";
 import { HttpError } from "../../middleware/error";
+import { withholdIfRemoved } from "../messages/messages.service";
 
 export async function createGroupWithOwner(tripId: string, ownerId: string) {
   return prisma.group.create({
@@ -78,7 +79,7 @@ export async function listGroupsForUser(userId: string) {
             messages: {
               orderBy: { createdAt: "desc" },
               take: 1,
-              select: { id: true, type: true, content: true, createdAt: true, sender: { select: { id: true, name: true } } },
+              select: { id: true, type: true, content: true, createdAt: true, removedAt: true, sender: { select: { id: true, name: true } } },
             },
           },
         },
@@ -102,7 +103,7 @@ export async function listGroupsForUser(userId: string) {
       role,
       trip: group.trip,
       memberCount: group._count.members,
-      lastMessage: group.messages[0] ?? null,
+      lastMessage: group.messages[0] ? withholdIfRemoved(group.messages[0]) : null,
       unreadCount: unreadByGroup.get(group.id) ?? 0,
       lastActivityAt: (group.messages[0]?.createdAt ?? joinedAt).toISOString(),
     }))

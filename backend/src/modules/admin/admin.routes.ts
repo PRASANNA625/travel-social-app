@@ -282,6 +282,15 @@ adminRouter.patch(
   })
 );
 
+adminRouter.post(
+  "/messages/:id/remove",
+  MOD,
+  asyncHandler(async (req: AuthedRequest, res: Response) => {
+    const { reason } = z.object({ reason: z.string().trim().min(3).max(500) }).parse(req.body);
+    res.json(await moderation.removeMessage(actor(req).id, req.params.id, reason));
+  })
+);
+
 adminRouter.get(
   "/connections",
   MOD,

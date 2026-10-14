@@ -28,7 +28,13 @@ function previewText(item: GroupInboxItem, myId: string | undefined) {
   const last = item.lastMessage;
   if (!last) return "No messages yet — say hi 👋";
   const who = last.sender.id === myId ? "You" : last.sender.name.split(" ")[0];
-  const body = last.type === "IMAGE" ? "📷 Photo" : last.type === "AUDIO" ? "🎤 Voice message" : last.content ?? "";
+  const body = last.removedAt
+    ? "Message removed"
+    : last.type === "IMAGE"
+      ? "📷 Photo"
+      : last.type === "AUDIO"
+        ? "🎤 Voice message"
+        : last.content ?? "";
   return `${who}: ${body}`;
 }
 

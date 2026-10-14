@@ -72,6 +72,11 @@ export async function getReadsForMessages(messageIds: string[]): Promise<Map<str
   return map;
 }
 
+// A message removed by moderators keeps its place in the chat, without its content.
+export function withholdIfRemoved<T extends { removedAt?: Date | null; content?: string | null; mediaUrl?: string | null }>(message: T): T {
+  return message.removedAt ? { ...message, content: null, mediaUrl: null } : message;
+}
+
 export async function listMessages(groupId: string, userId: string, query: Record<string, unknown>) {
   await assertMember(groupId, userId);
   const pageParams = parsePageParams(query, 30, 100);
@@ -97,7 +102,7 @@ export async function listMessages(groupId: string, userId: string, query: Recor
   const reactionsByMessage = groupReactionRows(reactionRows);
 
   const itemsWithExtras = items.map((message) => ({
-    ...message,
+    ...withholdIfRemoved(message),
     reactions: reactionsByMessage.get(message.id) ?? [],
     readBy: message.senderId === userId ? readsByMessageId.get(message.id) ?? [] : undefined,
   }));

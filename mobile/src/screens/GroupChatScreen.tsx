@@ -32,6 +32,8 @@ import { AttachmentSheet } from "../components/AttachmentSheet";
 import { ChatWallpaper } from "../components/ChatWallpaper";
 import { GroupMembersModal } from "../components/GroupMembersModal";
 import { ReactionPickerModal } from "../components/ReactionPickerModal";
+import { ReportUserModal } from "../components/ReportUserModal";
+import { useReportMessage } from "../api/safety";
 import { SeenByModal } from "../components/SeenByModal";
 import { VoiceMessageBubble } from "../components/VoiceMessageBubble";
 import { VoiceRecordingPreview } from "../components/VoiceRecordingPreview";
@@ -75,6 +77,8 @@ export function GroupChatScreen({ route, navigation }: Props) {
   const [membersModalVisible, setMembersModalVisible] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
   const [seenByTargetId, setSeenByTargetId] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<ChatMessage | null>(null);
+  const reportMessage = useReportMessage();
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const markedReadIds = useRef<Set<string>>(new Set());
   const listRef = useRef<FlatList<ChatMessage>>(null);
@@ -286,6 +290,9 @@ export function GroupChatScreen({ route, navigation }: Props) {
     setReactionTargetId(null);
   };
 
+  // Someone else's message that still has content can be reported.
+  const canReportTarget = !!reactionTargetMessage && reactionTargetMessage.senderId !== me?.id && !reactionTargetMessage.removedAt;
+
   const seenByTargetMessage = messages.find((m) => m.id === seenByTargetId) ?? null;
   const seenByOtherMembers = (group?.members ?? []).filter((m) => m.userId !== me?.id);
 
@@ -293,6 +300,16 @@ export function GroupChatScreen({ route, navigation }: Props) {
     const isMine = item.senderId === me?.id;
     const reactions = item.reactions ?? [];
     const isHighlighted = item.id === highlightedMessageId;
+    if (item.removedAt) {
+      return (
+        <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}>
+          <View style={[styles.bubble, styles.bubbleRemoved]} accessibilityLabel="Message removed by Triply moderators">
+            <MaterialCommunityIcons name="message-minus-outline" size={14} color={colors.muted} />
+            <Text style={styles.removedText}>Message removed by Triply moderators</Text>
+          </View>
+        </View>
+      );
+    }
     return (
       <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}>
         {!isMine &&
@@ -552,6 +569,35 @@ export function GroupChatScreen({ route, navigation }: Props) {
         onClose={() => setReactionTargetId(null)}
         onSelect={onSelectReaction}
         currentReaction={reactionTargetCurrentEmoji}
+        onReport={
+          canReportTarget
+            ? () => {
+                setReportTarget(reactionTargetMessage);
+                setReactionTargetId(null);
+              }
+            : undefined
+        }
+      />
+
+      <ReportUserModal
+        visible={!!reportTarget}
+        userName={reportTarget ? `this message from ${reportTarget.sender.name}` : ""}
+        subject="message"
+        isSubmitting={reportMessage.isPending}
+        onClose={() => setReportTarget(null)}
+        onSubmit={(input) => {
+          if (!reportTarget) return;
+          reportMessage.mutate(
+            { userId: reportTarget.senderId, messageId: reportTarget.id, ...input },
+            {
+              onSuccess: () => {
+                setReportTarget(null);
+                Alert.alert("Report sent", "Thanks for letting us know. Our team will review this message.");
+              },
+              onError: (err: any) => Alert.alert("Couldn't send report", err?.response?.data?.error ?? "Please try again"),
+            }
+          );
+        }}
       />
 
       <SeenByModal
@@ -618,6 +664,8 @@ function createStyles(colors: Palette) {
   bubbleHighlighted: { borderWidth: 2, borderColor: colors.warningText, shadowColor: colors.warningText, shadowOpacity: 0.35, shadowRadius: 6, elevation: 3 },
   senderName: { fontSize: 11, fontWeight: "700", color: colors.primary, marginBottom: 3 },
   messageText: { fontSize: 14, color: colors.ink, lineHeight: 20 },
+  bubbleRemoved: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.fieldBg, borderWidth: 1, borderColor: colors.border },
+  removedText: { fontSize: 13, fontStyle: "italic", color: colors.muted },
   messageTextMine: { color: colors.white },
   messageImage: { width: 190, height: 190, borderRadius: 12 },
   timeText: { fontSize: 10.5, color: colors.mutedLight, marginTop: 3, marginLeft: 4 },

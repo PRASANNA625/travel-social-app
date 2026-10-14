@@ -43,6 +43,7 @@ const NOTIFICATION_COPY: Record<string, (payload: Record<string, unknown>) => st
   BUDDY_REQUEST_ACCEPTED: () => `Your travel buddy request was accepted`,
   REPORT_RECEIVED: () => `Report received — our team will review it`,
   SYSTEM_ANNOUNCEMENT: (p) => `${p.title}: ${p.body}`,
+  MESSAGE_REMOVED_BY_ADMIN: (p) => `A message you sent in "${p.tripTitle}" was removed by the Triply team${p.reason ? `: ${p.reason}` : ""}`,
   REMOVED_FROM_TRIP: (p) => `You were removed from "${p.tripTitle}" by the Triply team`,
   TRIP_REMOVED_BY_ADMIN: (p) => `Your trip "${p.tripTitle}" was removed by the Triply team${p.reason ? `: ${p.reason}` : ""}`,
 };
@@ -68,6 +69,7 @@ function notificationIconMap(colors: Palette): Record<string, { icon: IconName; 
     BUDDY_REQUEST_ACCEPTED: { icon: "check-circle", bg: colors.successBg, color: colors.primary },
     REPORT_RECEIVED: { icon: "flag-outline", bg: colors.fieldBg, color: colors.primary },
     SYSTEM_ANNOUNCEMENT: { icon: "bullhorn-outline", bg: colors.warningBg, color: colors.warningText },
+    MESSAGE_REMOVED_BY_ADMIN: { icon: "message-minus-outline", bg: colors.dangerBg, color: colors.danger },
     REMOVED_FROM_TRIP: { icon: "account-remove-outline", bg: colors.dangerBg, color: colors.danger },
     TRIP_REMOVED_BY_ADMIN: { icon: "map-marker-remove-outline", bg: colors.dangerBg, color: colors.danger },
   };
@@ -147,7 +149,8 @@ export function NotificationsScreen({ navigation }: Props) {
       }
       case "JOIN_REQUEST_APPROVED":
       case "JOIN_REQUEST_REJECTED":
-      case "REMOVED_FROM_TRIP": {
+      case "REMOVED_FROM_TRIP":
+      case "MESSAGE_REMOVED_BY_ADMIN": {
         const { tripId } = payload;
         if (typeof tripId === "string") {
           navigation.navigate("TripDetail", { tripId });

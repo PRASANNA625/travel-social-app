@@ -71,6 +71,12 @@ export function useLiveGroupChat(
       setMessages((prev) => prev.map((m) => (m.id === data.messageId ? { ...m, reactions: data.reactions } : m)));
     };
 
+    // A moderator removed a message: drop its content where it stands.
+    const onMessageRemoved = (data: { id: string; groupId: string; removedAt: string }) => {
+      if (data.groupId !== groupId) return;
+      setMessages((prev) => prev.map((m) => (m.id === data.id ? { ...m, removedAt: data.removedAt, content: null, mediaUrl: null } : m)));
+    };
+
     const onPresenceSnapshot = (snapshot: Record<string, PresenceInfo>) => {
       setPresence((prev) => ({ ...prev, ...snapshot }));
     };
@@ -93,12 +99,14 @@ export function useLiveGroupChat(
 
     socket.on("message:new", onNewMessage);
     socket.on("reaction:updated", onReactionUpdated);
+    socket.on("message:removed", onMessageRemoved);
     socket.on("presence:snapshot", onPresenceSnapshot);
     socket.on("presence:update", onPresenceUpdate);
     socket.on("message:read:updated", onReadUpdated);
     return () => {
       socket.off("message:new", onNewMessage);
       socket.off("reaction:updated", onReactionUpdated);
+      socket.off("message:removed", onMessageRemoved);
       socket.off("presence:snapshot", onPresenceSnapshot);
       socket.off("presence:update", onPresenceUpdate);
       socket.off("message:read:updated", onReadUpdated);

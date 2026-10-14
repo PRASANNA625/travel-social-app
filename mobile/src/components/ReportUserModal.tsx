@@ -21,9 +21,11 @@ export function ReportUserModal({
   isSubmitting,
   onClose,
   onSubmit,
+  subject = "user",
 }: {
   visible: boolean;
   userName: string;
+  subject?: "user" | "message";
   isSubmitting: boolean;
   onClose: () => void;
   onSubmit: (input: { reason: ReportReason; details?: string }) => void;
@@ -62,7 +64,7 @@ export function ReportUserModal({
             <MaterialCommunityIcons name="flag-outline" size={22} color={colors.danger} />
           </View>
           <Text style={styles.title}>Report {userName}</Text>
-          <Text style={styles.subtitle}>Why are you reporting this user?</Text>
+          <Text style={styles.subtitle}>{`Why are you reporting this ${subject}?`}</Text>
 
           <ScrollView style={styles.reasonList} nestedScrollEnabled>
             {REPORT_REASONS.map((r) => (

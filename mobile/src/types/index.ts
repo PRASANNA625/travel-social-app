@@ -212,6 +212,8 @@ export interface ChatMessage {
   sender: TripOwnerSummary;
   reactions?: MessageReactionSummary[];
   readBy?: MessageReadEntry[];
+  // Set when moderators removed it; content and media are withheld.
+  removedAt?: string | null;
 }
 
 // One row of the Messages inbox (GET /groups/mine).
@@ -225,6 +227,7 @@ export interface GroupInboxItem {
     type: MessageType;
     content: string | null;
     createdAt: string;
+    removedAt?: string | null;
     sender: { id: string; name: string };
   } | null;
   unreadCount: number;

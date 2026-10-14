@@ -2,6 +2,8 @@ import type { BuddyConnectionStatus, FeedbackKind, FeedbackStatus, Prisma, Repor
 import { prisma } from "../../config/prisma";
 import { HttpError } from "../../middleware/error";
 import { parsePageParams } from "../../utils/pagination";
+import { emitToGroup } from "../../config/socket";
+import { notify } from "../notifications/notify";
 import { logAction } from "./audit";
 import { suspendUser } from "./admin.users";
 
@@ -19,7 +21,8 @@ function paging(filters: Paged) {
 
 // --- User reports -------------------------------------------------------------
 // Moderators see the report (who, about whom, reason, details) and the reported
-// account's history - never anyone's private chat messages.
+// account's history. For a message report they see that one message (the
+// snapshot taken when it was reported) - never the rest of the conversation.
 
 export async function listReports(filters: Paged & { status?: ReportStatus; reason?: ReportReason }) {
   const { params, skip, take } = paging(filters);
@@ -40,6 +43,9 @@ export async function listReports(filters: Paged & { status?: ReportStatus; reas
         reporter: { select: personSelect },
         reported: { select: { ...personSelect, _count: { select: { reportsReceived: true } } } },
         resolvedBy: { select: { id: true, name: true } },
+        messageId: true,
+        messageSnapshot: true,
+        message: { select: { removedAt: true, removedBy: { select: { id: true, name: true } } } },
       },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
       skip,
@@ -48,6 +54,23 @@ export async function listReports(filters: Paged & { status?: ReportStatus; reas
     prisma.userReport.count({ where }),
   ]);
   return { items, total, ...params };
+}
+
+// Hides a chat message's content from everyone in the chat (the report keeps its
+// snapshot as evidence). Members see "removed by moderators" in its place.
+export async function removeMessage(actorId: string, messageId: string, reason: string) {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { id: true, groupId: true, senderId: true, removedAt: true, group: { select: { trip: { select: { id: true, title: true } } } } },
+  });
+  if (!message) throw new HttpError(404, "Message not found");
+  if (message.removedAt) throw new HttpError(409, "This message was already removed");
+  const removedAt = new Date();
+  await prisma.message.update({ where: { id: messageId }, data: { removedAt, removedById: actorId } });
+  emitToGroup(message.groupId, "message:removed", { id: messageId, groupId: message.groupId, removedAt: removedAt.toISOString() });
+  await notify(message.senderId, "MESSAGE_REMOVED_BY_ADMIN", { tripId: message.group.trip.id, tripTitle: message.group.trip.title, reason });
+  await logAction(actorId, "message.remove", "MESSAGE", messageId, { groupId: message.groupId, senderId: message.senderId, reason });
+  return { id: messageId, removedAt };
 }
 
 export async function resolveReport(

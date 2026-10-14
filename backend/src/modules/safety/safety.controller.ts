@@ -4,8 +4,8 @@ import * as service from "./safety.service";
 import { reportSchema } from "./safety.types";
 
 export async function report(req: AuthedRequest, res: Response) {
-  const { reason, details } = reportSchema.parse(req.body);
-  const result = await service.reportUser(req.userId!, req.params.id, reason, details);
+  const { reason, details, messageId } = reportSchema.parse(req.body);
+  const result = await service.reportUser(req.userId!, req.params.id, reason, details, messageId);
   res.status(201).json(result);
 }
 

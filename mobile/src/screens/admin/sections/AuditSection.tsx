@@ -29,6 +29,7 @@ const ACTION_TEXT: Record<string, string> = {
   "connection.delete": "removed a buddy connection",
   "review.delete": "removed a review",
   "comment.delete": "removed a comment",
+  "message.remove": "removed a chat message",
   "feedback.status": "updated feedback status",
   "announcement.send": "sent an announcement",
   "settings.update": "changed app settings",
@@ -39,7 +40,7 @@ export function describeAction(action: string) {
   return ACTION_TEXT[action] ?? humanize(action.replace(".", " "));
 }
 
-const TARGETS = ["USER", "TRIP", "REPORT", "REVIEW", "COMMENT", "FEEDBACK", "JOIN_REQUEST", "GROUP_MEMBER", "CONNECTION", "ANNOUNCEMENT", "SETTINGS", "EXPORT"] as const;
+const TARGETS = ["USER", "TRIP", "REPORT", "REVIEW", "COMMENT", "MESSAGE", "FEEDBACK", "JOIN_REQUEST", "GROUP_MEMBER", "CONNECTION", "ANNOUNCEMENT", "SETTINGS", "EXPORT"] as const;
 
 // Human-readable summary of an entry's details (reason, changes, role move...).
 function detailText(entry: AuditEntry) {

@@ -9,12 +9,62 @@ async function assertUserExists(userId: string) {
   if (!user) throw new HttpError(404, "User not found");
 }
 
-export async function reportUser(reporterId: string, reportedId: string, reason: ReportReason, details?: string) {
+// What moderators see of a reported chat message: that message only, copied at
+// report time so it survives later edits or removal.
+async function messageSnapshot(reporterId: string, reportedId: string, messageId: string) {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: {
+      id: true,
+      groupId: true,
+      senderId: true,
+      type: true,
+      content: true,
+      mediaUrl: true,
+      durationMs: true,
+      createdAt: true,
+      group: { select: { trip: { select: { id: true, title: true } } } },
+    },
+  });
+  if (!message) throw new HttpError(404, "Message not found");
+  if (message.senderId !== reportedId) throw new HttpError(400, "That message wasn't sent by this person");
+  // Only people in the chat could have seen the message.
+  const member = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId: message.groupId, userId: reporterId } },
+    select: { userId: true },
+  });
+  if (!member) throw new HttpError(403, "You're not part of this chat");
+  return {
+    type: message.type,
+    content: message.content,
+    mediaUrl: message.mediaUrl,
+    durationMs: message.durationMs,
+    sentAt: message.createdAt.toISOString(),
+    groupId: message.groupId,
+    tripId: message.group.trip.id,
+    tripTitle: message.group.trip.title,
+  };
+}
+
+export async function reportUser(
+  reporterId: string,
+  reportedId: string,
+  reason: ReportReason,
+  details?: string,
+  messageId?: string
+) {
   if (reporterId === reportedId) throw new HttpError(400, "You can't report yourself");
   await assertUserExists(reportedId);
+  const snapshot = messageId ? await messageSnapshot(reporterId, reportedId, messageId) : null;
 
   const report = await prisma.userReport.create({
-    data: { reporterId, reportedId, reason, details: details ?? null },
+    data: {
+      reporterId,
+      reportedId,
+      reason,
+      details: details ?? null,
+      ...(snapshot ? { messageId, messageSnapshot: snapshot } : {}),
+    },
   });
   await notify(reporterId, "REPORT_RECEIVED", { reportedUserId: reportedId, reason });
   return report;

@@ -147,6 +147,7 @@ model User {
   buddyRequestsSent     BuddyConnection[] @relation("BuddyRequestsSent")
   buddyRequestsReceived BuddyConnection[] @relation("BuddyRequestsReceived")
   reportsResolved UserReport[] @relation("ReportsResolved")
+  messagesRemoved Message[]    @relation("MessagesRemoved")
   auditLogs       AuditLog[]
   announcements   Announcement[]
 
@@ -305,9 +306,14 @@ model Message {
   mediaUrl   String?
   durationMs Int?
   createdAt  DateTime    @default(now())
+  // Set when a moderator removes the message; its content is then withheld from members.
+  removedAt   DateTime?
+  removedById String?
+  removedBy   User?       @relation("MessagesRemoved", fields: [removedById], references: [id], onDelete: SetNull)
 
   reactions MessageReaction[]
   reads     MessageRead[]
+  reports   UserReport[]
 
   @@index([groupId, createdAt])
 }
@@ -369,6 +375,11 @@ model UserReport {
   reported   User         @relation("ReportsReceived", fields: [reportedId], references: [id], onDelete: Cascade)
   reason     ReportReason
   details    String?
+  // A report about one chat message. The snapshot keeps what was said even if
+  // the message is later removed; moderators see only this message.
+  messageId       String?
+  message         Message?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  messageSnapshot Json?
   status         ReportStatus @default(OPEN)
   resolvedById   String?
   resolvedBy     User?        @relation("ReportsResolved", fields: [resolvedById], references: [id], onDelete: SetNull)
@@ -378,6 +389,7 @@ model UserReport {
 
   @@index([reportedId])
   @@index([status])
+  @@index([messageId])
 }
 
 model AppFeedback {

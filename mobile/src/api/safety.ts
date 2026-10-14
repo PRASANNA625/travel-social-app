@@ -13,6 +13,24 @@ export function useReportUser(userId: string) {
   });
 }
 
+// Reports one chat message; moderators see only that message.
+export function useReportMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { userId: string; messageId: string; reason: ReportReason; details?: string }) =>
+      (
+        await apiClient.post(`/safety/users/${input.userId}/report`, {
+          reason: input.reason,
+          details: input.details,
+          messageId: input.messageId,
+        })
+      ).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
 export function useBlockUser(userId: string) {
   const queryClient = useQueryClient();
   return useMutation({

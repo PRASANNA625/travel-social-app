@@ -13,6 +13,8 @@ export const reportSchema = z
   .object({
     reason: z.enum(reportReasons),
     details: z.string().max(1000).optional(),
+    // Set when reporting one chat message rather than the person in general.
+    messageId: z.string().min(1).max(64).optional(),
   })
   .refine((data) => data.reason !== "OTHER" || !!data.details?.trim(), {
     message: "Please provide details when selecting 'Other'",
