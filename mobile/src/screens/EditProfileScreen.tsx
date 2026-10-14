@@ -22,11 +22,13 @@ import { TRAVEL_MODES, type TravelMode } from "../types";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { Alert } from "../utils/alert";
 import { GradientBackground } from "../components/theme/GradientBackground";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
+import { useResponsiveLayout } from "../theme/layout";
 import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
 import { SelectableChip } from "../components/theme/SelectableChip";
-import { RADIUS } from "../theme/tokens";
+import { FONT, PAGE_WIDTH, RADIUS, pageGutter } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
@@ -54,6 +56,8 @@ export function EditProfileScreen({ navigation }: Props) {
   const uploadPhoto = useUploadProfilePhoto();
   const uploadCover = useUploadCoverPhoto();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
+  const gutter = pageGutter(isDesktop);
   const isWeb = Platform.OS === "web";
   const { width: windowWidth } = useWindowDimensions();
   const { colors } = useTheme();
@@ -132,17 +136,10 @@ export function EditProfileScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.ink} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Edit Profile
-        </Text>
-        <View style={styles.headerButton} />
-      </View>
+      <ScreenHeader title="Edit Profile" showBack maxWidth={PAGE_WIDTH.form} />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={[styles.coverColumn, { paddingHorizontal: gutter }]}>
         <View style={[styles.coverWrap, isWeb && styles.coverWrapWeb]}>
           {user?.coverPhotoUrl ? (
             <Image source={{ uri: optimizedImageUrl(user.coverPhotoUrl, windowWidth) }} style={styles.cover} />
@@ -160,8 +157,9 @@ export function EditProfileScreen({ navigation }: Props) {
             )}
           </TouchableOpacity>
         </View>
+        </View>
 
-        <View style={[styles.page, isWeb && styles.pageWeb]}>
+        <View style={[styles.page, { paddingHorizontal: gutter }]}>
           <View style={styles.avatarBlock}>
             <TouchableOpacity onPress={onChangePhoto} style={styles.avatarWrap} disabled={uploadPhoto.isPending}>
               {user?.photoUrl ? (
@@ -281,7 +279,8 @@ export function EditProfileScreen({ navigation }: Props) {
         </View>
       </ScrollView>
 
-      <View style={[styles.stickyBar, { paddingBottom: insets.bottom + 12 }]}>
+      <View style={[styles.stickyBar, { paddingBottom: insets.bottom + 12, paddingHorizontal: gutter }]}>
+        <View style={styles.stickyInner}>
         {saved && (
           <View style={styles.successBanner}>
             <MaterialCommunityIcons name="check-circle-outline" size={16} color={colors.successText} />
@@ -295,6 +294,7 @@ export function EditProfileScreen({ navigation }: Props) {
           disabled={updateProfile.isPending}
           loading={updateProfile.isPending}
         />
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -305,32 +305,15 @@ function createStyles(colors: Palette) {
   flexScreen: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-    backgroundColor: colors.surfaceElevated,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.fieldBg,
-  },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.ink },
-  coverWrap: { width: "100%", height: 150 },
+  // The cover sits in the page column with the same rounding as cards.
+  coverColumn: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center" },
+  coverWrap: { width: "100%", height: 150, borderRadius: RADIUS.card, overflow: "hidden" },
   coverWrapWeb: { height: 200 },
   cover: { width: "100%", height: "100%" },
   coverEditButton: {
     position: "absolute",
-    right: 14,
-    bottom: 14,
+    right: 12,
+    top: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
@@ -340,11 +323,10 @@ function createStyles(colors: Palette) {
     paddingVertical: 8,
   },
   coverEditText: { color: colors.white, fontSize: 12, fontWeight: "700" },
-  page: { paddingHorizontal: 20, gap: 16 },
-  pageWeb: { width: "100%", maxWidth: 640, alignSelf: "center" },
+  page: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", gap: 16 },
   avatarBlock: { alignItems: "center" },
   avatarWrap: { marginTop: -48 },
-  avatar: { width: 92, height: 92, borderRadius: 46, borderWidth: 4, borderColor: colors.fieldBg },
+  avatar: { width: 92, height: 92, borderRadius: 46, borderWidth: 4, borderColor: colors.surface },
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
   avatarInitial: { color: colors.white, fontSize: 30, fontWeight: "700" },
   avatarEditBadge: {
@@ -356,7 +338,7 @@ function createStyles(colors: Palette) {
     borderRadius: 13,
     backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: colors.fieldBg,
+    borderColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -375,7 +357,7 @@ function createStyles(colors: Palette) {
   completionFill: { height: "100%", backgroundColor: colors.primary, borderRadius: 3 },
   card: { padding: 16, gap: 12 },
   cardHeaderRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
-  cardTitle: { fontSize: 15, fontWeight: "700", color: colors.ink },
+  cardTitle: { ...FONT.cardTitle, fontSize: 15, color: colors.ink },
   fieldRow: { flexDirection: "row", gap: 12 },
   fieldHalf: { flex: 1 },
   fieldGroup: { gap: 6 },
@@ -384,13 +366,13 @@ function createStyles(colors: Palette) {
   charCounter: { alignSelf: "flex-end", fontSize: 11, color: colors.mutedLight },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   stickyBar: {
-    paddingHorizontal: 20,
     paddingTop: 12,
     gap: 10,
     backgroundColor: colors.surfaceElevated,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
   },
+  stickyInner: { width: "100%", maxWidth: PAGE_WIDTH.form - 48, alignSelf: "center", gap: 10 },
   successBanner: {
     flexDirection: "row",
     alignItems: "center",

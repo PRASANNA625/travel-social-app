@@ -20,3 +20,11 @@ export function gridColumnsFor(contentWidth: number) {
   if (contentWidth >= 560) return 2;
   return 1;
 }
+
+// Splits items into rows of `columns` for grid lists (each row renders its cells plus
+// empty fillers, so a short last row keeps the same card widths).
+export function toRows<T>(items: readonly T[], columns: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += columns) rows.push(items.slice(i, i + columns));
+  return rows;
+}

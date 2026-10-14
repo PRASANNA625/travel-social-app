@@ -23,6 +23,7 @@ import { useLanguage } from "../i18n/LanguageContext";
 // Google Sign-In temporarily disabled - see usage below.
 // import { GoogleSignInButton } from "../components/GoogleSignInButton";
 // import { GOOGLE_CLIENT_ID } from "../utils/googleAuth";
+import { GRADIENT_PRIMARY } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
@@ -53,7 +54,7 @@ export function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <LinearGradient colors={["#1d4ed8", "#0f766e", "#0c2b28"]} locations={[0, 0.55, 1]} style={styles.flex}>
+    <LinearGradient colors={GRADIENT_PRIMARY.colors} locations={GRADIENT_PRIMARY.locations} style={styles.flex}>
       <View style={[styles.decorCircle, styles.decorCircleTop]} />
       <View style={[styles.decorCircle, styles.decorCircleBottom]} />
       <MaterialCommunityIcons
@@ -161,7 +162,8 @@ export function LoginScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  // Clips the decorative circles that sit partly off-screen (they caused sideways scroll on web).
+  flex: { flex: 1, overflow: "hidden" },
   decorCircle: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)" },
   decorCircleTop: { width: 240, height: 240, top: -70, right: -60 },
   decorCircleBottom: { width: 300, height: 300, bottom: -100, left: -90 },

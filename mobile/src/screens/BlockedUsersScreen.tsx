@@ -1,13 +1,15 @@
 import { useMemo } from "react";
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useBlockedUsers, useUnblockUser } from "../api/safety";
 import type { User } from "../types";
 import { Skeleton } from "../components/theme/Skeleton";
 import { optimizedImageUrl } from "../utils/optimizedImage";
-import { RADIUS } from "../theme/tokens";
+import { PAGE_WIDTH, RADIUS, SHADOW, pageGutter } from "../theme/tokens";
+import { useResponsiveLayout } from "../theme/layout";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
+import { EmptyState } from "../components/theme/EmptyState";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 
@@ -38,55 +40,54 @@ export function BlockedUsersScreen(_props: Props) {
   const { data: blockedUsers, isLoading } = useBlockedUsers();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isDesktop } = useResponsiveLayout();
+  const listStyle = [styles.list, { paddingHorizontal: pageGutter(isDesktop) }];
 
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.list}>
+  return (
+    <View style={styles.container}>
+      <ScreenHeader title="Blocked Users" showBack maxWidth={PAGE_WIDTH.form} />
+      {isLoading ? (
+        <View style={listStyle}>
           {[0, 1].map((i) => (
-            <View key={i} style={styles.skeletonCard}>
+            <View key={i} style={styles.card}>
               <Skeleton style={styles.skeletonAvatar} />
               <Skeleton style={styles.skeletonName} />
             </View>
           ))}
         </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <FlatList
-        contentContainerStyle={styles.list}
-        data={blockedUsers ?? []}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <MaterialCommunityIcons name="account-off-outline" size={40} color={colors.mutedLight} />
-            <Text style={styles.empty}>You haven't blocked anyone.</Text>
-          </View>
-        }
-        renderItem={({ item }) => <BlockedUserRow user={item} styles={styles} />}
-      />
+      ) : (
+        <FlatList
+          contentContainerStyle={listStyle}
+          data={blockedUsers ?? []}
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={
+            <EmptyState
+              icon="account-off-outline"
+              title="No blocked users"
+              message="People you block won't be able to message you or see your activity."
+            />
+          }
+          renderItem={({ item }) => <BlockedUserRow user={item} styles={styles} />}
+        />
+      )}
     </View>
   );
 }
 
 function createStyles(colors: Palette) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.fieldBg },
-    list: { padding: 12, gap: 12 },
-    empty: { textAlign: "center", color: colors.mutedLight },
-    emptyWrap: { alignItems: "center", gap: 10, marginTop: 60, paddingHorizontal: 32 },
+    container: { flex: 1, backgroundColor: colors.surface },
+    list: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", paddingTop: 4, paddingBottom: 32, gap: 10 },
     card: {
       flexDirection: "row",
       alignItems: "center",
       gap: 12,
       backgroundColor: colors.surfaceElevated,
-      borderRadius: RADIUS.field,
+      borderRadius: RADIUS.card,
       padding: 14,
       borderWidth: 1,
       borderColor: colors.border,
+      ...SHADOW.card,
     },
     avatar: { width: 44, height: 44, borderRadius: 22 },
     avatarPlaceholder: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
@@ -99,16 +100,6 @@ function createStyles(colors: Palette) {
       backgroundColor: colors.dangerBg,
     },
     unblockText: { color: colors.danger, fontWeight: "700", fontSize: 13 },
-    skeletonCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      backgroundColor: colors.surfaceElevated,
-      borderRadius: RADIUS.field,
-      padding: 14,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
     skeletonAvatar: { width: 44, height: 44, borderRadius: 22 },
     skeletonName: { flex: 1, height: 16 },
   });

@@ -17,8 +17,10 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useAssistantReply } from "../api/assistant";
 import type { AssistantMessage } from "../types";
-import { GradientBackground } from "../components/theme/GradientBackground";
-import { RADIUS, TYPE } from "../theme/tokens";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
+import { EmptyState } from "../components/theme/EmptyState";
+import { useResponsiveLayout } from "../theme/layout";
+import { PAGE_WIDTH, RADIUS, pageGutter } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 
@@ -66,6 +68,8 @@ export function AssistantScreen({ navigation }: Props) {
   const nextId = useRef(0);
   const listRef = useRef<FlatList<ChatEntry>>(null);
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
+  const gutter = pageGutter(isDesktop);
   const sendMutation = useAssistantReply();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -102,31 +106,20 @@ export function AssistantScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <GradientBackground style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-            <MaterialCommunityIcons name="arrow-left" size={20} color={colors.white} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleRow}>
-            <View style={styles.robotBadge}>
-              <MaterialCommunityIcons name="robot-outline" size={18} color={colors.white} />
-            </View>
-            <View>
-              <Text style={styles.headerTitle}>AI Trip Assistant</Text>
-              <Text style={styles.headerSubtitle}>Ask about destinations, budgets, itineraries...</Text>
-            </View>
-          </View>
-          <View style={styles.headerSpacer} />
-        </View>
-      </GradientBackground>
+      <ScreenHeader
+        title="AI Trip Assistant"
+        subtitle="Ask about destinations, budgets, itineraries..."
+        showBack
+        maxWidth={PAGE_WIDTH.form}
+      />
 
       {messages.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <MaterialCommunityIcons name="robot-happy-outline" size={44} color={colors.mutedLight} />
-          <Text style={styles.emptyTitle}>Plan your next trip</Text>
-          <Text style={styles.emptySubtitle}>
-            Try "Suggest a 5-day budget trip to Goa" or "What's the best time to visit Manali?"
-          </Text>
+          <EmptyState
+            icon="robot-happy-outline"
+            title="Plan your next trip"
+            message={'Try "Suggest a 5-day budget trip to Goa" or "What\'s the best time to visit Manali?"'}
+          />
         </View>
       ) : (
         <FlatList
@@ -134,7 +127,7 @@ export function AssistantScreen({ navigation }: Props) {
           style={styles.list}
           data={messages}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingHorizontal: gutter }]}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           renderItem={({ item }) => (
             <View style={[styles.bubbleRow, item.role === "user" && styles.bubbleRowMine]}>
@@ -154,7 +147,7 @@ export function AssistantScreen({ navigation }: Props) {
       )}
 
       {error && (
-        <View style={styles.errorBanner}>
+        <View style={[styles.errorBanner, { marginHorizontal: gutter }]}>
           <MaterialCommunityIcons name="alert-circle-outline" size={16} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={onRetry} disabled={sendMutation.isPending}>
@@ -163,7 +156,8 @@ export function AssistantScreen({ navigation }: Props) {
         </View>
       )}
 
-      <View style={[styles.inputRow, { paddingBottom: 10 + insets.bottom }]}>
+      <View style={[styles.inputBar, { paddingBottom: 10 + insets.bottom, paddingHorizontal: gutter }]}>
+        <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
           placeholder="Ask the assistant..."
@@ -182,6 +176,7 @@ export function AssistantScreen({ navigation }: Props) {
         >
           <MaterialCommunityIcons name="send" size={18} color={colors.white} />
         </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -189,34 +184,10 @@ export function AssistantScreen({ navigation }: Props) {
 
 function createStyles(colors: Palette) {
   return StyleSheet.create({
-  flexScreen: { flex: 1, backgroundColor: colors.fieldBg },
-  header: { paddingHorizontal: 12, paddingBottom: 14 },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  headerButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
-  },
-  headerTitleRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  robotBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { ...TYPE.heading, fontSize: 17, color: colors.white },
-  headerSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 11.5, marginTop: 2 },
-  headerSpacer: { width: 36 },
-  emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: colors.ink },
-  emptySubtitle: { fontSize: 13, color: colors.mutedLight, textAlign: "center", lineHeight: 19 },
+  flexScreen: { flex: 1, backgroundColor: colors.surface },
+  emptyWrap: { flex: 1, justifyContent: "center" },
   list: { flex: 1 },
-  listContent: { padding: 14, gap: 10 },
+  listContent: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", paddingVertical: 14, gap: 10 },
   bubbleRow: { flexDirection: "row" },
   bubbleRowMine: { justifyContent: "flex-end" },
   bubble: { maxWidth: "80%", borderRadius: 16, padding: 12 },
@@ -235,8 +206,9 @@ function createStyles(colors: Palette) {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginHorizontal: 14,
     marginBottom: 8,
+    maxWidth: PAGE_WIDTH.form,
+    alignSelf: "center",
     padding: 10,
     borderRadius: RADIUS.field,
     backgroundColor: colors.dangerBg,
@@ -246,14 +218,19 @@ function createStyles(colors: Palette) {
   errorText: { flex: 1, fontSize: 12.5, color: colors.danger },
   retryButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.pill, backgroundColor: colors.danger },
   retryText: { color: colors.white, fontSize: 12, fontWeight: "700" },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    padding: 10,
-    gap: 8,
+  inputBar: {
+    paddingTop: 10,
     backgroundColor: colors.surfaceElevated,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    width: "100%",
+    maxWidth: PAGE_WIDTH.form - 48,
+    alignSelf: "center",
   },
   input: {
     flex: 1,

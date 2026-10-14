@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { RADIUS } from "../../theme/tokens";
+import { CONTROL, RADIUS } from "../../theme/tokens";
 import { useTheme } from "../../theme/ThemeContext";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -53,9 +53,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: RADIUS.field,
     paddingHorizontal: 14,
+    minHeight: CONTROL.field,
   },
   wrapMultiline: { alignItems: "flex-start", paddingVertical: 12 },
-  input: { flex: 1, paddingVertical: 13, fontSize: 15 },
+  input: { flex: 1, minWidth: 0, paddingVertical: 12, fontSize: 15 },
   inputMultiline: { minHeight: 80, textAlignVertical: "top", paddingVertical: 0 },
   iconMultiline: { marginTop: 3 },
 });

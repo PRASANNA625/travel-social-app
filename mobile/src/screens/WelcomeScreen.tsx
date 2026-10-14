@@ -86,7 +86,8 @@ export function WelcomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  // Clips the decorative circles that sit partly off-screen (they caused sideways scroll on web).
+  flex: { flex: 1, overflow: "hidden" },
   page: { flex: 1, width: "100%" },
   pageWeb: { alignItems: "center", justifyContent: "center" },
   content: { flex: 1, width: "100%", maxWidth: 420, alignSelf: "center", paddingHorizontal: 28, justifyContent: "space-between" },

@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { StyleSheet, Text, TouchableOpacity, type StyleProp, type ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { RADIUS } from "../../theme/tokens";
+import { CONTROL, RADIUS } from "../../theme/tokens";
 import { useTheme } from "../../theme/ThemeContext";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -50,8 +50,9 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1,
     borderRadius: RADIUS.chip,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    minHeight: CONTROL.chip,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
   label: { fontSize: 12.5, fontWeight: "600", textAlign: "center" },
 });

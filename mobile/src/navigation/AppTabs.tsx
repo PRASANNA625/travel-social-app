@@ -8,11 +8,10 @@ import { TravelBuddiesScreen } from "../screens/TravelBuddiesScreen";
 import { MessagesScreen } from "../screens/MessagesScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import { SideNavBar } from "./SideNavBar";
 import { useNotifications } from "../api/notifications";
 import { useMyGroups } from "../api/groups";
 import { useTheme } from "../theme/ThemeContext";
-import { SIDEBAR_WIDTH, useResponsiveLayout } from "../theme/layout";
+import { useResponsiveLayout } from "../theme/layout";
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
@@ -30,19 +29,37 @@ export const TAB_ICONS: Record<keyof AppTabParamList, { active: IconName; inacti
 // Sidebar-only routes: the phone bottom bar keeps its four tabs.
 const hiddenOnBottomBar = { tabBarButton: () => null };
 
-export function AppTabs() {
+// Tab order and labels, shared by the phone tab bar and the desktop sidebar.
+export const TAB_ITEMS: { key: keyof AppTabParamList; label: string }[] = [
+  { key: "Discover", label: "Discover" },
+  { key: "MyTrips", label: "My Trips" },
+  { key: "Meetups", label: "Meetups" },
+  { key: "Messages", label: "Messages" },
+  { key: "Notifications", label: "Notifications" },
+  { key: "Profile", label: "Profile" },
+];
+
+// Unread counts shown on the Messages and Notifications nav items.
+export function useNavBadges() {
   const { data } = useNotifications();
-  const unreadCount = data?.unreadCount ?? 0;
   const { data: chats } = useMyGroups();
-  const unreadChats = (chats ?? []).reduce((sum, chat) => sum + chat.unreadCount, 0);
+  return {
+    Notifications: data?.unreadCount ?? 0,
+    Messages: (chats ?? []).reduce((sum, chat) => sum + chat.unreadCount, 0),
+  };
+}
+
+export function AppTabs() {
+  const { Notifications: unreadCount, Messages: unreadChats } = useNavBadges();
   const { colors } = useTheme();
   const { isDesktop } = useResponsiveLayout();
 
   return (
     <Tab.Navigator
-      tabBar={(props) => (isDesktop ? <SideNavBar {...props} icons={TAB_ICONS} /> : <BottomTabBar {...props} />)}
-      sceneContainerStyle={isDesktop ? { marginLeft: SIDEBAR_WIDTH } : undefined}
+      // Desktop navigation is the sidebar AppNavigator renders beside the whole stack.
+      tabBar={(props) => (isDesktop ? null : <BottomTabBar {...props} />)}
       screenOptions={({ route }) => ({
+        headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedLight,
         tabBarStyle: { borderTopWidth: 1, borderTopColor: colors.divider, backgroundColor: colors.navBarBg },

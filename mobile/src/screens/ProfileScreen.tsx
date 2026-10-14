@@ -3,7 +3,6 @@ import type { ComponentProps } from "react";
 import {
   ActivityIndicator,
   Image,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,7 +28,8 @@ import { GradientBackground } from "../components/theme/GradientBackground";
 import { Card } from "../components/theme/Card";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
 import { Skeleton } from "../components/theme/Skeleton";
-import { RADIUS, TYPE } from "../theme/tokens";
+import { FONT, PAGE_WIDTH, RADIUS, pageGutter } from "../theme/tokens";
+import { useResponsiveLayout } from "../theme/layout";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
@@ -87,11 +87,12 @@ export function ProfileScreen({ navigation }: Props) {
   const uploadCover = useUploadCoverPhoto();
   const logout = useAuthStore((s) => s.logout);
   const insets = useSafeAreaInsets();
-  const isWeb = Platform.OS === "web";
   const { width: windowWidth } = useWindowDimensions();
   const coverHeight = Math.min(Math.max(windowWidth / 2.2, 200), 280);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isDesktop } = useResponsiveLayout();
+  const gutter = pageGutter(isDesktop);
 
   const [feedbackMode, setFeedbackMode] = useState<"report" | "feedback" | null>(null);
   const [feedbackJustSubmitted, setFeedbackJustSubmitted] = useState(false);
@@ -174,7 +175,7 @@ export function ProfileScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.sheet}>
-        <View style={[styles.page, isWeb && styles.pageWeb]}>
+        <View style={[styles.page, { paddingHorizontal: gutter }]}>
           <View style={styles.headerBlock}>
             <TouchableOpacity onPress={onChangePhoto} style={styles.avatarWrap} disabled={uploadPhoto.isPending}>
               {user.photoUrl ? (
@@ -334,7 +335,8 @@ function createStyles(colors: Palette) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.fieldBg },
   scrollContent: { paddingBottom: 40 },
-  coverWrap: { width: "100%" },
+  // Same rounded-bottom banner shape as the Discover hero.
+  coverWrap: { width: "100%", overflow: "hidden", borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   cover: { width: "100%", height: "100%" },
   coverScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "70%" },
   coverEditButton: {
@@ -351,23 +353,11 @@ function createStyles(colors: Palette) {
     paddingVertical: 6,
   },
   coverEditText: { color: colors.white, fontSize: 11.5, fontWeight: "700" },
-  // Rounded "sheet" that rises up over the cover's bottom edge so the photo
-  // and the profile content read as one connected piece instead of a hard
-  // cut between two separate blocks.
-  sheet: {
-    marginTop: -26,
-    backgroundColor: colors.fieldBg,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(15,118,110,0.14)",
-    paddingTop: 4,
-  },
-  page: { paddingHorizontal: 20 },
-  pageWeb: { width: "100%", maxWidth: 640, alignSelf: "center" },
+  sheet: {},
+  page: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center" },
   headerBlock: { alignItems: "center" },
   avatarWrap: {
-    marginTop: -58,
+    marginTop: -52,
     borderRadius: 56,
     shadowColor: colors.ink,
     shadowOpacity: 0.18,
@@ -391,18 +381,18 @@ function createStyles(colors: Palette) {
     alignItems: "center",
     justifyContent: "center",
   },
-  name: { ...TYPE.heading, fontSize: 21, marginTop: 10 },
+  name: { ...FONT.screenTitle, fontSize: 22, color: colors.ink, marginTop: 10 },
   metaRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 14, marginTop: 6 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { fontSize: 13, color: colors.muted },
-  bio: { ...TYPE.body, fontSize: 13.5, color: colors.muted, textAlign: "center", marginTop: 10, lineHeight: 20, maxWidth: 340 },
+  bio: { ...FONT.bodySmall, color: colors.muted, textAlign: "center", marginTop: 10, lineHeight: 20, maxWidth: 340 },
   statsRow: { flexDirection: "row", gap: 10, marginTop: 20 },
   statCard: {
     flex: 1,
     alignItems: "center",
     gap: 5,
     backgroundColor: colors.surfaceElevated,
-    borderRadius: RADIUS.chip,
+    borderRadius: RADIUS.card,
     borderWidth: 1,
     borderColor: colors.border,
     paddingVertical: 14,
@@ -416,15 +406,15 @@ function createStyles(colors: Palette) {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "rgba(15,118,110,0.08)",
+    backgroundColor: colors.primaryMuted,
     alignItems: "center",
     justifyContent: "center",
   },
   statValue: { fontSize: 19, fontWeight: "700", color: colors.ink },
   statLabel: { fontSize: 11, color: colors.muted, fontWeight: "600" },
-  section: { marginTop: 22, padding: 16, gap: 10 },
+  section: { marginTop: 16, padding: 16, gap: 10 },
   blockHeaderRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  blockTitle: { fontWeight: "700", fontSize: 14.5, color: colors.ink },
+  blockTitle: { ...FONT.cardTitle, fontSize: 15, color: colors.ink },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     flexDirection: "row",
@@ -461,7 +451,7 @@ function createStyles(colors: Palette) {
     borderColor: colors.border,
   },
   emptyText: { fontSize: 12.5, color: colors.mutedLight, textAlign: "center", paddingHorizontal: 32 },
-  editButton: { marginTop: 28 },
+  editButton: { marginTop: 12 },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -472,9 +462,9 @@ function createStyles(colors: Palette) {
   },
   logoutText: { color: colors.danger, fontWeight: "600", fontSize: 14 },
   skeletonCover: { width: "100%", height: 220, borderRadius: 0 },
-  skeletonAvatar: { width: 104, height: 104, borderRadius: 52, marginTop: -58 },
+  skeletonAvatar: { width: 104, height: 104, borderRadius: 52, marginTop: -52 },
   skeletonName: { width: 140, height: 18, marginTop: 14 },
   skeletonMeta: { width: 100, height: 12, marginTop: 8 },
-  skeletonStat: { flex: 1, height: 74, borderRadius: RADIUS.chip },
+  skeletonStat: { flex: 1, height: 74, borderRadius: RADIUS.card },
   });
 }

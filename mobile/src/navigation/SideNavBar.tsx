@@ -2,7 +2,6 @@ import { useMemo, useState, type ComponentProps } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { SIDEBAR_WIDTH } from "../theme/layout";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
@@ -16,14 +15,24 @@ type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 const ACTIVE_BLUE = "#2563eb";
 
-// Desktop replacement for the bottom tab bar: same routes, badges and tabPress
-// semantics, rendered as a fixed left sidebar (AppTabs offsets the scenes).
+export interface SideNavItem {
+  key: string;
+  label: string;
+  icon: { active: IconName; inactive: IconName };
+  badge?: number;
+}
+
+// Desktop navigation: a fixed left sidebar beside every app screen (AppNavigator
+// lays it out next to the whole stack, so detail and form screens keep it too).
 export function SideNavBar({
-  state,
-  descriptors,
-  navigation,
-  icons,
-}: BottomTabBarProps & { icons: Record<string, { active: IconName; inactive: IconName }> }) {
+  items,
+  activeKey,
+  onSelect,
+}: {
+  items: SideNavItem[];
+  activeKey: string;
+  onSelect: (key: string) => void;
+}) {
   const { colors, scheme } = useTheme();
   const dark = scheme === "dark";
   const styles = useMemo(() => createStyles(colors, dark), [colors, dark]);
@@ -48,23 +57,13 @@ export function SideNavBar({
       </View>
 
       <View style={styles.items}>
-        {state.routes.map((route, index) => {
-          const focused = state.index === index;
-          const { options } = descriptors[route.key];
-          const label = options.title ?? route.name;
-          const icon = icons[route.name];
-          const badge = options.tabBarBadge;
-
-          const onPress = () => {
-            const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-            if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
-          };
-
+        {items.map(({ key, label, icon, badge }) => {
+          const focused = key === activeKey;
           return (
             <TouchableOpacity
-              key={route.key}
+              key={key}
               style={[styles.item, focused && styles.itemActive]}
-              onPress={onPress}
+              onPress={() => onSelect(key)}
               activeOpacity={0.75}
               accessibilityRole="link"
               accessibilityState={focused ? { selected: true } : {}}
@@ -96,11 +95,8 @@ export function SideNavBar({
 function createStyles(colors: Palette, dark: boolean) {
   return StyleSheet.create({
     sidebar: {
-      position: "absolute",
-      left: 0,
-      top: 0,
-      bottom: 0,
       width: SIDEBAR_WIDTH,
+      height: "100%",
       borderRightWidth: 1,
       borderRightColor: dark ? colors.divider : "#e4ecf7",
       paddingTop: 28,

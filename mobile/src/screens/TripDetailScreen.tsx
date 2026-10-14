@@ -42,7 +42,9 @@ import { TRIP_STATUS_COLORS, TRIP_STATUS_LABELS } from "../utils/tripStatus";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
 import { StarRating } from "../components/StarRating";
 import { Skeleton } from "../components/theme/Skeleton";
-import { RADIUS } from "../theme/tokens";
+import { PAGE_WIDTH, RADIUS, pageGutter } from "../theme/tokens";
+import { useResponsiveLayout } from "../theme/layout";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
@@ -86,6 +88,9 @@ export function TripDetailScreen({ route, navigation }: Props) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
+  const { isDesktop } = useResponsiveLayout();
+  // Header lines up with the page column (760px) plus the page gutter on each side.
+  const header = <ScreenHeader title="Trip Details" showBack maxWidth={PAGE_WIDTH.form + 2 * pageGutter(isDesktop)} />;
   const [heroWidth, setHeroWidth] = useState(width);
   const heroHeight = isWeb ? Math.min(Math.round(heroWidth / 2.4), 380) : 260;
   const { colors } = useTheme();
@@ -164,6 +169,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
   if (isLoading || !trip) {
     return (
       <View style={styles.flexScreen}>
+        {header}
         <Skeleton style={styles.skeletonHero} />
         <View style={styles.skeletonSection}>
           <Skeleton style={styles.skeletonLine} />
@@ -359,15 +365,7 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
   return (
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.ink} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Trip Details
-        </Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      {header}
 
       <ScrollView
         ref={scrollViewRef}
@@ -767,36 +765,16 @@ export function TripDetailScreen({ route, navigation }: Props) {
 
 function createStyles(colors: Palette) {
   return StyleSheet.create({
-  flexScreen: { flex: 1, backgroundColor: colors.surfaceElevated },
+  flexScreen: { flex: 1, backgroundColor: colors.surface },
   skeletonHero: { width: "100%", height: 260, borderRadius: 0 },
   skeletonSection: { padding: 16, gap: 12 },
   skeletonLine: { height: 14, width: "80%" },
   skeletonLineShort: { height: 14, width: "50%" },
-  container: { flex: 1, backgroundColor: colors.surfaceElevated },
+  container: { flex: 1, backgroundColor: colors.surface },
   scrollContent: { paddingBottom: 24 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-    backgroundColor: colors.surfaceElevated,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.fieldBg,
-  },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.ink },
-  headerSpacer: { width: 40, height: 40 },
-  pageInnerWeb: { width: "100%", maxWidth: 760, alignSelf: "center" },
+  pageInnerWeb: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center" },
   hero: { width: "100%", borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden" },
-  heroWeb: { borderRadius: 20, marginTop: 20 },
+  heroWeb: { borderRadius: RADIUS.card, marginTop: 4 },
   heroList: { flex: 1 },
   heroImage: { width: "100%", height: "100%" },
   statusPill: {

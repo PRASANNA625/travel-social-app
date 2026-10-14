@@ -198,7 +198,8 @@ export function PhoneLoginScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  // Clips the decorative circles that sit partly off-screen (they caused sideways scroll on web).
+  flex: { flex: 1, overflow: "hidden" },
   decorCircle: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)" },
   decorCircleTop: { width: 240, height: 240, top: -70, right: -60 },
   decorCircleBottom: { width: 300, height: 300, bottom: -100, left: -90 },

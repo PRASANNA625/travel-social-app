@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useBuddyMatches, usePendingBuddyRequests, useSendBuddyRequest } from "../api/buddies";
@@ -15,20 +15,28 @@ import { RADIUS } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { Alert } from "../utils/alert";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
+import { SearchField } from "../components/theme/SearchField";
+import { FilterChip } from "../components/theme/FilterChip";
+import { EmptyState } from "../components/theme/EmptyState";
+import { pageGutter } from "../theme/tokens";
 
 type SortMode = "best" | "newest";
 
 const GRID_GAP = 16;
-const LIST_PADDING = 16;
 const GRID_MAX_WIDTH = 1440;
 
 // Rendered both as the TravelBuddies stack screen and as the Meetups tab, so it
 // takes navigation from the hook rather than screen props.
 export function TravelBuddiesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  // Opened from Discover's "See all" it's a stack screen with a back button; as the Meetups tab it isn't.
+  const isStackScreen = useRoute().name === "TravelBuddies";
   // Grid of equal-width cards that fills the screen (sidebar-aware on desktop).
-  const { contentWidth } = useResponsiveLayout();
-  const gridWidth = Math.min(contentWidth, GRID_MAX_WIDTH) - LIST_PADDING * 2;
+  const { contentWidth, isDesktop } = useResponsiveLayout();
+  const gutter = pageGutter(isDesktop);
+  const gridWidth = Math.min(contentWidth, GRID_MAX_WIDTH) - gutter * 2;
+  const wideFilters = gridWidth >= 640;
   const columns = Math.max(1, Math.min(5, Math.floor((gridWidth + GRID_GAP) / (BUDDY_CARD_WIDTH + GRID_GAP))));
   const cardWidth = columns === 1 ? Math.min(gridWidth, 420) : (gridWidth - (columns - 1) * GRID_GAP) / columns;
   const [search, setSearch] = useState("");
@@ -122,85 +130,78 @@ export function TravelBuddiesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchWrap}>
-        <MaterialCommunityIcons name="magnify" size={18} color={colors.mutedLight} />
-        <TextInput
-          style={styles.search}
-          placeholder="Search by name or bio..."
-          placeholderTextColor={colors.mutedLight}
+      <ScreenHeader
+        title={isStackScreen ? "Travel Buddies" : "Meetups"}
+        subtitle="Find travelers who share your style and plan trips together"
+        showBack={isStackScreen}
+        maxWidth={GRID_MAX_WIDTH}
+        right={
+          pendingRequests && pendingRequests.length > 0 ? (
+            <TouchableOpacity
+              style={styles.requestsPill}
+              onPress={() => navigation.navigate("ConnectionRequests")}
+              accessibilityRole="button"
+            >
+              <MaterialCommunityIcons name="account-heart-outline" size={16} color={colors.primary} />
+              <Text style={styles.requestsPillText}>Requests ({pendingRequests.length})</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
+
+      <View style={[styles.filters, { paddingHorizontal: gutter }, wideFilters && styles.filtersWide]}>
+        <SearchField
           value={search}
           onChangeText={handleSearchChange}
+          placeholder="Search by name or bio..."
+          style={wideFilters && styles.filterField}
         />
-      </View>
-
-      <View style={styles.searchWrap}>
-        <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.mutedLight} />
-        <TextInput
-          style={styles.search}
-          placeholder="Filter by location..."
-          placeholderTextColor={colors.mutedLight}
+        <SearchField
           value={location}
           onChangeText={handleLocationChange}
+          placeholder="Filter by location..."
+          icon="map-marker-outline"
+          style={wideFilters && styles.filterField}
         />
       </View>
-
-      {pendingRequests && pendingRequests.length > 0 && (
-        <TouchableOpacity style={styles.requestsPill} onPress={() => navigation.navigate("ConnectionRequests")}>
-          <MaterialCommunityIcons name="account-heart-outline" size={16} color={colors.primary} />
-          <Text style={styles.requestsPillText}>Requests ({pendingRequests.length})</Text>
-        </TouchableOpacity>
-      )}
 
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filterRow}
-        contentContainerStyle={styles.filterRowContent}
+        contentContainerStyle={[styles.filterRowContent, { paddingHorizontal: gutter }]}
         data={["SORT" as const, ...TRAVEL_MODES, ...availableInterests]}
         keyExtractor={(item) => item}
         renderItem={({ item }) => {
           if (item === "SORT") {
             return (
-              <TouchableOpacity
-                style={styles.chip}
+              <FilterChip
+                label={sortMode === "best" ? "Best match" : "Newest"}
+                icon={sortMode === "best" ? "star-outline" : "clock-outline"}
+                active={false}
                 onPress={() => setSortMode((prev) => (prev === "best" ? "newest" : "best"))}
-              >
-                <MaterialCommunityIcons
-                  name={sortMode === "best" ? "star-outline" : "clock-outline"}
-                  size={15}
-                  color={colors.ink}
-                />
-                <Text style={styles.chipText}>{sortMode === "best" ? "Best match" : "Newest"}</Text>
-              </TouchableOpacity>
+              />
             );
           }
           if ((TRAVEL_MODES as readonly string[]).includes(item)) {
             const mode = item as TravelMode;
             const active = travelMode === mode;
             return (
-              <TouchableOpacity
-                style={[styles.chip, active && styles.chipActive]}
+              <FilterChip
+                label={travelModeText(mode)}
+                icon={TRAVEL_MODE_ICONS[mode]}
+                active={active}
                 onPress={() => handleTravelModeChange(active ? undefined : mode)}
-              >
-                <MaterialCommunityIcons name={TRAVEL_MODE_ICONS[mode]} size={15} color={active ? colors.white : colors.ink} />
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{travelModeText(mode)}</Text>
-              </TouchableOpacity>
+              />
             );
           }
           const active = interest === item;
-          return (
-            <TouchableOpacity
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => handleInterestChange(active ? undefined : item)}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{item}</Text>
-            </TouchableOpacity>
-          );
+          return <FilterChip label={item} active={active} onPress={() => handleInterestChange(active ? undefined : item)} />;
         }}
       />
 
       {isLoading && page === 1 ? (
-        <View style={[styles.skeletonGrid, { gap: GRID_GAP }]}>
+        <View style={[styles.skeletonGrid, { gap: GRID_GAP, paddingHorizontal: gutter }]}>
           {Array.from({ length: Math.max(2, columns) }, (_, i) => (
             <BuddyCardSkeleton key={i} width={cardWidth} />
           ))}
@@ -209,16 +210,17 @@ export function TravelBuddiesScreen() {
         <FlatList
           // numColumns can't change on a mounted FlatList; remount when the column count changes.
           key={`buddies-${columns}`}
-          contentContainerStyle={[styles.list, columns === 1 && styles.listSingle]}
+          contentContainerStyle={[styles.list, { paddingHorizontal: gutter }, columns === 1 && styles.listSingle]}
           data={displayedItems}
           keyExtractor={(item) => item.id}
           numColumns={columns}
           columnWrapperStyle={columns > 1 ? { gap: GRID_GAP } : undefined}
           ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <MaterialCommunityIcons name="account-search-outline" size={40} color={colors.mutedLight} />
-              <Text style={styles.empty}>No travel buddies match yet — try widening your filters.</Text>
-            </View>
+            <EmptyState
+              icon="account-search-outline"
+              title="No travel buddies found"
+              message="Try a different search or widen your filters."
+            />
           }
           renderItem={({ item }) => (
             <View style={styles.cardWrap}>
@@ -247,56 +249,25 @@ export function TravelBuddiesScreen() {
 function createStyles(colors: Palette) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.surface },
-    searchWrap: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      marginHorizontal: 16,
-      marginTop: 12,
-      backgroundColor: colors.surfaceElevated,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingHorizontal: 14,
-    },
-    search: { flex: 1, paddingVertical: 12, fontSize: 14, color: colors.ink },
+    filters: { gap: 10, width: "100%", maxWidth: GRID_MAX_WIDTH, alignSelf: "center" },
+    filtersWide: { flexDirection: "row" },
+    filterField: { flex: 1 },
     requestsPill: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      alignSelf: "flex-start",
-      marginHorizontal: 16,
-      marginTop: 12,
       backgroundColor: colors.successBg,
       borderRadius: RADIUS.pill,
       paddingHorizontal: 12,
       paddingVertical: 7,
     },
     requestsPillText: { fontSize: 12.5, fontWeight: "700", color: colors.primary },
-    filterRow: { minHeight: 46, marginTop: 12, flexGrow: 0 },
-    filterRowContent: { paddingHorizontal: 16, paddingRight: 24, paddingVertical: 4, alignItems: "center", gap: 8 },
-    chip: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      justifyContent: "center",
-      minHeight: 38,
-      backgroundColor: colors.surfaceElevated,
-      borderRadius: RADIUS.pill,
-      paddingHorizontal: 14,
-      paddingVertical: 9,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-    chipText: { fontSize: 12.5, color: colors.ink, fontWeight: "500" },
-    chipTextActive: { color: colors.white, fontWeight: "700" },
-    skeletonGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16 },
-    list: { padding: LIST_PADDING, paddingBottom: 40, width: "100%", maxWidth: GRID_MAX_WIDTH, alignSelf: "center" },
+    filterRow: { flexGrow: 0, marginTop: 12 },
+    filterRowContent: { paddingVertical: 4, alignItems: "center", gap: 8 },
+    skeletonGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, paddingVertical: 16 },
+    list: { paddingTop: 16, paddingBottom: 40, width: "100%", maxWidth: GRID_MAX_WIDTH, alignSelf: "center" },
     listSingle: { alignItems: "center" },
     cardWrap: { marginBottom: 16 },
-    emptyWrap: { alignItems: "center", marginTop: 48, gap: 10, paddingHorizontal: 32 },
-    empty: { textAlign: "center", color: colors.mutedLight, fontSize: 13 },
     loadMoreButton: {
       alignSelf: "center",
       marginTop: 8,

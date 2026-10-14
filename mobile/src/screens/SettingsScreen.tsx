@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
+import { useResponsiveLayout } from "../theme/layout";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList } from "../navigation/types";
 import { useTheme, type ThemePreference } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
-import { RADIUS } from "../theme/tokens";
+import { PAGE_WIDTH, RADIUS, SHADOW, pageGutter } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Settings">;
 
@@ -17,23 +18,15 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; icon: "white-balan
 ];
 
 export function SettingsScreen({ navigation }: Props) {
-  const insets = useSafeAreaInsets();
   const { colors, preference, setPreference } = useTheme();
+  const { isDesktop } = useResponsiveLayout();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.ink} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Settings
-        </Text>
-        <View style={styles.headerButton} />
-      </View>
+      <ScreenHeader title="Settings" showBack maxWidth={PAGE_WIDTH.form} />
 
-      <View style={styles.body}>
+      <View style={[styles.body, { paddingHorizontal: pageGutter(isDesktop) }]}>
         <Text style={styles.sectionTitle}>Appearance</Text>
         <View style={styles.card}>
           {THEME_OPTIONS.map((option, index) => {
@@ -74,34 +67,16 @@ export function SettingsScreen({ navigation }: Props) {
 function createStyles(colors: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.surface },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 12,
-      paddingBottom: 10,
-      backgroundColor: colors.surfaceElevated,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.divider,
-    },
-    headerButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.fieldBg,
-    },
-    headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", color: colors.ink },
-    body: { padding: 16 },
+    body: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", paddingTop: 8, paddingBottom: 32 },
     sectionTitle: { fontSize: 13, fontWeight: "700", color: colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.4 },
     sectionTitleSpaced: { marginTop: 24 },
     card: {
       backgroundColor: colors.surfaceElevated,
       borderRadius: RADIUS.card,
       borderWidth: 1,
-      borderColor: colors.cardBorder,
+      borderColor: colors.border,
       overflow: "hidden",
+      ...SHADOW.card,
     },
     row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
     rowDivider: { borderBottomWidth: 1, borderBottomColor: colors.divider },

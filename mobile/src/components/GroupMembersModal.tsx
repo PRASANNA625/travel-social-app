@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { GroupMember, PresenceInfo } from "../types";
-import { RADIUS, TYPE } from "../theme/tokens";
+import { FONT, RADIUS } from "../theme/tokens";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
@@ -107,7 +107,7 @@ function createStyles(colors: Palette) {
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
-    title: { ...TYPE.heading, fontSize: 17, color: colors.ink },
+    title: { ...FONT.screenTitle, fontSize: 17, color: colors.ink },
     count: { fontSize: 14, color: colors.muted, fontWeight: "600" },
     list: { marginTop: 4 },
     listContent: { paddingBottom: 24, gap: 4 },

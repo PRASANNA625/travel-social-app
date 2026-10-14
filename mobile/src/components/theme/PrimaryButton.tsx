@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, type StyleProp, type ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { RADIUS, SHADOW } from "../../theme/tokens";
+import { CONTROL, FONT, RADIUS, SHADOW } from "../../theme/tokens";
 import { useTheme } from "../../theme/ThemeContext";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -14,6 +14,7 @@ export function PrimaryButton({
   disabled,
   style,
   variant = "solid",
+  size = "regular",
 }: {
   label: string;
   onPress: () => void;
@@ -22,6 +23,8 @@ export function PrimaryButton({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   variant?: "solid" | "outline";
+  // "small" for inline actions (empty states, cards); "regular" for forms and page actions.
+  size?: "regular" | "small";
 }) {
   const { colors } = useTheme();
   const isOutline = variant === "outline";
@@ -31,6 +34,7 @@ export function PrimaryButton({
     <TouchableOpacity
       style={[
         styles.button,
+        size === "small" && styles.buttonSmall,
         { backgroundColor: colors.primary, shadowColor: colors.primary },
         isOutline && [styles.buttonOutline, { backgroundColor: colors.surfaceElevated, borderColor: colors.primary }],
         disabled && styles.buttonDisabled,
@@ -44,7 +48,11 @@ export function PrimaryButton({
         <ActivityIndicator color={contentColor} />
       ) : (
         <>
-          <Text style={[styles.text, { color: colors.white }, isOutline && { color: colors.primary }]}>{label}</Text>
+          <Text
+            style={[styles.text, size === "small" && styles.textSmall, { color: colors.white }, isOutline && { color: colors.primary }]}
+          >
+            {label}
+          </Text>
           {icon && <MaterialCommunityIcons name={icon} size={18} color={contentColor} />}
         </>
       )}
@@ -58,10 +66,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    minHeight: CONTROL.button,
     borderRadius: RADIUS.field,
-    paddingVertical: 15,
+    paddingHorizontal: 20,
     ...SHADOW.button,
   },
+  buttonSmall: { minHeight: CONTROL.buttonSmall, paddingHorizontal: 16, borderRadius: RADIUS.sm },
   buttonOutline: {
     borderWidth: 1.5,
     shadowColor: "transparent",
@@ -70,5 +80,6 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   buttonDisabled: { opacity: 0.6 },
-  text: { fontSize: 16, fontWeight: "700", flexShrink: 1 },
+  text: { ...FONT.button, flexShrink: 1 },
+  textSmall: { fontSize: 14 },
 });

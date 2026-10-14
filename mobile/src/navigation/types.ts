@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from "@react-navigation/native";
+
 export type AuthStackParamList = {
   Welcome: undefined;
   Onboarding: undefined;
@@ -7,7 +9,7 @@ export type AuthStackParamList = {
 };
 
 export type AppStackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<AppTabParamList> | undefined;
   TripDetail: { tripId: string; highlightCommentId?: string };
   CreateTrip: { tripId?: string } | undefined;
   JoinRequestsInbox: { tripId: string; highlightRequestId?: string };

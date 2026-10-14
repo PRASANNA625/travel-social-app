@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ComponentProps } from "react";
-import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -10,7 +11,9 @@ import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { GradientBackground } from "../components/theme/GradientBackground";
 import { Card } from "../components/theme/Card";
 import { Skeleton } from "../components/theme/Skeleton";
-import { RADIUS, TYPE } from "../theme/tokens";
+import { FONT, PAGE_WIDTH, RADIUS, pageGutter } from "../theme/tokens";
+import { useResponsiveLayout } from "../theme/layout";
+import { IconButton } from "../components/theme/IconButton";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { optimizedImageUrl } from "../utils/optimizedImage";
@@ -42,10 +45,11 @@ function SectionHeader({ icon, title, styles, colors }: { icon: IconName; title:
   );
 }
 
-function UserProfileSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
+function UserProfileSkeleton({ styles, onBack, top }: { styles: ReturnType<typeof createStyles>; onBack: () => void; top: number }) {
   return (
     <View style={styles.container}>
       <Skeleton style={styles.skeletonCover} />
+      <IconButton icon="arrow-left" label="Go back" onPress={onBack} style={[styles.coverButtonLeft, { top }]} />
       <View style={styles.sheet}>
         <View style={styles.page}>
           <View style={styles.headerBlock}>
@@ -63,8 +67,10 @@ export function UserProfileScreen({ route, navigation }: Props) {
   const { userId, groupRole } = route.params;
   const { data: user, isLoading } = useUser(userId);
   const { data: completedTrips } = useCompletedTrips(userId);
-  const isWeb = Platform.OS === "web";
   const { width: windowWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
+  const coverButtonTop = insets.top + 12;
   const coverHeight = Math.min(Math.max(windowWidth / 2.2, 200), 280);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -79,31 +85,15 @@ export function UserProfileScreen({ route, navigation }: Props) {
   const unblockUser = useUnblockUser(userId);
   const reportUser = useReportUser(userId);
 
-  useEffect(() => {
-    if (isSelf) {
-      navigation.setOptions({ headerRight: undefined });
-      return;
-    }
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          ref={menuButtonRef}
-          style={styles.headerMenuButton}
-          onPress={() => {
-            menuButtonRef.current?.measureInWindow((x, y, width, height) => {
-              setMenuAnchor({ x, y, width, height });
-              setMenuVisible(true);
-            });
-          }}
-          hitSlop={8}
-        >
-          <MaterialCommunityIcons name="dots-vertical" size={20} color={colors.ink} />
-        </TouchableOpacity>
-      ),
+  const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Tabs"));
+  const openMenu = () => {
+    menuButtonRef.current?.measureInWindow((x, y, width, height) => {
+      setMenuAnchor({ x, y, width, height });
+      setMenuVisible(true);
     });
-  }, [navigation, isSelf, colors]);
+  };
 
-  if (isLoading || !user) return <UserProfileSkeleton styles={styles} />;
+  if (isLoading || !user) return <UserProfileSkeleton styles={styles} onBack={goBack} top={coverButtonTop} />;
 
   const onConfirmBlock = () => {
     blockUser.mutate(undefined, {
@@ -142,10 +132,16 @@ export function UserProfileScreen({ route, navigation }: Props) {
         ) : (
           <GradientBackground style={styles.cover} />
         )}
+        <IconButton icon="arrow-left" label="Go back" onPress={goBack} style={[styles.coverButtonLeft, { top: coverButtonTop }]} />
+        {!isSelf && (
+          <View ref={menuButtonRef} collapsable={false} style={[styles.coverButtonRight, { top: coverButtonTop }]}>
+            <IconButton icon="dots-vertical" label="More options" onPress={openMenu} />
+          </View>
+        )}
       </View>
 
       <View style={styles.sheet}>
-        <View style={[styles.page, isWeb && styles.pageWeb]}>
+        <View style={[styles.page, { paddingHorizontal: pageGutter(isDesktop) }]}>
           <View style={styles.headerBlock}>
             <View style={styles.avatarWrap}>
               {user.photoUrl ? (
@@ -258,23 +254,17 @@ function createStyles(colors: Palette) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.fieldBg },
   scrollContent: { paddingBottom: 40 },
-  coverWrap: { width: "100%" },
+  // Same rounded-bottom banner shape as the Discover hero and Profile.
+  coverWrap: { width: "100%", overflow: "hidden", borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  coverButtonLeft: { position: "absolute", left: 16 },
+  coverButtonRight: { position: "absolute", right: 16 },
   cover: { width: "100%", height: "100%" },
   coverScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "70%" },
-  sheet: {
-    marginTop: -26,
-    backgroundColor: colors.fieldBg,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(15,118,110,0.14)",
-    paddingTop: 4,
-  },
-  page: { paddingHorizontal: 20 },
-  pageWeb: { width: "100%", maxWidth: 640, alignSelf: "center" },
+  sheet: {},
+  page: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center" },
   headerBlock: { alignItems: "center" },
   avatarWrap: {
-    marginTop: -58,
+    marginTop: -52,
     borderRadius: 56,
     shadowColor: colors.ink,
     shadowOpacity: 0.18,
@@ -286,7 +276,7 @@ function createStyles(colors: Palette) {
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
   avatarInitial: { color: colors.white, fontSize: 34, fontWeight: "700" },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
-  name: { ...TYPE.heading, fontSize: 21 },
+  name: { ...FONT.screenTitle, fontSize: 22, color: colors.ink },
   ownerChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -300,10 +290,10 @@ function createStyles(colors: Palette) {
   metaRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 14, marginTop: 6 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { fontSize: 13, color: colors.muted },
-  bio: { ...TYPE.body, fontSize: 13.5, color: colors.muted, textAlign: "center", marginTop: 10, lineHeight: 20, maxWidth: 340 },
-  section: { marginTop: 22, padding: 16, gap: 10 },
+  bio: { ...FONT.bodySmall, color: colors.muted, textAlign: "center", marginTop: 10, lineHeight: 20, maxWidth: 340 },
+  section: { marginTop: 16, padding: 16, gap: 10 },
   blockHeaderRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  blockTitle: { fontWeight: "700", fontSize: 14.5, color: colors.ink },
+  blockTitle: { ...FONT.cardTitle, fontSize: 15, color: colors.ink },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     flexDirection: "row",
@@ -341,9 +331,8 @@ function createStyles(colors: Palette) {
   },
   emptyText: { fontSize: 12.5, color: colors.mutedLight, textAlign: "center", paddingHorizontal: 32 },
   skeletonCover: { width: "100%", height: 220, borderRadius: 0 },
-  skeletonAvatar: { width: 104, height: 104, borderRadius: 52, marginTop: -58 },
+  skeletonAvatar: { width: 104, height: 104, borderRadius: 52, marginTop: -52 },
   skeletonName: { width: 140, height: 18, marginTop: 14 },
   skeletonMeta: { width: 100, height: 12, marginTop: 8 },
-  headerMenuButton: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   });
 }

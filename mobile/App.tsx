@@ -8,6 +8,7 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { LanguageProvider } from "./src/i18n/LanguageContext";
 import { ThemeProvider, useTheme } from "./src/theme/ThemeContext";
 import { BrandSplash } from "./src/components/BrandSplash";
+import { navigationRef } from "./src/navigation/navigationRef";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +52,7 @@ function AppContent() {
   return (
     <LanguageProvider>
       <NavigationContainer
+        ref={navigationRef}
         theme={navigationTheme}
         documentTitle={{ formatter: (options, route) => `${options?.title ?? route?.name ?? "Triply"} · Triply` }}
       >

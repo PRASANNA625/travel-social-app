@@ -18,12 +18,13 @@ import { TRAVEL_MODES, type JoinType, type TravelMode } from "../types";
 import { TRAVEL_MODE_ICONS, travelModeText } from "../utils/travelModeIcons";
 import { TripDateFields } from "../components/TripDateFields";
 import { LocationPickerModal, type LocationValue } from "../components/LocationPickerModal";
-import { GradientBackground } from "../components/theme/GradientBackground";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
 import { Card } from "../components/theme/Card";
 import { IconInput } from "../components/theme/IconInput";
 import { PrimaryButton } from "../components/theme/PrimaryButton";
 import { SelectableChip } from "../components/theme/SelectableChip";
-import { RADIUS, TYPE } from "../theme/tokens";
+import { FONT, PAGE_WIDTH, RADIUS, pageGutter } from "../theme/tokens";
+import { useResponsiveLayout } from "../theme/layout";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { Alert } from "../utils/alert";
@@ -40,7 +41,7 @@ const JOIN_TYPES: { value: JoinType; label: string; icon: IconName }[] = [
 function FieldLabel({ text, required }: { text: string; required?: boolean }) {
   const { colors } = useTheme();
   return (
-    <Text style={[TYPE.label, { color: colors.ink, marginTop: 4 }]}>
+    <Text style={[FONT.label, { color: colors.ink, marginTop: 4 }]}>
       {text}
       {required && <Text style={{ color: colors.danger }}> *</Text>}
     </Text>
@@ -76,6 +77,7 @@ export function CreateTripScreen({ navigation, route }: Props) {
   const updateTrip = useUpdateTrip();
   const uploadImages = useUploadTripImages();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -249,24 +251,34 @@ export function CreateTripScreen({ navigation, route }: Props) {
 
   const isSubmitting = createTrip.isPending || uploadImages.isPending || updateTrip.isPending;
 
+  const header = (
+    <ScreenHeader
+      title={isEditMode ? "Edit Trip" : "Create a Trip"}
+      subtitle={isEditMode ? "Update your trip details below" : "Share your travel plan and find like-minded companions"}
+      showBack
+      maxWidth={PAGE_WIDTH.form}
+    />
+  );
+
   if (isEditMode && (isLoadingTrip || !prefilled)) {
-    return <ActivityIndicator style={{ marginTop: 40 }} size="large" />;
+    return (
+      <View style={styles.screen}>
+        {header}
+        <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   return (
     <View style={styles.screen}>
-      <GradientBackground style={styles.hero}>
-        <View style={{ paddingTop: 20 }}>
-          <Text style={styles.heroTitle}>{isEditMode ? "Edit Trip" : "Create a Trip"}</Text>
-          <Text style={styles.heroSubtitle}>
-            {isEditMode ? "Update your trip details below" : "Share your travel plan and find like-minded companions"}
-          </Text>
-        </View>
-      </GradientBackground>
+      {header}
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={{ padding: 16, paddingBottom: 16 + insets.bottom, gap: 16 }}
+        contentContainerStyle={[
+          styles.form,
+          { paddingHorizontal: pageGutter(isDesktop), paddingBottom: 24 + insets.bottom },
+        ]}
       >
         <Card>
           <Text style={styles.sectionHeading}>Trip Basics</Text>
@@ -515,12 +527,10 @@ export function CreateTripScreen({ navigation, route }: Props) {
 function createStyles(colors: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.surface },
-    hero: { paddingHorizontal: 20, paddingBottom: 24 },
-    heroTitle: { color: colors.white, fontSize: 22, fontWeight: "800" },
-    heroSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 4 },
     scroll: { flex: 1 },
-    sectionHeading: { ...TYPE.heading, fontSize: 16, color: colors.ink },
-    label: { ...TYPE.label, marginTop: 4, color: colors.ink },
+    form: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", paddingTop: 4, gap: 16 },
+    sectionHeading: { ...FONT.cardTitle, color: colors.ink },
+    label: { ...FONT.label, marginTop: 4, color: colors.ink },
     required: { color: colors.danger },
     counter: { alignSelf: "flex-end", fontSize: 11, color: colors.mutedLight, marginTop: 2 },
     helperText: { fontSize: 12, color: colors.muted, marginTop: -2, marginBottom: 8 },

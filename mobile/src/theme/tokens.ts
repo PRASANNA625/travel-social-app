@@ -83,10 +83,3 @@ export const CONTROL = { button: 48, buttonSmall: 40, field: 48, chip: 36, iconB
 
 // Readable widths for page content on large screens.
 export const PAGE_WIDTH = { form: 760, content: 1100 };
-
-export const TYPE = {
-  heading: { fontSize: 24, fontWeight: "800" as const, color: COLORS.ink },
-  subheading: { fontSize: 13.5, color: COLORS.muted, lineHeight: 19 },
-  label: { fontSize: 13, fontWeight: "600" as const, color: COLORS.ink },
-  body: { fontSize: 15, color: COLORS.ink },
-};

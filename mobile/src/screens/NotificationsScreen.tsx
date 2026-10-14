@@ -2,17 +2,18 @@ import { useMemo } from "react";
 import type { ComponentProps } from "react";
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "../api/notifications";
 import type { AppNotification } from "../types";
-import { GradientBackground } from "../components/theme/GradientBackground";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
+import { EmptyState } from "../components/theme/EmptyState";
 import { Skeleton } from "../components/theme/Skeleton";
 import { optimizedImageUrl } from "../utils/optimizedImage";
-import { RADIUS, TYPE } from "../theme/tokens";
+import { FONT, PAGE_WIDTH, RADIUS, SHADOW, pageGutter } from "../theme/tokens";
+import { useResponsiveLayout } from "../theme/layout";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { formatRelativeTime } from "../utils/date";
@@ -83,7 +84,8 @@ export function NotificationsScreen({ navigation }: Props) {
   const { data, isLoading } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
-  const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
+  const gutter = pageGutter(isDesktop);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -152,32 +154,27 @@ export function NotificationsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <GradientBackground style={[styles.hero, { paddingTop: insets.top + 14 }]}>
-        <View style={styles.heroRow}>
-          <View style={styles.heroTitleRow}>
-            <View style={styles.bellBadge}>
-              <MaterialCommunityIcons name="bell-outline" size={20} color={colors.white} />
-            </View>
-            <View>
-              <Text style={styles.heroTitle}>Notifications</Text>
-              <Text style={styles.heroSubtitle}>Stay on top of your trip activity</Text>
-            </View>
-          </View>
-          {unreadCount > 0 && (
+      <ScreenHeader
+        title="Notifications"
+        subtitle="Stay on top of your trip activity"
+        maxWidth={PAGE_WIDTH.form}
+        right={
+          unreadCount > 0 ? (
             <TouchableOpacity
               style={styles.markAllButton}
               onPress={() => markAllRead.mutate()}
               disabled={markAllRead.isPending}
+              accessibilityRole="button"
             >
-              <MaterialCommunityIcons name="check-all" size={14} color={colors.white} />
+              <MaterialCommunityIcons name="check-all" size={15} color={colors.primary} />
               <Text style={styles.markAllText}>Mark all read</Text>
             </TouchableOpacity>
-          )}
-        </View>
-      </GradientBackground>
+          ) : undefined
+        }
+      />
 
       {isLoading ? (
-        <View style={styles.list}>
+        <View style={[styles.list, { paddingHorizontal: gutter }]}>
           <View style={styles.itemSkeleton}>
             <Skeleton style={styles.iconBadge} />
             <View style={styles.itemBody}>
@@ -202,15 +199,15 @@ export function NotificationsScreen({ navigation }: Props) {
         </View>
       ) : (
         <FlatList
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingHorizontal: gutter }]}
           data={data?.items ?? []}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <MaterialCommunityIcons name="bell-check-outline" size={40} color={colors.mutedLight} />
-              <Text style={styles.emptyTitle}>You're all caught up!</Text>
-              <Text style={styles.emptySubtitle}>New activity on your trips will show up here.</Text>
-            </View>
+            <EmptyState
+              icon="bell-check-outline"
+              title="You're all caught up!"
+              message="New activity on your trips will show up here."
+            />
           }
           renderItem={({ item }) => {
             const meta = iconFor(item.type, colors);
@@ -244,40 +241,28 @@ export function NotificationsScreen({ navigation }: Props) {
 
 function createStyles(colors: Palette) {
   return StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.fieldBg },
-  hero: { paddingHorizontal: 20, paddingBottom: 16 },
-  heroRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  heroTitleRow: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
-  bellBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroTitle: { ...TYPE.heading, fontSize: 20, color: colors.white },
-  heroSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 12.5, marginTop: 2 },
+  container: { flex: 1, backgroundColor: colors.surface },
   markAllButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    gap: 6,
+    height: 36,
+    backgroundColor: colors.primaryMuted,
     borderRadius: RADIUS.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
-  markAllText: { color: colors.white, fontSize: 12, fontWeight: "700" },
-  list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 32, gap: 12 },
+  markAllText: { color: colors.primary, fontSize: 13, fontWeight: "700" },
+  list: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", paddingTop: 4, paddingBottom: 32, gap: 10 },
   item: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     backgroundColor: colors.surfaceElevated,
-    borderRadius: RADIUS.field,
+    borderRadius: RADIUS.card,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 14,
+    ...SHADOW.card,
   },
   itemUnread: {
     backgroundColor: colors.successBg,
@@ -288,13 +273,10 @@ function createStyles(colors: Palette) {
   iconBadge: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   avatarBadge: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.fieldBg },
   itemBody: { flex: 1 },
-  itemText: { ...TYPE.body, lineHeight: 20 },
+  itemText: { ...FONT.bodySmall, color: colors.ink, lineHeight: 20 },
   itemTextUnread: { fontWeight: "700" },
   itemTime: { fontSize: 11.5, color: colors.mutedLight, marginTop: 4 },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  emptyWrap: { alignItems: "center", gap: 8, marginTop: 36, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 15, fontWeight: "700", color: colors.ink },
-  emptySubtitle: { fontSize: 13, color: colors.mutedLight, textAlign: "center" },
   itemSkeleton: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   skeletonLine: { height: 13, width: "80%" },
   skeletonLineShort: { height: 11, width: "35%", marginTop: 6 },

@@ -36,7 +36,8 @@ import { SeenByModal } from "../components/SeenByModal";
 import { VoiceMessageBubble } from "../components/VoiceMessageBubble";
 import { VoiceRecordingPreview } from "../components/VoiceRecordingPreview";
 import { VoicePlaybackProvider } from "../contexts/VoicePlaybackContext";
-import { TYPE } from "../theme/tokens";
+import { CONTROL, FONT, PAGE_WIDTH, RADIUS } from "../theme/tokens";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 
@@ -361,32 +362,27 @@ export function GroupChatScreen({ route, navigation }: Props) {
   return (
     <VoicePlaybackProvider>
     <KeyboardAvoidingView style={styles.flexScreen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.ink} />
-        </TouchableOpacity>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {tripTitle}
-          </Text>
-          {group && (
-            <View style={styles.headerSubRow}>
-              <MaterialCommunityIcons name="account-group-outline" size={12} color={colors.muted} />
-              <Text style={styles.headerSubtitle} numberOfLines={1}>
-                {group.members.length} member{group.members.length === 1 ? "" : "s"} ·{" "}
-                {group.members.map((m) => m.user.name).join(", ")}
-              </Text>
-            </View>
-          )}
-        </View>
-        <TouchableOpacity
-          style={[styles.headerButton, styles.headerMembersButton]}
-          onPress={() => setMembersModalVisible(true)}
-        >
-          <MaterialCommunityIcons name="account-group" size={18} color={colors.ink} />
-          <Text style={styles.headerMembersCount}>{group?.members?.length ?? 0}</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title={tripTitle}
+        subtitle={
+          group
+            ? `${group.members.length} member${group.members.length === 1 ? "" : "s"} · ${group.members.map((m) => m.user.name).join(", ")}`
+            : undefined
+        }
+        showBack
+        maxWidth={PAGE_WIDTH.form}
+        right={
+          <TouchableOpacity
+            style={styles.headerMembersButton}
+            onPress={() => setMembersModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Group members"
+          >
+            <MaterialCommunityIcons name="account-group" size={18} color={colors.ink} />
+            <Text style={styles.headerMembersCount}>{group?.members?.length ?? 0}</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <View style={[styles.body, isWeb && styles.bodyWeb]}>
         <View style={styles.messageArea}>
@@ -572,32 +568,22 @@ export function GroupChatScreen({ route, navigation }: Props) {
 
 function createStyles(colors: Palette) {
   return StyleSheet.create({
-  flexScreen: { flex: 1, backgroundColor: colors.fieldBg },
-  header: {
+  flexScreen: { flex: 1, backgroundColor: colors.surface },
+  headerMembersButton: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 4,
+    height: CONTROL.iconButton,
+    minWidth: CONTROL.iconButton,
     paddingHorizontal: 12,
-    paddingBottom: 10,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
     backgroundColor: colors.surfaceElevated,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
   },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.fieldBg,
-  },
-  headerMembersButton: { width: undefined, minWidth: 40, paddingHorizontal: 10, flexDirection: "row", gap: 4 },
-  headerMembersCount: { ...TYPE.label, fontSize: 12 },
-  headerTextWrap: { flex: 1, alignItems: "center", paddingHorizontal: 6 },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: colors.ink },
-  headerSubRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2, maxWidth: "100%" },
-  headerSubtitle: { fontSize: 11.5, color: colors.muted, flexShrink: 1 },
+  headerMembersCount: { ...FONT.label, color: colors.ink },
   body: { flex: 1 },
-  bodyWeb: { width: "100%", maxWidth: 640, alignSelf: "center" },
+  bodyWeb: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center" },
   messageArea: { flex: 1, position: "relative", overflow: "hidden" },
   list: { flex: 1 },
   listContent: { padding: 14, gap: 10 },

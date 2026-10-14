@@ -12,7 +12,10 @@ import { Skeleton } from "../components/theme/Skeleton";
 import { fallbackCover } from "../utils/coverPhotos";
 import { optimizedImageUrl } from "../utils/optimizedImage";
 import { formatRelativeTime } from "../utils/date";
-import { RADIUS } from "../theme/tokens";
+import { ACTION_BLUE, PAGE_WIDTH, RADIUS, SHADOW, pageGutter } from "../theme/tokens";
+import { useResponsiveLayout } from "../theme/layout";
+import { ScreenHeader } from "../components/theme/ScreenHeader";
+import { EmptyState } from "../components/theme/EmptyState";
 import { useTheme } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 
@@ -75,21 +78,22 @@ export function MessagesScreen({ navigation }: Props) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { data, isLoading, isFetching, refetch } = useMyGroups();
   const { data: me } = useMe();
+  const { isDesktop } = useResponsiveLayout();
+  const gutter = pageGutter(isDesktop);
 
   return (
     <View style={styles.container}>
+      <ScreenHeader
+        title="Messages"
+        subtitle="Group chats for every trip you've joined or created"
+        maxWidth={PAGE_WIDTH.form}
+      />
       <FlatList
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingHorizontal: gutter }]}
         data={data ?? []}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.heading}>Trip chats</Text>
-            <Text style={styles.subheading}>Group chats for every trip you've joined or created.</Text>
-          </View>
-        }
         ListEmptyComponent={
           isLoading ? (
             <View style={styles.skeletons}>
@@ -104,14 +108,13 @@ export function MessagesScreen({ navigation }: Props) {
               ))}
             </View>
           ) : (
-            <View style={styles.empty}>
-              <MaterialCommunityIcons name="message-text-outline" size={42} color={colors.mutedLight} />
-              <Text style={styles.emptyTitle}>No chats yet</Text>
-              <Text style={styles.emptyText}>Join or create a trip and its group chat will show up here.</Text>
-              <TouchableOpacity style={styles.emptyButton} onPress={() => navigation.navigate("Discover")}>
-                <Text style={styles.emptyButtonText}>Discover trips</Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyState
+              icon="message-text-outline"
+              title="No chats yet"
+              message="Join or create a trip and its group chat will show up here."
+              actionLabel="Discover trips"
+              onAction={() => navigation.navigate("Discover")}
+            />
           )
         }
         renderItem={({ item }) => (
@@ -129,10 +132,7 @@ export function MessagesScreen({ navigation }: Props) {
 function createStyles(colors: Palette) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.surface },
-    list: { width: "100%", maxWidth: 820, alignSelf: "center", padding: 16, paddingBottom: 40 },
-    header: { marginBottom: 14, paddingHorizontal: 4 },
-    heading: { fontSize: 22, fontWeight: "800", color: colors.ink },
-    subheading: { fontSize: 13.5, color: colors.muted, marginTop: 4 },
+    list: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", paddingTop: 4, paddingBottom: 40 },
     separator: { height: 10 },
     row: {
       flexDirection: "row",
@@ -143,6 +143,7 @@ function createStyles(colors: Palette) {
       backgroundColor: colors.surfaceElevated,
       borderWidth: 1,
       borderColor: colors.border,
+      ...SHADOW.card,
     },
     cover: { width: 60, height: 60, borderRadius: 14, backgroundColor: colors.fieldBg },
     rowBody: { flex: 1, minWidth: 0, gap: 3 },
@@ -150,7 +151,7 @@ function createStyles(colors: Palette) {
     title: { flex: 1, fontSize: 15, fontWeight: "600", color: colors.ink },
     titleUnread: { fontWeight: "800" },
     time: { fontSize: 12, color: colors.mutedLight },
-    timeUnread: { color: "#2563eb", fontWeight: "700" },
+    timeUnread: { color: ACTION_BLUE, fontWeight: "700" },
     rowBottom: { flexDirection: "row", alignItems: "center", gap: 8 },
     preview: { flex: 1, fontSize: 13.5, color: colors.muted },
     previewUnread: { color: colors.ink, fontWeight: "600" },
@@ -159,7 +160,7 @@ function createStyles(colors: Palette) {
       height: 22,
       paddingHorizontal: 7,
       borderRadius: RADIUS.pill,
-      backgroundColor: "#2563eb",
+      backgroundColor: ACTION_BLUE,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -169,16 +170,5 @@ function createStyles(colors: Palette) {
     skeletons: { gap: 10 },
     skeletonLine: { height: 14, width: "60%" },
     skeletonLineShort: { height: 12, width: "40%" },
-    empty: { alignItems: "center", paddingTop: 48, gap: 8 },
-    emptyTitle: { fontSize: 17, fontWeight: "700", color: colors.ink },
-    emptyText: { fontSize: 13.5, color: colors.muted, textAlign: "center", maxWidth: 320 },
-    emptyButton: {
-      marginTop: 10,
-      backgroundColor: colors.primary,
-      borderRadius: RADIUS.pill,
-      paddingHorizontal: 20,
-      paddingVertical: 11,
-    },
-    emptyButtonText: { color: colors.white, fontWeight: "700", fontSize: 14 },
   });
 }

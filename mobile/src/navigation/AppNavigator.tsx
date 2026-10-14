@@ -1,6 +1,10 @@
+import { StyleSheet, View } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import type { AppStackParamList } from "./types";
-import { AppTabs } from "./AppTabs";
+import type { AppStackParamList, AppTabParamList } from "./types";
+import { AppTabs, TAB_ICONS, TAB_ITEMS, useNavBadges } from "./AppTabs";
+import { SideNavBar } from "./SideNavBar";
+import { navigateToTab, useActiveTab } from "./navigationRef";
+import { useResponsiveLayout } from "../theme/layout";
 import { TripDetailScreen } from "../screens/TripDetailScreen";
 import { CreateTripScreen } from "../screens/CreateTripScreen";
 import { JoinRequestsInboxScreen } from "../screens/JoinRequestsInboxScreen";
@@ -15,9 +19,25 @@ import { BlockedUsersScreen } from "../screens/BlockedUsersScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
-export function AppNavigator() {
+function DesktopSidebar() {
+  const activeTab = useActiveTab();
+  const badges = useNavBadges();
+  const items = TAB_ITEMS.map(({ key, label }) => ({
+    key,
+    label,
+    icon: TAB_ICONS[key],
+    badge: key === "Messages" || key === "Notifications" ? badges[key] || undefined : undefined,
+  }));
   return (
-    <Stack.Navigator>
+    <SideNavBar items={items} activeKey={activeTab} onSelect={(key) => navigateToTab(key as keyof AppTabParamList)} />
+  );
+}
+
+export function AppNavigator() {
+  const { isDesktop } = useResponsiveLayout();
+  const stack = (
+    // Every screen draws its own ScreenHeader; titles still name the browser tab.
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={AppTabs} options={{ headerShown: false }} />
       <Stack.Screen name="TripDetail" component={TripDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen
@@ -40,4 +60,18 @@ export function AppNavigator() {
       <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={{ title: "Blocked Users" }} />
     </Stack.Navigator>
   );
+
+  if (!isDesktop) return stack;
+  // Desktop: the sidebar stays beside every screen, tabs and stack screens alike.
+  return (
+    <View style={styles.desktop}>
+      <DesktopSidebar />
+      <View style={styles.desktopContent}>{stack}</View>
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  desktop: { flex: 1, flexDirection: "row" },
+  desktopContent: { flex: 1, minWidth: 0 },
+});
