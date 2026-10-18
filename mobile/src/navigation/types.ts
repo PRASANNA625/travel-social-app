@@ -7,6 +7,7 @@ export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   PhoneLogin: undefined;
+  ForgotPassword: { email?: string } | undefined;
 };
 
 export type AppStackParamList = {

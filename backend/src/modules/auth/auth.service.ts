@@ -9,12 +9,14 @@ import { isMockPhoneProvider, phoneProvider } from "./phoneProvider";
 const googleClient = new OAuth2Client(env.googleClientId);
 
 // Token plus the signed-in user, minus credentials. Suspended accounts can't sign in.
-function toAuthResponse<T extends { id: string; status: string; passwordHash: string | null; googleId: string | null }>(user: T) {
+export function toAuthResponse<
+  T extends { id: string; status: string; passwordHash: string | null; googleId: string | null; passwordChangedAt: Date | null }
+>(user: T) {
   if (user.status === "SUSPENDED") {
     throw new HttpError(403, "This account has been suspended", "ACCOUNT_SUSPENDED");
   }
-  const { passwordHash: _passwordHash, googleId: _googleId, ...safeUser } = user;
-  return { token: signToken(user.id), user: safeUser };
+  const { passwordHash, googleId: _googleId, passwordChangedAt, ...safeUser } = user;
+  return { token: signToken(user.id, passwordChangedAt), user: { ...safeUser, hasPassword: !!passwordHash } };
 }
 
 export async function register(email: string, password: string, name: string) {

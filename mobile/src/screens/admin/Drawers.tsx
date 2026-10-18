@@ -11,6 +11,7 @@ import {
   useRemoveParticipant,
   useUpdateTrip,
   useUpdateUser,
+  useSendPasswordReset,
   type AdminTripDetail,
 } from "../../api/admin";
 import { TRAVEL_MODES, type TravelMode, type TripStatus } from "../../types";
@@ -131,6 +132,8 @@ export function UserDrawer({ userId, onClose }: { userId: string | null; onClose
   const { data: user, isLoading, error, refetch } = useAdminUser(userId);
   const update = useUpdateUser();
   const actions = useAccountActions();
+  const confirm = useConfirm();
+  const sendReset = useSendPasswordReset();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: "", location: "", bio: "" });
 
@@ -141,6 +144,18 @@ export function UserDrawer({ userId, onClose }: { userId: string | null; onClose
 
   const manageable = !!user && canManage(nav.role, nav.myId, user);
   const canEdit = manageable && atLeast(nav.role, "ADMIN");
+  const canSendReset = canEdit && !!user?.email;
+  const onSendReset = () =>
+    user &&
+    confirm({
+      title: "Send a password reset link?",
+      message: `We'll email a link to ${user.email}. It works once and expires in 30 minutes.`,
+      confirmLabel: "Send link",
+      onConfirm: async () => {
+        await sendReset.mutateAsync(user.id);
+        toast("Reset link sent");
+      },
+    });
 
   const saveProfile = async () => {
     if (!user) return;
@@ -188,6 +203,7 @@ export function UserDrawer({ userId, onClose }: { userId: string | null; onClose
                 <AdminButton label="Reactivate account" icon="account-check-outline" variant="primary" onPress={() => actions.activate(user)} />
               )}
               {canEdit && !editing && <AdminButton label="Edit profile" icon="pencil-outline" onPress={() => setEditing(true)} />}
+              {canSendReset && <AdminButton label="Send password reset link" icon="lock-reset" onPress={onSendReset} />}
             </View>
           )}
 

@@ -1,5 +1,6 @@
-import { useMutation } from "@tanstack/react-query";
-import { apiClient } from "./client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient, duringTokenSwap } from "./client";
+import { disconnectSocket, reconnectSocket } from "./socket";
 import { useAuthStore } from "../store/authStore";
 import type { User } from "../types";
 
@@ -57,5 +58,37 @@ export function useVerifyPhoneOtp() {
       const { data } = await apiClient.post<AuthResponse>("/auth/phone/verify-otp", input);
       return completeLogin(data);
     },
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (email: string) => (await apiClient.post<{ ok: true }>("/auth/password/forgot", { email })).data,
+  });
+}
+
+export function useResetPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { token: string; password: string }) => {
+      const { data } = await apiClient.post<AuthResponse>("/auth/password/reset", input);
+      // The link may belong to a different account than the one signed in on this
+      // browser: drop the previous account's cached data and chat connection.
+      queryClient.clear();
+      disconnectSocket();
+      return completeLogin(data);
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
+      duringTokenSwap(async () => {
+        const { data } = await apiClient.post<{ token: string }>("/auth/password/change", input);
+        await useAuthStore.getState().replaceToken(data.token);
+        reconnectSocket();
+        return data;
+      }),
   });
 }

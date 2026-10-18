@@ -122,6 +122,15 @@ adminRouter.patch(
 );
 
 adminRouter.post(
+  "/users/:id/password-reset",
+  ADMIN,
+  asyncHandler(async (req: AuthedRequest, res: Response) => {
+    const { id, role } = actor(req);
+    res.json(await users.sendPasswordReset(id, role, req.params.id));
+  })
+);
+
+adminRouter.post(
   "/users/:id/suspend",
   MOD,
   asyncHandler(async (req: AuthedRequest, res: Response) => {

@@ -41,3 +41,12 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Password-reset email (Brevo). MAIL_FROM must be a verified sender in Brevo,
+      # e.g. "Triply <you@gmail.com>".
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # The web app that reset links open.
+      - key: WEB_APP_URL
+        value: https://triply-pi-three.vercel.app

@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import * as service from "./auth.service";
+import * as password from "./password.service";
+import type { AuthedRequest } from "../../middleware/auth";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -51,4 +53,23 @@ export async function verifyOtp(req: Request, res: Response) {
   const { phone, code, name } = verifyOtpSchema.parse(req.body);
   const result = await service.verifyPhoneOtp(phone, code, name);
   res.json(result);
+}
+
+const passwordField = z.string().min(8, "Use at least 8 characters").max(128);
+
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = z.object({ email: z.string().trim().email() }).parse(req.body);
+  await password.requestPasswordReset(email, req.ip);
+  res.json({ ok: true });
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const body = z.object({ token: z.string().min(20).max(200), password: passwordField }).parse(req.body);
+  const user = await password.resetPassword(body.token, body.password);
+  res.json(service.toAuthResponse(user));
+}
+
+export async function changePassword(req: AuthedRequest, res: Response) {
+  const body = z.object({ currentPassword: z.string().max(128).optional(), newPassword: passwordField }).parse(req.body);
+  res.json(await password.changePassword(req.userId!, body.currentPassword, body.newPassword));
 }

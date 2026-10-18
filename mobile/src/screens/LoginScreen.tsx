@@ -116,6 +116,14 @@ export function LoginScreen({ navigation }: Props) {
               </View>
 
               <TouchableOpacity
+                style={styles.forgotLink}
+                onPress={() => navigation.navigate("ForgotPassword", { email: email.trim() || undefined })}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.secondaryLinkText, { color: colors.primary }]}>Forgot password?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={[styles.loginButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
                 onPress={onSubmit}
                 disabled={login.isPending}
@@ -229,6 +237,7 @@ const styles = StyleSheet.create({
   note: { fontSize: 12, textAlign: "center" },
   secondaryActions: { gap: 2, marginTop: 6, alignItems: "center" },
   secondaryLink: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8 },
+  forgotLink: { alignSelf: "flex-end", paddingVertical: 4, marginTop: -6 },
   secondaryLinkText: { fontSize: 13.5, fontWeight: "600" },
   versionText: {
     color: "rgba(255,255,255,0.55)",

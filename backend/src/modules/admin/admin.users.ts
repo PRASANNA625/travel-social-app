@@ -5,6 +5,8 @@ import { ROLE_RANK, invalidateAccountCache } from "../../middleware/auth";
 import { emitToUser } from "../../config/socket";
 import { parsePageParams } from "../../utils/pagination";
 import { logAction } from "./audit";
+import { sendResetLink } from "../auth/password.service";
+import { allow } from "../../utils/rateLimit";
 
 // What admins see of an account. Never includes password hashes or OAuth ids.
 const adminUserSelect = {
@@ -178,4 +180,17 @@ export async function listStaff() {
     select: adminUserSelect,
     orderBy: [{ role: "desc" }, { name: "asc" }],
   });
+}
+
+// Emails a member a single-use password reset link (same link as "Forgot password").
+export async function sendPasswordReset(actorId: string, actorRole: UserRole, id: string) {
+  await loadTarget(actorId, actorRole, id);
+  const user = await prisma.user.findUniqueOrThrow({ where: { id }, select: { id: true, email: true, name: true } });
+  if (!user.email) throw new HttpError(400, "This member has no email address", "NO_EMAIL");
+  if (!allow(`admin-reset:${actorId}`, 20, 60 * 60 * 1000)) {
+    throw new HttpError(429, "You've sent a lot of reset links. Try again in an hour.", "RATE_LIMITED");
+  }
+  await sendResetLink({ id: user.id, email: user.email, name: user.name });
+  await logAction(actorId, "user.password_reset_link", "USER", id, { via: "admin" });
+  return { ok: true as const };
 }

@@ -25,4 +25,9 @@ export const env = {
     apiKey: process.env.CLOUDINARY_API_KEY ?? "",
     apiSecret: process.env.CLOUDINARY_API_SECRET ?? "",
   },
+  // Transactional email (password reset). Without a key, emails are printed to the console outside production.
+  brevoApiKey: process.env.BREVO_API_KEY ?? "",
+  mailFrom: process.env.MAIL_FROM ?? "Triply <no-reply@triply.app>",
+  // Where links in emails point (the web app), e.g. https://triply-pi-three.vercel.app
+  webAppUrl: process.env.WEB_APP_URL ?? "http://localhost:8081",
 };

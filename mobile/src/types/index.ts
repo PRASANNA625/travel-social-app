@@ -87,6 +87,8 @@ export interface User {
   isBlocked?: boolean;
   // Only on the signed-in user's own profile.
   role?: "USER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN";
+  // Only on the signed-in user's own profile: false for accounts that sign in with Google only.
+  hasPassword?: boolean;
 }
 
 export interface TripOwnerSummary {

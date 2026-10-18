@@ -21,6 +21,10 @@ import { asyncHandler } from "./utils/asyncHandler";
 
 export const app = express();
 
+// Render sits behind a proxy; without this every request looks like it comes from
+// the proxy's IP, and per-IP rate limits would throttle everyone together.
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+
 app.use(cors());
 app.use(express.json());
 app.use(

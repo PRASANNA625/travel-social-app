@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenHeader } from "../components/theme/ScreenHeader";
@@ -8,6 +8,10 @@ import type { AppStackParamList } from "../navigation/types";
 import { useTheme, type ThemePreference } from "../theme/ThemeContext";
 import type { Palette } from "../theme/palettes";
 import { PAGE_WIDTH, RADIUS, SHADOW, pageGutter } from "../theme/tokens";
+import { useMe } from "../api/users";
+import { useForgotPassword } from "../api/auth";
+import { ChangePasswordModal } from "../components/ChangePasswordModal";
+import { Alert } from "../utils/alert";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Settings">;
 
@@ -21,6 +25,18 @@ export function SettingsScreen({ navigation }: Props) {
   const { colors, preference, setPreference } = useTheme();
   const { isDesktop } = useResponsiveLayout();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { data: me } = useMe();
+  const forgot = useForgotPassword();
+  const [changingPassword, setChangingPassword] = useState(false);
+  // Accounts with a password change it here; Google-only accounts get an emailed link to set one.
+  const onPasswordRow = () => {
+    if (me?.hasPassword !== false) return setChangingPassword(true);
+    if (!me.email) return Alert.alert("No email on this account", "Add an email address to your profile first.");
+    forgot.mutate(me.email, {
+      onSuccess: () => Alert.alert("Check your email", `We've sent a link to ${me.email} to set your password.`),
+      onError: () => Alert.alert("Couldn't send the email", "Try again in a moment."),
+    });
+  };
 
   return (
     <View style={styles.screen}>
@@ -49,6 +65,17 @@ export function SettingsScreen({ navigation }: Props) {
           })}
         </View>
 
+        <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Account</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={onPasswordRow} disabled={forgot.isPending} accessibilityRole="button">
+            <View style={styles.iconWrap}>
+              <MaterialCommunityIcons name="lock-reset" size={18} color={colors.muted} />
+            </View>
+            <Text style={styles.rowLabel}>{me?.hasPassword === false ? "Set a password" : "Change password"}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedLight} />
+          </TouchableOpacity>
+        </View>
+
         <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Privacy & Safety</Text>
         <View style={styles.card}>
           <TouchableOpacity style={styles.row} onPress={() => navigation.navigate("BlockedUsers")}>
@@ -60,6 +87,7 @@ export function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </View>
+      <ChangePasswordModal visible={changingPassword} onClose={() => setChangingPassword(false)} />
     </View>
   );
 }

@@ -286,6 +286,7 @@ export const useUpdateUser = () =>
 export const useSuspendUser = () =>
   useAdminMutation(({ id, reason }: { id: string; reason: string }) => apiClient.post(`/admin/users/${id}/suspend`, { reason }));
 export const useActivateUser = () => useAdminMutation((id: string) => apiClient.post(`/admin/users/${id}/activate`));
+export const useSendPasswordReset = () => useAdminMutation((id: string) => apiClient.post(`/admin/users/${id}/password-reset`));
 export const useBulkUsers = () =>
   useAdminMutation(
     async (body: { ids: string[]; action: "suspend" | "activate"; reason?: string }) =>

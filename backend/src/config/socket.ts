@@ -1,9 +1,8 @@
 import type { Server as HttpServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
-import jwt from "jsonwebtoken";
-import { env } from "./env";
 import { prisma } from "./prisma";
-import { isSuspended } from "../middleware/auth";
+import { getAccountState, sessionIsCurrent } from "../middleware/auth";
+import { verifyToken, type TokenClaims } from "../utils/jwt";
 import { assertMember } from "../modules/groups/groups.service";
 import {
   ALLOWED_REACTIONS,
@@ -64,16 +63,17 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
   io.use((socket: AuthedSocket, next) => {
     const token = socket.handshake.auth?.token as string | undefined;
     if (!token) return next(new Error("Missing auth token"));
-    let userId: string;
+    let claims: TokenClaims;
     try {
-      userId = (jwt.verify(token, env.jwtSecret) as { sub: string }).sub;
+      claims = verifyToken(token);
     } catch {
       return next(new Error("Invalid auth token"));
     }
-    isSuspended(userId)
-      .then((suspended) => {
-        if (suspended) return next(new Error("Account suspended"));
-        socket.userId = userId;
+    getAccountState(claims.sub)
+      .then((state) => {
+        if (state.suspended) return next(new Error("Account suspended"));
+        if (!sessionIsCurrent(claims, state)) return next(new Error("Session expired"));
+        socket.userId = claims.sub;
         next();
       })
       .catch(() => next(new Error("Could not verify account")));
@@ -342,6 +342,12 @@ export function getIO(): SocketIOServer {
 
 export function emitToUser(userId: string, event: string, payload: unknown) {
   io?.to(`user:${userId}`).emit(event, payload);
+}
+
+// Drops every live connection of this user (after a password change). Clients
+// reconnect with their current token; sessions from before the change are refused.
+export function disconnectUser(userId: string) {
+  io?.in(`user:${userId}`).disconnectSockets(true);
 }
 
 export function emitToGroup(groupId: string, event: string, payload: unknown) {

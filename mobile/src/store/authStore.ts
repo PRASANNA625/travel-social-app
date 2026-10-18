@@ -22,11 +22,12 @@ interface AuthState {
   isHydrated: boolean;
   hydrate: () => Promise<void>;
   login: (token: string, user: User) => Promise<void>;
+  replaceToken: (token: string) => Promise<void>;
   setUser: (user: User) => void;
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   user: null,
   isHydrated: false,
@@ -40,11 +41,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     await tokenStorage.setItemAsync(TOKEN_KEY, token);
     set({ token, user });
   },
+  // After a password change: same user, new token (the old one no longer works).
+  // In memory first, so requests from this moment on already carry the new token.
+  replaceToken: async (token) => {
+    set({ token });
+    await tokenStorage.setItemAsync(TOKEN_KEY, token);
+  },
 
   setUser: (user) => set({ user }),
 
   logout: () => {
-    tokenStorage.deleteItemAsync(TOKEN_KEY).catch(() => {});
+    const { token } = get();
+    // On web, tabs share storage: if another tab has since stored a newer token (after a
+    // password change there), signing this tab out must not erase it.
+    tokenStorage
+      .getItemAsync(TOKEN_KEY)
+      .then((stored) => (!stored || stored === token ? tokenStorage.deleteItemAsync(TOKEN_KEY) : undefined))
+      .catch(() => {});
     set({ token: null, user: null });
   },
 }));

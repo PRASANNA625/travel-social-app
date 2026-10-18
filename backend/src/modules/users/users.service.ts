@@ -36,9 +36,11 @@ export const publicUserSelect = {
 } as const;
 
 export async function getMe(id: string) {
-  const user = await prisma.user.findUnique({ where: { id }, select: privateUserSelect });
+  const user = await prisma.user.findUnique({ where: { id }, select: { ...privateUserSelect, passwordHash: true } });
   if (!user) throw new HttpError(404, "User not found");
-  return user;
+  const { passwordHash, ...rest } = user;
+  // Settings shows "Change password" or "Set a password"; the hash itself never leaves the server.
+  return { ...rest, hasPassword: !!passwordHash };
 }
 
 export async function getUserById(id: string, viewerId?: string) {
