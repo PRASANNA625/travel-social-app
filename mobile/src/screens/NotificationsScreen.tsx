@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import type { ComponentProps } from "react";
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, SectionList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AppStackParamList, AppTabParamList } from "../navigation/types";
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "../api/notifications";
+import { groupNotificationsByAge } from "../utils/notificationGroups";
 import type { AppNotification } from "../types";
 import { ScreenHeader } from "../components/theme/ScreenHeader";
 import { EmptyState } from "../components/theme/EmptyState";
@@ -108,6 +109,8 @@ export function NotificationsScreen({ navigation }: Props) {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const unreadCount = data?.unreadCount ?? 0;
+  // Today / Yesterday / This week / This month / Earlier, newest first within each.
+  const sections = useMemo(() => groupNotificationsByAge(data?.items ?? []), [data?.items]);
 
   const onPressNotification = (item: AppNotification) => {
     if (!item.read) markRead.mutate(item.id);
@@ -223,10 +226,17 @@ export function NotificationsScreen({ navigation }: Props) {
           </View>
         </View>
       ) : (
-        <FlatList
+        <SectionList
           contentContainerStyle={[styles.list, { paddingHorizontal: gutter }]}
-          data={data?.items ?? []}
+          sections={sections}
           keyExtractor={(item) => item.id}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader} accessibilityRole="header">
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              {section.unread > 0 && <Text style={styles.sectionUnread}>{section.unread} new</Text>}
+            </View>
+          )}
           ListEmptyComponent={
             <EmptyState
               icon="bell-check-outline"
@@ -278,6 +288,18 @@ function createStyles(colors: Palette) {
   },
   markAllText: { color: colors.primary, fontSize: 13, fontWeight: "700" },
   list: { width: "100%", maxWidth: PAGE_WIDTH.form, alignSelf: "center", paddingTop: 4, paddingBottom: 32, gap: 10 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingTop: 8, paddingBottom: 2 },
+  sectionTitle: { fontSize: 13, fontWeight: "700", color: colors.muted, textTransform: "uppercase", letterSpacing: 0.4 },
+  sectionUnread: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: colors.primary,
+    backgroundColor: colors.primaryMuted,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: "hidden",
+  },
   item: {
     flexDirection: "row",
     alignItems: "center",
